@@ -8,4 +8,5 @@ keywords = ["msi", "windows", "installer"]
 license = "MIT"
 
 [dependencies]
+byteorder = "1"
 cfb = "0.1"

@@ -9,11 +9,13 @@
 
 #![warn(missing_docs)]
 
+extern crate byteorder;
 extern crate cfb;
 
 mod internal;
 
 pub use internal::package::Package;
+pub use internal::summary::SummaryInfo;
 use std::fs;
 use std::io;
 use std::path::Path;

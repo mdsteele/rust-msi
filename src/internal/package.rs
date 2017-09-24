@@ -1,6 +1,11 @@
 use cfb;
 use internal::streamname;
-use std::io::{self, Read, Seek};
+use internal::summary::SummaryInfo;
+use std::io::{self, Read, Seek, Write};
+
+// ========================================================================= //
+
+const SUMMARY_INFO_STREAM_NAME: &str = "\u{5}SummaryInformation";
 
 // ========================================================================= //
 
@@ -25,12 +30,25 @@ impl<F: Read + Seek> Package<F> {
         Ok(Package { comp: comp })
     }
 
+    /// Parses the summary information from the MSI package.
+    pub fn get_summary_info(&mut self) -> io::Result<SummaryInfo> {
+        SummaryInfo::read(self.comp.open_stream(SUMMARY_INFO_STREAM_NAME)?)
+    }
+
     /// Temporary helper function for testing.
     pub fn print_entries(&self) -> io::Result<()> {
         for entry in self.comp.read_storage("/")? {
             println!("{:?}", streamname::decode(entry.name()));
         }
         Ok(())
+    }
+}
+
+impl<F: Read + Write + Seek> Package<F> {
+    /// Overwrites the package's summary information.
+    pub fn set_summary_info(&mut self, summary_info: &SummaryInfo)
+                            -> io::Result<()> {
+        summary_info.write(self.comp.create_stream(SUMMARY_INFO_STREAM_NAME)?)
     }
 }
 
