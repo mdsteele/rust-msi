@@ -1,5 +1,8 @@
 use internal::propset::{OperatingSystem, PropertySet, PropertyValue};
+use std::ascii::AsciiExt;
 use std::io::{self, Read, Seek, Write};
+use std::time::SystemTime;
+use uuid::Uuid;
 
 // ========================================================================= //
 
@@ -15,8 +18,12 @@ const FMTID: [u8; 16] = [0xe0, 0x85, 0x9f, 0xf2, 0xf9, 0x4f, 0x68, 0x10,
                          0xab, 0x91, 0x08, 0x00, 0x2b, 0x27, 0xb3, 0xd9];
 
 const PROPERTY_TITLE: u32 = 2;
+const PROPERTY_SUBJECT: u32 = 3;
 const PROPERTY_AUTHOR: u32 = 4;
-// TODO: Support other properties.
+const PROPERTY_COMMENTS: u32 = 6;
+const PROPERTY_UUID: u32 = 9;
+const PROPERTY_CREATION_TIME: u32 = 12;
+const PROPERTY_CREATING_APP: u32 = 18;
 
 // ========================================================================= //
 
@@ -44,7 +51,8 @@ impl SummaryInfo {
         self.properties.write(writer)
     }
 
-    /// Gets the "author" property, if one is set.
+    /// Gets the "author" property, if one is set.  This indicates the name of
+    /// the person or company that created the package.
     pub fn author(&self) -> Option<&str> {
         match self.properties.get(PROPERTY_AUTHOR) {
             Some(&PropertyValue::LpStr(ref author)) => Some(author.as_str()),
@@ -57,7 +65,78 @@ impl SummaryInfo {
         self.properties.set(PROPERTY_AUTHOR, PropertyValue::LpStr(author));
     }
 
-    /// Gets the "title" property, if one is set.
+    /// Gets the "comments" property, if one is set.  This typically gives a
+    /// brief description of the application/software that will be installed by
+    /// the package.
+    pub fn comments(&self) -> Option<&str> {
+        match self.properties.get(PROPERTY_COMMENTS) {
+            Some(&PropertyValue::LpStr(ref comments)) => {
+                Some(comments.as_str())
+            }
+            _ => None,
+        }
+    }
+
+    /// Sets the "comments" property.
+    pub fn set_comments(&mut self, comments: String) {
+        self.properties.set(PROPERTY_COMMENTS, PropertyValue::LpStr(comments));
+    }
+
+    /// Gets the "creating application" property, if one is set.  This
+    /// indicates the name of the software application/tool that was used to
+    /// create the package.
+    pub fn creating_application(&self) -> Option<&str> {
+        match self.properties.get(PROPERTY_CREATING_APP) {
+            Some(&PropertyValue::LpStr(ref app_name)) => {
+                Some(app_name.as_str())
+            }
+            _ => None,
+        }
+    }
+
+    /// Sets the "creating application" property.
+    pub fn set_creating_application(&mut self, app_name: String) {
+        self.properties
+            .set(PROPERTY_CREATING_APP, PropertyValue::LpStr(app_name));
+    }
+
+    /// Gets the "creation time" property, if one is set.  This indicates the
+    /// date/time when the package was created.
+    pub fn creation_time(&self) -> Option<SystemTime> {
+        match self.properties.get(PROPERTY_CREATION_TIME) {
+            Some(&PropertyValue::FileTime(timestamp)) => Some(timestamp),
+            _ => None,
+        }
+    }
+
+    /// Sets the "creation time" property.
+    pub fn set_creation_time(&mut self, timestamp: SystemTime) {
+        self.properties
+            .set(PROPERTY_CREATION_TIME, PropertyValue::FileTime(timestamp));
+    }
+
+    /// Sets the "creation time" property to the current time.
+    pub fn set_creation_time_to_now(&mut self) {
+        self.set_creation_time(SystemTime::now());
+    }
+
+    /// Gets the "subject" property, if one is set.  This typically indicates
+    /// the name of the application/software that will be installed by the
+    /// package.
+    pub fn subject(&self) -> Option<&str> {
+        match self.properties.get(PROPERTY_SUBJECT) {
+            Some(&PropertyValue::LpStr(ref subject)) => Some(subject.as_str()),
+            _ => None,
+        }
+    }
+
+    /// Sets the "subject" property.
+    pub fn set_subject(&mut self, subject: String) {
+        self.properties.set(PROPERTY_SUBJECT, PropertyValue::LpStr(subject));
+    }
+
+    /// Gets the "title" property, if one is set.  This indicates the type of
+    /// the installer package (e.g. "Installation Database" or "Patch").
     pub fn title(&self) -> Option<&str> {
         match self.properties.get(PROPERTY_TITLE) {
             Some(&PropertyValue::LpStr(ref title)) => Some(title.as_str()),
@@ -68,6 +147,58 @@ impl SummaryInfo {
     /// Sets the "title" property.
     pub fn set_title(&mut self, title: String) {
         self.properties.set(PROPERTY_TITLE, PropertyValue::LpStr(title));
+    }
+
+    /// Gets the "UUID" property, if one is set.
+    pub fn uuid(&self) -> Option<Uuid> {
+        match self.properties.get(PROPERTY_UUID) {
+            Some(&PropertyValue::LpStr(ref string)) => {
+                let trimmed = string.trim_left_matches('{')
+                    .trim_right_matches('}');
+                Uuid::parse_str(trimmed).ok()
+            }
+            _ => None,
+        }
+    }
+
+    /// Sets the "UUID" property.
+    pub fn set_uuid(&mut self, uuid: Uuid) {
+        let mut string = format!("{{{}}}", uuid.hyphenated());
+        string.make_ascii_uppercase();
+        self.properties.set(PROPERTY_UUID, PropertyValue::LpStr(string));
+    }
+}
+
+// ========================================================================= //
+
+#[cfg(test)]
+mod tests {
+    use super::SummaryInfo;
+    use std::time::SystemTime;
+    use uuid::Uuid;
+
+    #[test]
+    fn set_properties() {
+        let timestamp = SystemTime::now();
+        let uuid = Uuid::parse_str("0000002a-000c-0005-0c03-0938362b0809")
+            .unwrap();
+
+        let mut summary_info = SummaryInfo::new();
+        summary_info.set_author("Jane Doe".to_string());
+        summary_info.set_comments("This app is the greatest!".to_string());
+        summary_info.set_creating_application("cargo-test".to_string());
+        summary_info.set_creation_time(timestamp);
+        summary_info.set_subject("My Great App".to_string());
+        summary_info.set_title("Installation Package".to_string());
+        summary_info.set_uuid(uuid);
+
+        assert_eq!(summary_info.author(), Some("Jane Doe"));
+        assert_eq!(summary_info.comments(), Some("This app is the greatest!"));
+        assert_eq!(summary_info.creating_application(), Some("cargo-test"));
+        assert_eq!(summary_info.creation_time(), Some(timestamp));
+        assert_eq!(summary_info.subject(), Some("My Great App"));
+        assert_eq!(summary_info.title(), Some("Installation Package"));
+        assert_eq!(summary_info.uuid(), Some(uuid));
     }
 }
 

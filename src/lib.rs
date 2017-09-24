@@ -11,6 +11,7 @@
 
 extern crate byteorder;
 extern crate cfb;
+extern crate uuid;
 
 mod internal;
 

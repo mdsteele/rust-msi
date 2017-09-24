@@ -4,8 +4,10 @@
 //     aa380367(v=vs.85).aspx
 
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use internal;
 use std::cmp;
 use std::io::{self, Read, Seek, SeekFrom, Write};
+use std::time::SystemTime;
 
 // ========================================================================= //
 
@@ -46,7 +48,7 @@ pub enum PropertyValue {
     I2(i16),
     I4(i32),
     LpStr(String),
-    FileTime(u64),
+    FileTime(SystemTime),
 }
 
 impl PropertyValue {
@@ -73,7 +75,9 @@ impl PropertyValue {
             }
             64 => {
                 let value = reader.read_u64::<LittleEndian>()?;
-                Ok(PropertyValue::FileTime(value))
+                let timestamp =
+                    internal::time::system_time_from_filetime(value);
+                Ok(PropertyValue::FileTime(timestamp))
             }
             _ => {
                 invalid_data!("Unknown property set value type ({})",
@@ -118,7 +122,9 @@ impl PropertyValue {
                     writer.write_u8(0)?;
                 }
             }
-            &PropertyValue::FileTime(value) => {
+            &PropertyValue::FileTime(timestamp) => {
+                let value =
+                    internal::time::filetime_from_system_time(timestamp);
                 writer.write_u32::<LittleEndian>(64)?;
                 writer.write_u64::<LittleEndian>(value)?;
             }
@@ -327,6 +333,7 @@ impl PropertySet {
 mod tests {
     use super::{OperatingSystem, PropertySet, PropertyValue};
     use std::io::Cursor;
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
     #[test]
     fn read_property_value() {
@@ -350,10 +357,11 @@ mod tests {
         assert_eq!(PropertyValue::read(input).unwrap(),
                    PropertyValue::LpStr("Hello, world!".to_string()));
 
-        let input: &[u8] = &[64, 0, 0, 0, 0x80, 0x68, 0xd8, 0x8f, 0xec, 0x71,
-                             0xd1, 0x01];
+        let sat_2017_mar_18_at_18_46_36_gmt = UNIX_EPOCH +
+                                              Duration::from_secs(1489862796);
+        let input: &[u8] = &[64, 0, 0, 0, 0, 206, 112, 248, 23, 160, 210, 1];
         assert_eq!(PropertyValue::read(input).unwrap(),
-                   PropertyValue::FileTime(131011125010000000));
+                   PropertyValue::FileTime(sat_2017_mar_18_at_18_46_36_gmt));
     }
 
     #[test]
@@ -385,12 +393,13 @@ mod tests {
                    &[30, 0, 0, 0, 14, 0, 0, 0, b'H', b'e', b'l', b'l', b'o',
                      b',', b' ', b'w', b'o', b'r', b'l', b'd', b'!', 0, 0, 0]);
 
-        let value = PropertyValue::FileTime(131011125010000000);
+        let sat_2017_mar_18_at_18_46_36_gmt = UNIX_EPOCH +
+                                              Duration::from_secs(1489862796);
+        let value = PropertyValue::FileTime(sat_2017_mar_18_at_18_46_36_gmt);
         let mut output = Vec::<u8>::new();
         value.write(&mut output).unwrap();
         assert_eq!(&output as &[u8],
-                   &[64, 0, 0, 0, 0x80, 0x68, 0xd8, 0x8f, 0xec, 0x71, 0xd1,
-                     0x01]);
+                   &[64, 0, 0, 0, 0, 206, 112, 248, 23, 160, 210, 1]);
     }
 
     #[test]
@@ -406,7 +415,7 @@ mod tests {
                        PropertyValue::LpStr("".to_string()),
                        PropertyValue::LpStr("foo".to_string()),
                        PropertyValue::LpStr("foobar".to_string()),
-                       PropertyValue::FileTime(123456789123456789)];
+                       PropertyValue::FileTime(SystemTime::now())];
         for value in values.iter() {
             let mut output = Vec::<u8>::new();
             value.write(&mut output).unwrap();
