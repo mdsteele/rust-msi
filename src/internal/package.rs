@@ -1,10 +1,13 @@
 use cfb;
 use internal::streamname;
+use internal::stringpool::{StringPool, StringPoolBuilder};
 use internal::summary::SummaryInfo;
 use std::io::{self, Read, Seek, Write};
 
 // ========================================================================= //
 
+const STRING_DATA_STREAM_NAME: &str = "\u{4840}_StringData";
+const STRING_POOL_STREAM_NAME: &str = "\u{4840}_StringPool";
 const SUMMARY_INFO_STREAM_NAME: &str = "\u{5}SummaryInformation";
 
 // ========================================================================= //
@@ -33,6 +36,18 @@ impl<F: Read + Seek> Package<F> {
     /// Parses the summary information from the MSI package.
     pub fn get_summary_info(&mut self) -> io::Result<SummaryInfo> {
         SummaryInfo::read(self.comp.open_stream(SUMMARY_INFO_STREAM_NAME)?)
+    }
+
+    /// Parses the string pool from the MSI package.
+    pub fn get_string_pool(&mut self) -> io::Result<StringPool> {
+        let builder = {
+            let name = streamname::encode(STRING_POOL_STREAM_NAME);
+            let stream = self.comp.open_stream(name)?;
+            StringPoolBuilder::read_from_pool(stream)?
+        };
+        let name = streamname::encode(STRING_DATA_STREAM_NAME);
+        let stream = self.comp.open_stream(name)?;
+        builder.build_from_data(stream)
     }
 
     /// Temporary helper function for testing.

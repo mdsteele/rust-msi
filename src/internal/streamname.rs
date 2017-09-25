@@ -19,7 +19,6 @@ pub fn decode(name: &str) -> String {
     output
 }
 
-#[allow(dead_code)]
 pub fn encode(name: &str) -> String {
     let mut output = String::new();
     let mut chars = name.chars().peekable();

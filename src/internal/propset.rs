@@ -5,6 +5,7 @@
 
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use internal;
+use ordermap::OrderMap;
 use std::cmp;
 use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::time::SystemTime;
@@ -70,6 +71,7 @@ impl PropertyValue {
                 if reader.read_u8()? != 0 {
                     invalid_data!("Property set string not null-terminated");
                 }
+                // TODO: Use codepage (property name 1) to decode string.
                 let string = String::from_utf8_lossy(&bytes).to_string();
                 Ok(PropertyValue::LpStr(string))
             }
@@ -113,6 +115,7 @@ impl PropertyValue {
                 writer.write_u32::<LittleEndian>(30)?;
                 let length = (string.len() + 1) as u32;
                 writer.write_u32::<LittleEndian>(length)?;
+                // TODO: Use codepage (property name 1) to encode string.
                 for byte in string.bytes() {
                     writer.write_u8(byte)?;
                 }
@@ -178,7 +181,7 @@ pub struct PropertySet {
     os_version: u16,
     clsid: [u8; 16],
     fmtid: [u8; 16],
-    properties: Vec<(u32, PropertyValue)>,
+    properties: OrderMap<u32, PropertyValue>,
 }
 
 impl PropertySet {
@@ -189,7 +192,7 @@ impl PropertySet {
             os_version: os_version,
             clsid: [0; 16],
             fmtid: fmtid,
-            properties: Vec::new(),
+            properties: OrderMap::new(),
         }
     }
 
@@ -236,14 +239,17 @@ impl PropertySet {
         reader.seek(SeekFrom::Start(section_offset as u64))?;
         let _section_size = reader.read_u32::<LittleEndian>()?;
         let num_properties = reader.read_u32::<LittleEndian>()?;
-        let mut property_offsets: Vec<(u32, u32)> = Vec::new();
+        let mut property_offsets = OrderMap::<u32, u32>::new();
         for _ in 0..num_properties {
             let name = reader.read_u32::<LittleEndian>()?;
             let offset = reader.read_u32::<LittleEndian>()?;
-            property_offsets.push((name, offset));
+            if property_offsets.contains_key(&name) {
+                invalid_data!("Repeated property name ({})", name);
+            }
+            property_offsets.insert(name, offset);
         }
-        let mut property_values: Vec<(u32, PropertyValue)> = Vec::new();
-        for (name, offset) in property_offsets {
+        let mut property_values = OrderMap::<u32, PropertyValue>::new();
+        for (name, offset) in property_offsets.into_iter() {
             reader.seek(SeekFrom::Start(section_offset as u64 +
                                         offset as u64))?;
             let value = PropertyValue::read(reader.by_ref())?;
@@ -253,7 +259,8 @@ impl PropertySet {
                               value.type_name(),
                               format_version.version_number());
             }
-            property_values.push((name, value));
+            debug_assert!(!property_values.contains_key(&name));
+            property_values.insert(name, value);
         }
         Ok(PropertySet {
             os: os,
@@ -268,7 +275,7 @@ impl PropertySet {
         // Property set header:
         writer.write_u16::<LittleEndian>(BYTE_ORDER_MARK)?;
         let mut format_version = PropertyFormatVersion::V0;
-        for &(_, ref value) in self.properties.iter() {
+        for (_, value) in self.properties.iter() {
             format_version = cmp::max(format_version, value.minimum_version());
         }
         writer.write_u16::<LittleEndian>(format_version.version_number())?;
@@ -289,17 +296,17 @@ impl PropertySet {
         let num_properties = self.properties.len() as u32;
         let mut section_size: u32 = 8 + 8 * num_properties;
         let mut property_offsets: Vec<u32> = Vec::new();
-        for &(_, ref value) in self.properties.iter() {
+        for (_, value) in self.properties.iter() {
             property_offsets.push(section_size);
             section_size += value.size_including_padding();
         }
         writer.write_u32::<LittleEndian>(section_size)?;
         writer.write_u32::<LittleEndian>(num_properties)?;
-        for (index, &(name, _)) in self.properties.iter().enumerate() {
+        for (index, (&name, _)) in self.properties.iter().enumerate() {
             writer.write_u32::<LittleEndian>(name)?;
             writer.write_u32::<LittleEndian>(property_offsets[index])?;
         }
-        for &(_, ref value) in self.properties.iter() {
+        for (_, value) in self.properties.iter() {
             value.write(writer.by_ref())?;
         }
         Ok(())
@@ -308,22 +315,11 @@ impl PropertySet {
     pub fn format_identifier(&self) -> &[u8; 16] { &self.fmtid }
 
     pub fn get(&self, property_name: u32) -> Option<&PropertyValue> {
-        for &(name, ref value) in self.properties.iter() {
-            if name == property_name {
-                return Some(value);
-            }
-        }
-        None
+        self.properties.get(&property_name)
     }
 
     pub fn set(&mut self, property_name: u32, property_value: PropertyValue) {
-        for &mut (name, ref mut value) in self.properties.iter_mut() {
-            if name == property_name {
-                *value = property_value;
-                return;
-            }
-        }
-        self.properties.push((property_name, property_value));
+        self.properties.insert(property_name, property_value);
     }
 }
 
