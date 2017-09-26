@@ -11,6 +11,7 @@
 
 extern crate byteorder;
 extern crate cfb;
+extern crate encoding;
 extern crate ordermap;
 extern crate uuid;
 

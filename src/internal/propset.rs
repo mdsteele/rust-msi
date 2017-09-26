@@ -5,6 +5,7 @@
 
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use internal;
+use internal::codepage::CodePage;
 use ordermap::OrderMap;
 use std::cmp;
 use std::io::{self, Read, Seek, SeekFrom, Write};
@@ -13,6 +14,8 @@ use std::time::SystemTime;
 // ========================================================================= //
 
 const BYTE_ORDER_MARK: u16 = 0xfffe;
+
+const PROPERTY_CODEPAGE: u32 = 1;
 
 // ========================================================================= //
 
@@ -53,7 +56,8 @@ pub enum PropertyValue {
 }
 
 impl PropertyValue {
-    fn read<R: Read>(mut reader: R) -> io::Result<PropertyValue> {
+    fn read<R: Read>(mut reader: R, codepage: CodePage)
+                     -> io::Result<PropertyValue> {
         let type_number = reader.read_u32::<LittleEndian>()?;
         match type_number {
             0 => Ok(PropertyValue::Empty),
@@ -71,9 +75,7 @@ impl PropertyValue {
                 if reader.read_u8()? != 0 {
                     invalid_data!("Property set string not null-terminated");
                 }
-                // TODO: Use codepage (property name 1) to decode string.
-                let string = String::from_utf8_lossy(&bytes).to_string();
-                Ok(PropertyValue::LpStr(string))
+                Ok(PropertyValue::LpStr(codepage.decode(&bytes)))
             }
             64 => {
                 let value = reader.read_u64::<LittleEndian>()?;
@@ -88,7 +90,8 @@ impl PropertyValue {
         }
     }
 
-    fn write<W: Write>(&self, mut writer: W) -> io::Result<()> {
+    fn write<W: Write>(&self, mut writer: W, codepage: CodePage)
+                       -> io::Result<()> {
         match self {
             &PropertyValue::Empty => {
                 writer.write_u32::<LittleEndian>(0)?;
@@ -113,12 +116,10 @@ impl PropertyValue {
             }
             &PropertyValue::LpStr(ref string) => {
                 writer.write_u32::<LittleEndian>(30)?;
-                let length = (string.len() + 1) as u32;
+                let bytes = codepage.encode(string.as_str());
+                let length = (bytes.len() + 1) as u32;
                 writer.write_u32::<LittleEndian>(length)?;
-                // TODO: Use codepage (property name 1) to encode string.
-                for byte in string.bytes() {
-                    writer.write_u8(byte)?;
-                }
+                writer.write_all(&bytes)?;
                 writer.write_u8(0)?; // Null terminator
                 let padding = (((length + 3) >> 2) << 2) - length;
                 for _ in 0..padding {
@@ -181,6 +182,7 @@ pub struct PropertySet {
     os_version: u16,
     clsid: [u8; 16],
     fmtid: [u8; 16],
+    codepage: CodePage,
     properties: OrderMap<u32, PropertyValue>,
 }
 
@@ -192,6 +194,7 @@ impl PropertySet {
             os_version: os_version,
             clsid: [0; 16],
             fmtid: fmtid,
+            codepage: CodePage::default(),
             properties: OrderMap::new(),
         }
     }
@@ -248,11 +251,31 @@ impl PropertySet {
             }
             property_offsets.insert(name, offset);
         }
+        let codepage = if let Some(&offset) =
+            property_offsets.get(&PROPERTY_CODEPAGE) {
+            reader.seek(SeekFrom::Start(section_offset as u64 +
+                                        offset as u64))?;
+            let value = PropertyValue::read(reader.by_ref(),
+                                            CodePage::default())?;
+            if let PropertyValue::I2(codepage_id) = value {
+                if let Some(codepage) = CodePage::from_id(codepage_id as i32) {
+                    codepage
+                } else {
+                    invalid_data!("Unknown codepage for property set ({})",
+                                  codepage_id);
+                }
+            } else {
+                invalid_data!("Codepage property value has wrong type ({})",
+                              value.type_name());
+            }
+        } else {
+            CodePage::default()
+        };
         let mut property_values = OrderMap::<u32, PropertyValue>::new();
         for (name, offset) in property_offsets.into_iter() {
             reader.seek(SeekFrom::Start(section_offset as u64 +
                                         offset as u64))?;
-            let value = PropertyValue::read(reader.by_ref())?;
+            let value = PropertyValue::read(reader.by_ref(), codepage)?;
             if value.minimum_version() > format_version {
                 invalid_data!("Property value of type {} is not supported \
                                in format version {}",
@@ -267,6 +290,7 @@ impl PropertySet {
             os_version: os_version,
             clsid: clsid,
             fmtid: fmtid,
+            codepage: codepage,
             properties: property_values,
         })
     }
@@ -307,18 +331,32 @@ impl PropertySet {
             writer.write_u32::<LittleEndian>(property_offsets[index])?;
         }
         for (_, value) in self.properties.iter() {
-            value.write(writer.by_ref())?;
+            value.write(writer.by_ref(), self.codepage)?;
         }
         Ok(())
     }
 
     pub fn format_identifier(&self) -> &[u8; 16] { &self.fmtid }
 
+    pub fn codepage(&self) -> CodePage { self.codepage }
+
+    pub fn set_codepage(&mut self, codepage: CodePage) {
+        self.set(PROPERTY_CODEPAGE, PropertyValue::I2(codepage.id() as i16));
+        debug_assert_eq!(self.codepage, codepage);
+    }
+
     pub fn get(&self, property_name: u32) -> Option<&PropertyValue> {
         self.properties.get(&property_name)
     }
 
     pub fn set(&mut self, property_name: u32, property_value: PropertyValue) {
+        if property_name == PROPERTY_CODEPAGE {
+            if let PropertyValue::I2(codepage_id) = property_value {
+                if let Some(codepage) = CodePage::from_id(codepage_id as i32) {
+                    self.codepage = codepage;
+                }
+            }
+        }
         self.properties.insert(property_name, property_value);
     }
 }
@@ -328,35 +366,38 @@ impl PropertySet {
 #[cfg(test)]
 mod tests {
     use super::{OperatingSystem, PropertySet, PropertyValue};
+    use internal::codepage::CodePage;
     use std::io::Cursor;
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
     #[test]
     fn read_property_value() {
         let input: &[u8] = &[0, 0, 0, 0];
-        assert_eq!(PropertyValue::read(input).unwrap(), PropertyValue::Empty);
+        assert_eq!(PropertyValue::read(input, CodePage::Utf8).unwrap(),
+                   PropertyValue::Empty);
 
         let input: &[u8] = &[1, 0, 0, 0];
-        assert_eq!(PropertyValue::read(input).unwrap(), PropertyValue::Null);
+        assert_eq!(PropertyValue::read(input, CodePage::Utf8).unwrap(),
+                   PropertyValue::Null);
 
         let input: &[u8] = &[2, 0, 0, 0, 0x2e, 0xfb];
-        assert_eq!(PropertyValue::read(input).unwrap(),
+        assert_eq!(PropertyValue::read(input, CodePage::Utf8).unwrap(),
                    PropertyValue::I2(-1234));
 
         let input: &[u8] = &[3, 0, 0, 0, 0x15, 0xcd, 0x5b, 0x07];
-        assert_eq!(PropertyValue::read(input).unwrap(),
+        assert_eq!(PropertyValue::read(input, CodePage::Utf8).unwrap(),
                    PropertyValue::I4(123456789));
 
         let input: &[u8] = &[30, 0, 0, 0, 14, 0, 0, 0, b'H', b'e', b'l',
                              b'l', b'o', b',', b' ', b'w', b'o', b'r', b'l',
                              b'd', b'!', 0];
-        assert_eq!(PropertyValue::read(input).unwrap(),
+        assert_eq!(PropertyValue::read(input, CodePage::Utf8).unwrap(),
                    PropertyValue::LpStr("Hello, world!".to_string()));
 
         let sat_2017_mar_18_at_18_46_36_gmt = UNIX_EPOCH +
                                               Duration::from_secs(1489862796);
         let input: &[u8] = &[64, 0, 0, 0, 0, 206, 112, 248, 23, 160, 210, 1];
-        assert_eq!(PropertyValue::read(input).unwrap(),
+        assert_eq!(PropertyValue::read(input, CodePage::Utf8).unwrap(),
                    PropertyValue::FileTime(sat_2017_mar_18_at_18_46_36_gmt));
     }
 
@@ -364,27 +405,27 @@ mod tests {
     fn write_property_value() {
         let value = PropertyValue::Empty;
         let mut output = Vec::<u8>::new();
-        value.write(&mut output).unwrap();
+        value.write(&mut output, CodePage::Utf8).unwrap();
         assert_eq!(&output as &[u8], &[0, 0, 0, 0]);
 
         let value = PropertyValue::Null;
         let mut output = Vec::<u8>::new();
-        value.write(&mut output).unwrap();
+        value.write(&mut output, CodePage::Utf8).unwrap();
         assert_eq!(&output as &[u8], &[1, 0, 0, 0]);
 
         let value = PropertyValue::I2(-1234);
         let mut output = Vec::<u8>::new();
-        value.write(&mut output).unwrap();
+        value.write(&mut output, CodePage::Utf8).unwrap();
         assert_eq!(&output as &[u8], &[2, 0, 0, 0, 0x2e, 0xfb, 0, 0]);
 
         let value = PropertyValue::I4(123456789);
         let mut output = Vec::<u8>::new();
-        value.write(&mut output).unwrap();
+        value.write(&mut output, CodePage::Utf8).unwrap();
         assert_eq!(&output as &[u8], &[3, 0, 0, 0, 0x15, 0xcd, 0x5b, 0x07]);
 
         let value = PropertyValue::LpStr("Hello, world!".to_string());
         let mut output = Vec::<u8>::new();
-        value.write(&mut output).unwrap();
+        value.write(&mut output, CodePage::Utf8).unwrap();
         assert_eq!(&output as &[u8],
                    &[30, 0, 0, 0, 14, 0, 0, 0, b'H', b'e', b'l', b'l', b'o',
                      b',', b' ', b'w', b'o', b'r', b'l', b'd', b'!', 0, 0, 0]);
@@ -393,7 +434,7 @@ mod tests {
                                               Duration::from_secs(1489862796);
         let value = PropertyValue::FileTime(sat_2017_mar_18_at_18_46_36_gmt);
         let mut output = Vec::<u8>::new();
-        value.write(&mut output).unwrap();
+        value.write(&mut output, CodePage::Utf8).unwrap();
         assert_eq!(&output as &[u8],
                    &[64, 0, 0, 0, 0, 206, 112, 248, 23, 160, 210, 1]);
     }
@@ -412,10 +453,12 @@ mod tests {
                        PropertyValue::LpStr("foo".to_string()),
                        PropertyValue::LpStr("foobar".to_string()),
                        PropertyValue::FileTime(SystemTime::now())];
+        let codepage = CodePage::Utf8;
         for value in values.iter() {
             let mut output = Vec::<u8>::new();
-            value.write(&mut output).unwrap();
-            let parsed = PropertyValue::read(&output as &[u8]).unwrap();
+            value.write(&mut output, codepage).unwrap();
+            let parsed = PropertyValue::read(&output as &[u8], codepage)
+                .unwrap();
             assert_eq!(parsed, *value);
             let expected_size = value.size_including_padding();
             assert_eq!(output.len() as u32, expected_size);

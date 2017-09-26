@@ -25,10 +25,12 @@ fn main() {
     for index in 0..string_pool.num_strings() {
         let refcount = string_pool.refcount(index);
         let string = string_pool.get(index);
-        println!("{}: [{}] {:?}", index, refcount, string);
+        println!("{:04x} [{}] {:?}", index, refcount, string);
     }
 
     let summary_info = package.get_summary_info().expect("summary_info");
+    let codepage = summary_info.codepage();
+    println!("   Code page: {} ({})", codepage.id(), codepage.name());
     if let Some(title) = summary_info.title() {
         println!("       Title: {}", title);
     }

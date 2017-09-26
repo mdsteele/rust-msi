@@ -1,3 +1,4 @@
+use internal::codepage::CodePage;
 use internal::propset::{OperatingSystem, PropertySet, PropertyValue};
 use std::ascii::AsciiExt;
 use std::io::{self, Read, Seek, Write};
@@ -63,6 +64,14 @@ impl SummaryInfo {
     /// Sets the "author" property.
     pub fn set_author(&mut self, author: String) {
         self.properties.set(PROPERTY_AUTHOR, PropertyValue::LpStr(author));
+    }
+
+    /// Gets the code page used for serializing this summary info.
+    pub fn codepage(&self) -> CodePage { self.properties.codepage() }
+
+    /// Sets the code page used for serializing this summary info.
+    pub fn set_codepage(&mut self, codepage: CodePage) {
+        self.properties.set_codepage(codepage);
     }
 
     /// Gets the "comments" property, if one is set.  This typically gives a

@@ -14,14 +14,14 @@ pub struct StringPoolBuilder {
 impl StringPoolBuilder {
     pub fn read_from_pool<R: Read>(mut reader: R)
                                    -> io::Result<StringPoolBuilder> {
-        let codepage_value = reader.read_u32::<LittleEndian>()?;
-        let _more_than_64k_strings = (codepage_value & 0x8000000) != 0;
-        let codepage_value = codepage_value & 0x7fffffff;
-        let codepage = match CodePage::from_id(codepage_value) {
+        let codepage_id = reader.read_u32::<LittleEndian>()?;
+        let _more_than_64k_strings = (codepage_id & 0x8000000) != 0;
+        let codepage_id = (codepage_id & 0x7fffffff) as i32;
+        let codepage = match CodePage::from_id(codepage_id) {
             Some(codepage) => codepage,
             None => {
                 invalid_data!("Unknown codepage for string pool ({})",
-                              codepage_value)
+                              codepage_id)
             }
         };
         let mut lengths_and_refcounts = Vec::<(u32, u16)>::new();

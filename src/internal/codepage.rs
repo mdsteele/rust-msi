@@ -1,6 +1,4 @@
-use std::char;
-
-// TODO: Use the `encoding` crate to implement this module.
+use encoding::{self, DecoderTrap, EncoderTrap, Encoding};
 
 // ========================================================================= //
 
@@ -14,107 +12,180 @@ use std::char;
 /// list of valid code pages.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CodePage {
-    /// [Windows-1252 (Latin)](https://en.wikipedia.org/wiki/Windows-1252)
+    /// [Windows-1250 (Latin 2)](https://en.wikipedia.org/wiki/Windows-1250)
+    Windows1250,
+    /// [Windows-1251 (Cyrillic)](https://en.wikipedia.org/wiki/Windows-1251)
+    Windows1251,
+    /// [Windows-1252 (Latin 1)](https://en.wikipedia.org/wiki/Windows-1252)
     Windows1252,
+    /// [Windows-1253 (Greek)](https://en.wikipedia.org/wiki/Windows-1253)
+    Windows1253,
+    /// [Windows-1254 (Turkish)](https://en.wikipedia.org/wiki/Windows-1254)
+    Windows1254,
+    /// [Windows-1255 (Hebrew)](https://en.wikipedia.org/wiki/Windows-1255)
+    Windows1255,
+    /// [Windows-1256 (Arabic)](https://en.wikipedia.org/wiki/Windows-1256)
+    Windows1256,
+    /// [Windows-1257 (Baltic)](https://en.wikipedia.org/wiki/Windows-1257)
+    Windows1257,
+    /// [Windows-1258 (Vietnamese)](https://en.wikipedia.org/wiki/Windows-1258)
+    Windows1258,
     /// [Mac OS Roman](https://en.wikipedia.org/wiki/Mac_OS_Roman)
     MacintoshRoman,
+    /// [Macintosh
+    /// Cyrillic](https://en.wikipedia.org/wiki/Macintosh_Cyrillic_encoding)
+    MacintoshCyrillic,
+    /// [US-ASCII](https://en.wikipedia.org/wiki/ASCII)
+    UsAscii,
+    /// [ISO-8859-1 (Latin 1)](https://en.wikipedia.org/wiki/ISO-8859-1)
+    Iso88591,
+    /// [ISO-8859-2 (Latin 2)](https://en.wikipedia.org/wiki/ISO-8859-2)
+    Iso88592,
+    /// [ISO-8859-3 (South European)](https://en.wikipedia.org/wiki/ISO-8859-3)
+    Iso88593,
+    /// [ISO-8859-4 (North European)](https://en.wikipedia.org/wiki/ISO-8859-4)
+    Iso88594,
+    /// [ISO-8859-5 (Cyrillic)](https://en.wikipedia.org/wiki/ISO-8859-5)
+    Iso88595,
+    /// [ISO-8859-6 (Arabic)](https://en.wikipedia.org/wiki/ISO-8859-6)
+    Iso88596,
+    /// [ISO-8859-7 (Greek)](https://en.wikipedia.org/wiki/ISO-8859-7)
+    Iso88597,
+    /// [ISO-8859-8 (Hebrew)](https://en.wikipedia.org/wiki/ISO-8859-8)
+    Iso88598,
     /// [UTF-8](https://en.wikipedia.org/wiki/UTF-8)
     Utf8,
 }
 
 impl CodePage {
     /// Returns the code page (if any) with the given ID number.
-    pub fn from_id(id: u32) -> Option<CodePage> {
+    pub fn from_id(id: i32) -> Option<CodePage> {
         match id {
-            0 => Some(CodePage::Utf8),
+            0 => Some(CodePage::default()),
+            1250 => Some(CodePage::Windows1250),
+            1251 => Some(CodePage::Windows1251),
             1252 => Some(CodePage::Windows1252),
+            1253 => Some(CodePage::Windows1253),
+            1254 => Some(CodePage::Windows1254),
+            1255 => Some(CodePage::Windows1255),
+            1256 => Some(CodePage::Windows1256),
+            1257 => Some(CodePage::Windows1257),
+            1258 => Some(CodePage::Windows1258),
             10000 => Some(CodePage::MacintoshRoman),
+            10007 => Some(CodePage::MacintoshCyrillic),
+            20127 => Some(CodePage::UsAscii),
+            28591 => Some(CodePage::Iso88591),
+            28592 => Some(CodePage::Iso88592),
+            28593 => Some(CodePage::Iso88593),
+            28594 => Some(CodePage::Iso88594),
+            28595 => Some(CodePage::Iso88595),
+            28596 => Some(CodePage::Iso88596),
+            28597 => Some(CodePage::Iso88597),
+            28598 => Some(CodePage::Iso88598),
             65001 => Some(CodePage::Utf8),
             _ => None,
         }
     }
 
     /// Returns the ID number used within Windows to represent this code page.
-    pub fn id(self) -> u32 {
-        match self {
+    pub fn id(&self) -> i32 {
+        match *self {
+            CodePage::Windows1250 => 1250,
+            CodePage::Windows1251 => 1251,
             CodePage::Windows1252 => 1252,
+            CodePage::Windows1253 => 1253,
+            CodePage::Windows1254 => 1254,
+            CodePage::Windows1255 => 1255,
+            CodePage::Windows1256 => 1256,
+            CodePage::Windows1257 => 1257,
+            CodePage::Windows1258 => 1258,
             CodePage::MacintoshRoman => 10000,
+            CodePage::MacintoshCyrillic => 10007,
+            CodePage::UsAscii => 20127,
+            CodePage::Iso88591 => 28591,
+            CodePage::Iso88592 => 28592,
+            CodePage::Iso88593 => 28593,
+            CodePage::Iso88594 => 28594,
+            CodePage::Iso88595 => 28595,
+            CodePage::Iso88596 => 28596,
+            CodePage::Iso88597 => 28597,
+            CodePage::Iso88598 => 28598,
             CodePage::Utf8 => 65001,
+        }
+    }
+
+    /// Returns a human-readable name for this code page.
+    pub fn name(&self) -> &str {
+        match *self {
+            CodePage::Windows1250 => "Windows Latin 2",
+            CodePage::Windows1251 => "Windows Cyrillic",
+            CodePage::Windows1252 => "Windows Latin 1",
+            CodePage::Windows1253 => "Windows Greek",
+            CodePage::Windows1254 => "Windows Turkish",
+            CodePage::Windows1255 => "Windows Hebrew",
+            CodePage::Windows1256 => "Windows Arabic",
+            CodePage::Windows1257 => "Windows Baltic",
+            CodePage::Windows1258 => "Windows Vietnamese",
+            CodePage::MacintoshRoman => "Mac OS Roman",
+            CodePage::MacintoshCyrillic => "Macintosh Cyrillic",
+            CodePage::UsAscii => "US-ASCII",
+            CodePage::Iso88591 => "ISO Latin 1",
+            CodePage::Iso88592 => "ISO Latin 2",
+            CodePage::Iso88593 => "ISO Latin 3",
+            CodePage::Iso88594 => "ISO Latin 4",
+            CodePage::Iso88595 => "ISO Latin/Cyrillic",
+            CodePage::Iso88596 => "ISO Latin/Arabic",
+            CodePage::Iso88597 => "ISO Latin/Greek",
+            CodePage::Iso88598 => "ISO Latin/Hebrew",
+            CodePage::Utf8 => "UTF-8",
         }
     }
 
     /// Decodes a byte array into a string, using this code page.  Invalid
     /// characters will be replaced with a Unicode replacement character
     /// (U+FFFD).
-    pub fn decode(self, bytes: &[u8]) -> String {
-        match self {
-            CodePage::Windows1252 => {
-                decode_with_table(bytes, &WINDOWS_1252_TABLE)
-            }
-            CodePage::MacintoshRoman => {
-                decode_with_table(bytes, &MACINTOSH_ROMAN_TABLE)
-            }
-            CodePage::Utf8 => String::from_utf8_lossy(bytes).to_string(),
+    pub fn decode(&self, bytes: &[u8]) -> String {
+        self.encoding().decode(bytes, DecoderTrap::Replace).unwrap()
+    }
+
+    /// Encodes a string into a byte array, using this code page.  For
+    /// non-Unicode code pages, any characters that cannot be represented will
+    /// be replaced with a code-page-specific replacement character (typically
+    /// `'?'`).
+    pub fn encode(&self, string: &str) -> Vec<u8> {
+        self.encoding().encode(string, EncoderTrap::Replace).unwrap()
+    }
+
+    fn encoding(&self) -> &Encoding {
+        match *self {
+            CodePage::Windows1250 => encoding::all::WINDOWS_1250,
+            CodePage::Windows1251 => encoding::all::WINDOWS_1251,
+            CodePage::Windows1252 => encoding::all::WINDOWS_1252,
+            CodePage::Windows1253 => encoding::all::WINDOWS_1253,
+            CodePage::Windows1254 => encoding::all::WINDOWS_1254,
+            CodePage::Windows1255 => encoding::all::WINDOWS_1255,
+            CodePage::Windows1256 => encoding::all::WINDOWS_1256,
+            CodePage::Windows1257 => encoding::all::WINDOWS_1257,
+            CodePage::Windows1258 => encoding::all::WINDOWS_1258,
+            CodePage::MacintoshRoman => encoding::all::MAC_ROMAN,
+            CodePage::MacintoshCyrillic => encoding::all::MAC_CYRILLIC,
+            CodePage::UsAscii => encoding::all::ASCII,
+            CodePage::Iso88591 => encoding::all::ISO_8859_1,
+            CodePage::Iso88592 => encoding::all::ISO_8859_2,
+            CodePage::Iso88593 => encoding::all::ISO_8859_3,
+            CodePage::Iso88594 => encoding::all::ISO_8859_4,
+            CodePage::Iso88595 => encoding::all::ISO_8859_5,
+            CodePage::Iso88596 => encoding::all::ISO_8859_6,
+            CodePage::Iso88597 => encoding::all::ISO_8859_7,
+            CodePage::Iso88598 => encoding::all::ISO_8859_8,
+            CodePage::Utf8 => encoding::all::UTF_8,
         }
     }
 }
 
-// ========================================================================= //
-
-fn decode_with_table(bytes: &[u8], table: &[char; 128]) -> String {
-    let mut output = String::new();
-    for &byte in bytes.iter() {
-        output.push(if byte < 0x80 {
-            char::from_u32(byte as u32).unwrap()
-        } else {
-            table[(byte - 0x80) as usize]
-        });
-    }
-    output
+impl Default for CodePage {
+    fn default() -> CodePage { CodePage::Utf8 }
 }
-
-const WINDOWS_1252_TABLE: [char; 128] =
-    ['\u{20ac}', '\u{fffd}', '\u{201a}', '\u{192}', '\u{201e}', '\u{2026}',
-     '\u{2020}', '\u{2021}', '\u{2c6}', '\u{2030}', '\u{160}', '\u{2039}',
-     '\u{152}', '\u{fffd}', '\u{17d}', '\u{fffd}', '\u{fffd}', '\u{2018}',
-     '\u{2019}', '\u{201c}', '\u{201d}', '\u{2022}', '\u{2013}', '\u{2014}',
-     '\u{2dc}', '\u{2122}', '\u{161}', '\u{203a}', '\u{153}', '\u{fffd}',
-     '\u{17e}', '\u{178}', '\u{a0}', '\u{a1}', '\u{a2}', '\u{a3}', '\u{a4}',
-     '\u{a5}', '\u{a6}', '\u{a7}', '\u{a8}', '\u{a9}', '\u{aa}', '\u{ab}',
-     '\u{ac}', '\u{ad}', '\u{ae}', '\u{af}', '\u{b0}', '\u{b1}', '\u{b2}',
-     '\u{b3}', '\u{b4}', '\u{b5}', '\u{b6}', '\u{b7}', '\u{b8}', '\u{b9}',
-     '\u{ba}', '\u{bb}', '\u{bc}', '\u{bd}', '\u{be}', '\u{bf}', '\u{c0}',
-     '\u{c1}', '\u{c2}', '\u{c3}', '\u{c4}', '\u{c5}', '\u{c6}', '\u{c7}',
-     '\u{c8}', '\u{c9}', '\u{ca}', '\u{cb}', '\u{cc}', '\u{cd}', '\u{ce}',
-     '\u{cf}', '\u{d0}', '\u{d1}', '\u{d2}', '\u{d3}', '\u{d4}', '\u{d5}',
-     '\u{d6}', '\u{d7}', '\u{d8}', '\u{d9}', '\u{da}', '\u{db}', '\u{dc}',
-     '\u{dd}', '\u{de}', '\u{df}', '\u{e0}', '\u{e1}', '\u{e2}', '\u{e3}',
-     '\u{e4}', '\u{e5}', '\u{e6}', '\u{e7}', '\u{e8}', '\u{e9}', '\u{ea}',
-     '\u{eb}', '\u{ec}', '\u{ed}', '\u{ee}', '\u{ef}', '\u{f0}', '\u{f1}',
-     '\u{f2}', '\u{f3}', '\u{f4}', '\u{f5}', '\u{f6}', '\u{f7}', '\u{f8}',
-     '\u{f9}', '\u{fa}', '\u{fb}', '\u{fc}', '\u{fd}', '\u{fe}', '\u{ff}'];
-
-const MACINTOSH_ROMAN_TABLE: [char; 128] =
-    ['\u{c4}', '\u{c5}', '\u{c7}', '\u{c9}', '\u{d1}', '\u{d6}', '\u{dc}',
-     '\u{e1}', '\u{e0}', '\u{e2}', '\u{e4}', '\u{e3}', '\u{e5}', '\u{e7}',
-     '\u{e9}', '\u{e8}', '\u{ea}', '\u{eb}', '\u{ed}', '\u{ec}', '\u{ee}',
-     '\u{ef}', '\u{f1}', '\u{f3}', '\u{f2}', '\u{f4}', '\u{f6}', '\u{f5}',
-     '\u{fa}', '\u{f9}', '\u{fb}', '\u{fc}', '\u{2020}', '\u{b0}', '\u{a2}',
-     '\u{a3}', '\u{a7}', '\u{2022}', '\u{b6}', '\u{df}', '\u{ae}', '\u{a9}',
-     '\u{2122}', '\u{b4}', '\u{a8}', '\u{2260}', '\u{c6}', '\u{d8}',
-     '\u{221e}', '\u{b1}', '\u{2264}', '\u{2265}', '\u{a5}', '\u{b5}',
-     '\u{2202}', '\u{2211}', '\u{220f}', '\u{3c0}', '\u{222b}', '\u{aa}',
-     '\u{ba}', '\u{3a9}', '\u{e6}', '\u{f8}', '\u{bf}', '\u{a1}', '\u{ac}',
-     '\u{221a}', '\u{192}', '\u{2248}', '\u{2206}', '\u{ab}', '\u{bb}',
-     '\u{2026}', '\u{a0}', '\u{c0}', '\u{c3}', '\u{d5}', '\u{152}',
-     '\u{153}', '\u{2013}', '\u{2014}', '\u{201c}', '\u{201d}', '\u{2018}',
-     '\u{2019}', '\u{f7}', '\u{25ca}', '\u{ff}', '\u{178}', '\u{2044}',
-     '\u{20ac}', '\u{2039}', '\u{203a}', '\u{fb01}', '\u{fb02}', '\u{2021}',
-     '\u{b7}', '\u{201a}', '\u{201e}', '\u{2030}', '\u{c2}', '\u{ca}',
-     '\u{c1}', '\u{cb}', '\u{c8}', '\u{cd}', '\u{ce}', '\u{cf}', '\u{cc}',
-     '\u{d3}', '\u{d4}', '\u{f8ff}', '\u{d2}', '\u{da}', '\u{db}', '\u{d9}',
-     '\u{131}', '\u{2c6}', '\u{2dc}', '\u{af}', '\u{2d8}', '\u{2d9}',
-     '\u{2da}', '\u{b8}', '\u{2dd}', '\u{2db}', '\u{2c7}'];
 
 // ========================================================================= //
 
@@ -124,8 +195,26 @@ mod tests {
 
     #[test]
     fn id_round_trip() {
-        let codepages =
-            &[CodePage::Windows1252, CodePage::MacintoshRoman, CodePage::Utf8];
+        let codepages = &[CodePage::Windows1250,
+                          CodePage::Windows1251,
+                          CodePage::Windows1252,
+                          CodePage::Windows1253,
+                          CodePage::Windows1254,
+                          CodePage::Windows1255,
+                          CodePage::Windows1256,
+                          CodePage::Windows1257,
+                          CodePage::Windows1258,
+                          CodePage::MacintoshRoman,
+                          CodePage::MacintoshCyrillic,
+                          CodePage::Iso88591,
+                          CodePage::Iso88592,
+                          CodePage::Iso88593,
+                          CodePage::Iso88594,
+                          CodePage::Iso88595,
+                          CodePage::Iso88596,
+                          CodePage::Iso88597,
+                          CodePage::Iso88598,
+                          CodePage::Utf8];
         for &codepage in codepages.iter() {
             assert_eq!(CodePage::from_id(codepage.id()), Some(codepage));
         }
@@ -139,6 +228,31 @@ mod tests {
                    "¿Qué pasa?");
         assert_eq!(&CodePage::Utf8.decode(b"\xc2\xbfQu\xc3\xa9 pasa?"),
                    "¿Qué pasa?");
+    }
+
+    #[test]
+    fn decoding_error() {
+        assert_eq!(&CodePage::Utf8.decode(b"Qu\xee pasa?"),
+                   "Qu\u{fffd} pasa?");
+    }
+
+
+    #[test]
+    fn encode_string() {
+        assert_eq!(&CodePage::Windows1252.encode("¿Qué pasa?") as &[u8],
+                   b"\xbfQu\xe9 pasa?");
+        assert_eq!(&CodePage::MacintoshRoman.encode("¿Qué pasa?") as &[u8],
+                   b"\xc0Qu\x8e pasa?");
+        assert_eq!(&CodePage::Utf8.encode("¿Qué pasa?") as &[u8],
+                   b"\xc2\xbfQu\xc3\xa9 pasa?");
+    }
+
+    #[test]
+    fn encoding_error() {
+        assert_eq!(&CodePage::Windows1252.encode("Snowman=\u{2603}") as &[u8],
+                   b"Snowman=?");
+        assert_eq!(&CodePage::UsAscii.encode("¿Qué pasa?") as &[u8],
+                   b"?Qu? pasa?");
     }
 }
 
