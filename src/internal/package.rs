@@ -6,8 +6,9 @@ use std::io::{self, Read, Seek, Write};
 
 // ========================================================================= //
 
-const STRING_DATA_STREAM_NAME: &str = "\u{4840}_StringData";
-const STRING_POOL_STREAM_NAME: &str = "\u{4840}_StringPool";
+const TABLES_TABLE_NAME: &str = "_Tables";
+const STRING_DATA_TABLE_NAME: &str = "_StringData";
+const STRING_POOL_TABLE_NAME: &str = "_StringPool";
 const SUMMARY_INFO_STREAM_NAME: &str = "\u{5}SummaryInformation";
 
 // ========================================================================= //
@@ -41,11 +42,11 @@ impl<F: Read + Seek> Package<F> {
     /// Parses the string pool from the MSI package.
     pub fn get_string_pool(&mut self) -> io::Result<StringPool> {
         let builder = {
-            let name = streamname::encode(STRING_POOL_STREAM_NAME);
+            let name = streamname::encode(STRING_POOL_TABLE_NAME, true);
             let stream = self.comp.open_stream(name)?;
             StringPoolBuilder::read_from_pool(stream)?
         };
-        let name = streamname::encode(STRING_DATA_STREAM_NAME);
+        let name = streamname::encode(STRING_DATA_TABLE_NAME, true);
         let stream = self.comp.open_stream(name)?;
         builder.build_from_data(stream)
     }
@@ -53,9 +54,25 @@ impl<F: Read + Seek> Package<F> {
     /// Temporary helper function for testing.
     pub fn print_entries(&self) -> io::Result<()> {
         for entry in self.comp.read_storage("/")? {
-            println!("{:?}", streamname::decode(entry.name()));
+            let (name, is_table) = streamname::decode(entry.name());
+            let prefix = if is_table { "T" } else { " " };
+            println!("{} {:?}", prefix, name);
         }
         Ok(())
+    }
+
+    /// Returns the names of the database tables in this package.
+    pub fn table_names(&mut self) -> io::Result<Vec<String>> {
+        let string_pool = self.get_string_pool()?;
+        let name = streamname::encode(TABLES_TABLE_NAME, true);
+        let mut stream = self.comp.open_stream(name)?;
+        let mut names = Vec::new();
+        let num_entries = stream.len() /
+                          (string_pool.bytes_per_string_ref() as u64);
+        for _ in 0..num_entries {
+            names.push(string_pool.read_string_ref(&mut stream)?.to_string());
+        }
+        Ok(names)
     }
 }
 

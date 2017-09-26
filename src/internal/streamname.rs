@@ -2,9 +2,21 @@ use std::char;
 
 // ========================================================================= //
 
-pub fn decode(name: &str) -> String {
+const TABLE_PREFIX: char = '\u{4840}';
+
+// ========================================================================= //
+
+/// Decodes a stream name, and returns the decoded name and whether the stream
+/// was a table.
+pub fn decode(name: &str) -> (String, bool) {
     let mut output = String::new();
-    for chr in name.chars() {
+    let mut is_table = false;
+    let mut chars = name.chars().peekable();
+    if chars.peek() == Some(&TABLE_PREFIX) {
+        is_table = true;
+        chars.next();
+    }
+    for chr in chars {
         let value = chr as u32;
         if value >= 0x3800 && value < 0x4800 {
             let value = value - 0x3800;
@@ -16,11 +28,15 @@ pub fn decode(name: &str) -> String {
             output.push(chr);
         }
     }
-    output
+    (output, is_table)
 }
 
-pub fn encode(name: &str) -> String {
+/// Encodes a stream name.
+pub fn encode(name: &str, is_table: bool) -> String {
     let mut output = String::new();
+    if is_table {
+        output.push(TABLE_PREFIX);
+    }
     let mut chars = name.chars().peekable();
     while let Some(ch1) = chars.next() {
         if let Some(value1) = to_b64(ch1) {
@@ -89,22 +105,22 @@ mod tests {
 
     #[test]
     fn decode_stream_name() {
-        assert_eq!(decode("\u{3b3f}\u{43f2}\u{4438}\u{45b1}"), "_Columns");
-        assert_eq!(decode("\u{3f7f}\u{4164}\u{422f}\u{4836}"), "_Tables");
-        assert_eq!(decode("\u{3f3f}\u{4577}\u{446c}\u{3e6a}\u{44b2}\u{482f}"),
-                   "_StringPool");
-        assert_eq!(decode("\u{3fff}\u{43e4}\u{41ec}\u{45e4}\u{44ac}\u{4831}"),
-                   "_Validation");
+        assert_eq!(decode("\u{4840}\u{3b3f}\u{43f2}\u{4438}\u{45b1}"),
+                   ("_Columns".to_string(), true));
+        assert_eq!(decode("\u{4840}\u{3f7f}\u{4164}\u{422f}\u{4836}"),
+                   ("_Tables".to_string(), true));
+        assert_eq!(decode("\u{44ca}\u{47b3}\u{46e8}\u{4828}"),
+                   ("App.exe".to_string(), false));
     }
 
     #[test]
     fn encode_stream_name() {
-        assert_eq!(encode("_Columns"), "\u{3b3f}\u{43f2}\u{4438}\u{45b1}");
-        assert_eq!(encode("_Tables"), "\u{3f7f}\u{4164}\u{422f}\u{4836}");
-        assert_eq!(encode("_StringPool"),
-                   "\u{3f3f}\u{4577}\u{446c}\u{3e6a}\u{44b2}\u{482f}");
-        assert_eq!(encode("_Validation"),
-                   "\u{3fff}\u{43e4}\u{41ec}\u{45e4}\u{44ac}\u{4831}");
+        assert_eq!(encode("_Columns", true),
+                   "\u{4840}\u{3b3f}\u{43f2}\u{4438}\u{45b1}");
+        assert_eq!(encode("_Tables", true),
+                   "\u{4840}\u{3f7f}\u{4164}\u{422f}\u{4836}");
+        assert_eq!(encode("App.exe", false),
+                   "\u{44ca}\u{47b3}\u{46e8}\u{4828}");
     }
 }
 

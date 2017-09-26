@@ -22,7 +22,7 @@ fn main() {
     package.print_entries().expect("print_entries");
 
     let string_pool = package.get_string_pool().expect("string_pool");
-    for index in 0..string_pool.num_strings() {
+    for index in 1..(string_pool.num_strings() + 1) {
         let refcount = string_pool.refcount(index);
         let string = string_pool.get(index);
         println!("{:04x} [{}] {:?}", index, refcount, string);
@@ -54,5 +54,9 @@ fn main() {
         for line in comments.lines() {
             println!("  {}", line);
         }
+    }
+
+    for name in package.table_names().unwrap().into_iter() {
+        println!("{}", name);
     }
 }
