@@ -2,14 +2,33 @@ use cfb;
 use internal::streamname;
 use internal::stringpool::{StringPool, StringPoolBuilder};
 use internal::summary::SummaryInfo;
+use internal::table::{Column, ColumnType, Table};
 use std::io::{self, Read, Seek, Write};
 
 // ========================================================================= //
 
+const COLUMNS_TABLE_NAME: &str = "_Columns";
 const TABLES_TABLE_NAME: &str = "_Tables";
 const STRING_DATA_TABLE_NAME: &str = "_StringData";
 const STRING_POOL_TABLE_NAME: &str = "_StringPool";
 const SUMMARY_INFO_STREAM_NAME: &str = "\u{5}SummaryInformation";
+
+// ========================================================================= //
+
+fn columns_table(long_string_refs: bool) -> Table {
+    Table::new(COLUMNS_TABLE_NAME.to_string(),
+               vec![Column::new("Table".to_string(), ColumnType::Str(64)),
+                    Column::new("Number".to_string(), ColumnType::Uint16),
+                    Column::new("Name".to_string(), ColumnType::Str(64)),
+                    Column::new("Type".to_string(), ColumnType::Uint16)],
+               long_string_refs)
+}
+
+fn tables_table(long_string_refs: bool) -> Table {
+    Table::new(TABLES_TABLE_NAME.to_string(),
+               vec![Column::new("Name".to_string(), ColumnType::Str(64))],
+               long_string_refs)
+}
 
 // ========================================================================= //
 
@@ -64,15 +83,40 @@ impl<F: Read + Seek> Package<F> {
     /// Returns the names of the database tables in this package.
     pub fn table_names(&mut self) -> io::Result<Vec<String>> {
         let string_pool = self.get_string_pool()?;
-        let name = streamname::encode(TABLES_TABLE_NAME, true);
-        let mut stream = self.comp.open_stream(name)?;
+        let table = tables_table(string_pool.long_string_refs());
+        let stream = self.comp.open_stream(table.encoded_name())?;
         let mut names = Vec::new();
-        let num_entries = stream.len() /
-                          (string_pool.bytes_per_string_ref() as u64);
-        for _ in 0..num_entries {
-            names.push(string_pool.read_string_ref(&mut stream)?.to_string());
+        for row in table.read_rows(stream)? {
+            names.push(row?[0].to_string(&string_pool));
         }
         Ok(names)
+    }
+
+    /// Temporary helper function for testing.
+    pub fn print_column_info(&mut self) -> io::Result<()> {
+        let string_pool = self.get_string_pool()?;
+        let table = columns_table(string_pool.long_string_refs());
+        println!("##### {} #####", table.name());
+        {
+            let columns = table.columns();
+            println!("{:24} {:6} {:24} {:4}",
+                     columns[0].name(),
+                     columns[1].name(),
+                     columns[2].name(),
+                     columns[3].name());
+            println!("------------------------ ------ \
+                      ------------------------ ----");
+        }
+        let stream = self.comp.open_stream(table.encoded_name())?;
+        for row in table.read_rows(stream)? {
+            let row = row?;
+            println!("{:24} {:6} {:24} {:4}",
+                     row[0].to_string(&string_pool),
+                     row[1].to_string(&string_pool),
+                     row[2].to_string(&string_pool),
+                     row[3].to_string(&string_pool));
+        }
+        Ok(())
     }
 }
 

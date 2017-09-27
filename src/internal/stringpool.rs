@@ -5,6 +5,39 @@ use std::u16;
 
 // ========================================================================= //
 
+/// A reference to a string in the string pool.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct StringRef(pub u32); // TODO: make field non-public
+
+impl StringRef {
+    /// Reads a serialized StringRef.  The `long_string_refs` argument
+    /// specifies whether to read three bytes (if true) or two (if false).
+    pub fn read<R: Read>(reader: &mut R, long_string_refs: bool)
+                         -> io::Result<StringRef> {
+        let mut number = reader.read_u16::<LittleEndian>()? as u32;
+        if long_string_refs {
+            number &= (reader.read_u8()? as u32) << 16;
+        }
+        if number == 0 {
+            invalid_data!("zero is not a valid string ref");
+        }
+        Ok(StringRef(number))
+    }
+
+    fn number(self) -> u32 {
+        let StringRef(number) = self;
+        number
+    }
+
+    fn index(self) -> usize {
+        let number = self.number();
+        debug_assert!(number > 0);
+        (number - 1) as usize
+    }
+}
+
+// ========================================================================= //
+
 pub struct StringPoolBuilder {
     codepage: CodePage,
     long_string_refs: bool,
@@ -89,49 +122,33 @@ impl StringPool {
     /// entries).
     pub fn num_strings(&self) -> u32 { self.strings.len() as u32 }
 
-    /// Returns the number of bytes that should be used to encode a reference
-    /// to a string in the string pool (either 2 or 3).  References are encoded
-    /// little-endian.
-    pub fn bytes_per_string_ref(&self) -> usize {
-        if self.long_string_refs { 3 } else { 2 }
-    }
-
-    /// Reads a string reference from the given reader and returns the
-    /// corresponding string from the pool.
-    pub fn read_string_ref<R: Read>(&self, reader: &mut R)
-                                    -> io::Result<&str> {
-        let mut string_ref = reader.read_u16::<LittleEndian>()? as u32;
-        if self.long_string_refs {
-            string_ref &= (reader.read_u8()? as u32) << 16;
-        }
-        Ok(self.get(string_ref))
-    }
+    /// Returns true if string references should be serialized with three bytes
+    /// instead of two.
+    pub fn long_string_refs(&self) -> bool { self.long_string_refs }
 
     /// Returns the string in the pool for the given reference.
-    pub fn get(&self, string_ref: u32) -> &str {
-        if string_ref > 0 {
-            let index = (string_ref - 1) as usize;
-            if index < self.strings.len() {
-                return self.strings[index].0.as_str();
-            }
+    pub fn get(&self, string_ref: StringRef) -> &str {
+        let index = string_ref.index();
+        if index < self.strings.len() {
+            self.strings[index].0.as_str()
+        } else {
+            ""
         }
-        ""
     }
 
     /// Returns the pool's refcount for the given string reference.
-    pub fn refcount(&self, string_ref: u32) -> u16 {
-        if string_ref > 0 {
-            let index = (string_ref - 1) as usize;
-            if index < self.strings.len() {
-                return self.strings[index].1;
-            }
+    pub fn refcount(&self, string_ref: StringRef) -> u16 {
+        let index = string_ref.index();
+        if index < self.strings.len() {
+            self.strings[index].1
+        } else {
+            0
         }
-        0
     }
 
     /// Inserts a string into the pool, or increments its refcount if it's
     /// already in the pool, and returns the index of the string in the pool.
-    pub fn incref(&mut self, string: String) -> u32 {
+    pub fn incref(&mut self, string: String) -> StringRef {
         // TODO: change the internal representation of StringPool to make this
         // more efficient.
         for (index, &mut (ref mut st, ref mut refcount)) in
@@ -140,26 +157,23 @@ impl StringPool {
                 debug_assert_eq!(st, "");
                 *st = string;
                 *refcount = 1;
-                return (index + 1) as u32;
+                return StringRef((index + 1) as u32);
             }
             if *st == string && *refcount < u16::MAX {
                 *refcount += 1;
-                return (index + 1) as u32;
+                return StringRef((index + 1) as u32);
             }
         }
         self.strings.push((string, 1));
-        self.strings.len() as u32
+        StringRef(self.strings.len() as u32)
     }
 
     /// Decrements the refcount of a string in the pool.
-    pub fn decref(&mut self, string_ref: u32) {
-        if string_ref < 1 {
-            panic!("decref: zero is not a valid string_ref");
-        }
-        let index = (string_ref - 1) as usize;
+    pub fn decref(&mut self, string_ref: StringRef) {
+        let index = string_ref.index();
         if index >= self.strings.len() {
             panic!("decref: string_ref {} invalid, pool has only {} entries",
-                   string_ref,
+                   string_ref.number(),
                    self.strings.len());
         }
         let (ref mut string, ref mut refcount) = self.strings[index];
@@ -177,24 +191,24 @@ impl StringPool {
 
 #[cfg(test)]
 mod tests {
-    use super::{StringPool, StringPoolBuilder};
+    use super::{StringPool, StringPoolBuilder, StringRef};
     use internal::codepage::CodePage;
 
     #[test]
     fn new_string_pool() {
         let mut string_pool = StringPool::new();
-        assert_eq!(string_pool.bytes_per_string_ref(), 2);
+        assert!(!string_pool.long_string_refs());
         assert_eq!(string_pool.num_strings(), 0);
-        assert_eq!(string_pool.incref("Foo".to_string()), 1);
+        assert_eq!(string_pool.incref("Foo".to_string()), StringRef(1));
         assert_eq!(string_pool.num_strings(), 1);
-        assert_eq!(string_pool.incref("Quux".to_string()), 2);
+        assert_eq!(string_pool.incref("Quux".to_string()), StringRef(2));
         assert_eq!(string_pool.num_strings(), 2);
-        assert_eq!(string_pool.incref("Foo".to_string()), 1);
+        assert_eq!(string_pool.incref("Foo".to_string()), StringRef(1));
         assert_eq!(string_pool.num_strings(), 2);
-        assert_eq!(string_pool.get(1), "Foo");
-        assert_eq!(string_pool.refcount(1), 2);
-        assert_eq!(string_pool.get(2), "Quux");
-        assert_eq!(string_pool.refcount(2), 1);
+        assert_eq!(string_pool.get(StringRef(1)), "Foo");
+        assert_eq!(string_pool.refcount(StringRef(1)), 2);
+        assert_eq!(string_pool.get(StringRef(2)), "Quux");
+        assert_eq!(string_pool.refcount(StringRef(2)), 1);
     }
 
     #[test]
@@ -204,12 +218,12 @@ mod tests {
         let builder = StringPoolBuilder::read_from_pool(pool).expect("pool");
         let string_pool = builder.build_from_data(data).expect("data");
         assert_eq!(string_pool.codepage(), CodePage::Utf8);
-        assert_eq!(string_pool.bytes_per_string_ref(), 2);
+        assert!(!string_pool.long_string_refs());
         assert_eq!(string_pool.num_strings(), 2);
-        assert_eq!(string_pool.get(1), "Foo");
-        assert_eq!(string_pool.refcount(1), 2);
-        assert_eq!(string_pool.get(2), "Quux");
-        assert_eq!(string_pool.refcount(2), 7);
+        assert_eq!(string_pool.get(StringRef(1)), "Foo");
+        assert_eq!(string_pool.refcount(StringRef(1)), 2);
+        assert_eq!(string_pool.get(StringRef(2)), "Quux");
+        assert_eq!(string_pool.refcount(StringRef(2)), 7);
     }
 
     #[test]
@@ -219,7 +233,7 @@ mod tests {
         let builder = StringPoolBuilder::read_from_pool(pool).expect("pool");
         let string_pool = builder.build_from_data(data).expect("data");
         assert_eq!(string_pool.codepage(), CodePage::Windows1252);
-        assert_eq!(string_pool.bytes_per_string_ref(), 3);
+        assert!(string_pool.long_string_refs());
         assert_eq!(string_pool.num_strings(), 2);
     }
 
@@ -230,10 +244,10 @@ mod tests {
         let builder = StringPoolBuilder::read_from_pool(pool).expect("pool");
         let string_pool = builder.build_from_data(data).expect("data");
         assert_eq!(string_pool.num_strings(), 2);
-        assert_eq!(string_pool.get(1), "Foo");
-        assert_eq!(string_pool.refcount(1), 2);
-        assert_eq!(string_pool.get(2), "Foo");
-        assert_eq!(string_pool.refcount(2), 7);
+        assert_eq!(string_pool.get(StringRef(1)), "Foo");
+        assert_eq!(string_pool.refcount(StringRef(1)), 2);
+        assert_eq!(string_pool.get(StringRef(2)), "Foo");
+        assert_eq!(string_pool.refcount(StringRef(2)), 7);
     }
 
     #[test]
@@ -243,30 +257,30 @@ mod tests {
         let builder = StringPoolBuilder::read_from_pool(pool).expect("pool");
         let mut string_pool = builder.build_from_data(data).expect("data");
         assert_eq!(string_pool.num_strings(), 1);
-        assert_eq!(string_pool.get(1), "Foobar");
-        assert_eq!(string_pool.refcount(1), 0xfffe);
-        assert_eq!(string_pool.incref("Foobar".to_string()), 1);
+        assert_eq!(string_pool.get(StringRef(1)), "Foobar");
+        assert_eq!(string_pool.refcount(StringRef(1)), 0xfffe);
+        assert_eq!(string_pool.incref("Foobar".to_string()), StringRef(1));
         assert_eq!(string_pool.num_strings(), 1);
-        assert_eq!(string_pool.incref("Foobar".to_string()), 2);
+        assert_eq!(string_pool.incref("Foobar".to_string()), StringRef(2));
         assert_eq!(string_pool.num_strings(), 2);
-        assert_eq!(string_pool.refcount(1), 0xffff);
-        assert_eq!(string_pool.refcount(2), 1);
+        assert_eq!(string_pool.refcount(StringRef(1)), 0xffff);
+        assert_eq!(string_pool.refcount(StringRef(2)), 1);
     }
 
     #[test]
     fn reuse_entries() {
         let mut string_pool = StringPool::new();
-        assert_eq!(string_pool.incref("Foo".to_string()), 1);
-        assert_eq!(string_pool.incref("Bar".to_string()), 2);
+        assert_eq!(string_pool.incref("Foo".to_string()), StringRef(1));
+        assert_eq!(string_pool.incref("Bar".to_string()), StringRef(2));
         assert_eq!(string_pool.num_strings(), 2);
-        string_pool.decref(1);
-        assert_eq!(string_pool.refcount(1), 0);
-        assert_eq!(string_pool.get(1), "");
+        string_pool.decref(StringRef(1));
+        assert_eq!(string_pool.refcount(StringRef(1)), 0);
+        assert_eq!(string_pool.get(StringRef(1)), "");
         assert_eq!(string_pool.num_strings(), 2);
-        assert_eq!(string_pool.incref("Quux".to_string()), 1);
+        assert_eq!(string_pool.incref("Quux".to_string()), StringRef(1));
         assert_eq!(string_pool.num_strings(), 2);
-        assert_eq!(string_pool.refcount(1), 1);
-        assert_eq!(string_pool.get(1), "Quux");
+        assert_eq!(string_pool.refcount(StringRef(1)), 1);
+        assert_eq!(string_pool.get(StringRef(1)), "Quux");
     }
 
     #[test]

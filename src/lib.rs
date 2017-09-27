@@ -19,7 +19,7 @@ mod internal;
 
 pub use internal::codepage::CodePage;
 pub use internal::package::Package;
-pub use internal::stringpool::StringPool;
+pub use internal::stringpool::{StringPool, StringRef};
 pub use internal::summary::SummaryInfo;
 use std::fs;
 use std::io;

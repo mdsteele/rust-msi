@@ -23,8 +23,9 @@ fn main() {
 
     let string_pool = package.get_string_pool().expect("string_pool");
     for index in 1..(string_pool.num_strings() + 1) {
-        let refcount = string_pool.refcount(index);
-        let string = string_pool.get(index);
+        let string_ref = msi::StringRef(index);
+        let refcount = string_pool.refcount(string_ref);
+        let string = string_pool.get(string_ref);
         println!("{:04x} [{}] {:?}", index, refcount, string);
     }
 
@@ -59,4 +60,6 @@ fn main() {
     for name in package.table_names().unwrap().into_iter() {
         println!("{}", name);
     }
+
+    package.print_column_info().unwrap();
 }
