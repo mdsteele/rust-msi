@@ -12,24 +12,7 @@ fn to_datetime(timestamp: SystemTime) -> DateTime<Utc> {
     DateTime::<Utc>::from_utc(naive, Utc)
 }
 
-fn main() {
-    if env::args().count() != 2 {
-        println!("Usage: msiinfo <path>");
-        return;
-    }
-    let path = env::args().nth(1).expect("path");
-    let mut package = msi::open(path).expect("package");
-    package.print_entries().expect("print_entries");
-
-    let string_pool = package.get_string_pool().expect("string_pool");
-    for index in 1..(string_pool.num_strings() + 1) {
-        let string_ref = msi::StringRef(index);
-        let refcount = string_pool.refcount(string_ref);
-        let string = string_pool.get(string_ref);
-        println!("{:04x} [{}] {:?}", index, refcount, string);
-    }
-
-    let summary_info = package.get_summary_info().expect("summary_info");
+fn print_summary_info(summary_info: &msi::SummaryInfo) {
     let codepage = summary_info.codepage();
     println!("   Code page: {} ({})", codepage.id(), codepage.name());
     if let Some(title) = summary_info.title() {
@@ -56,6 +39,18 @@ fn main() {
             println!("  {}", line);
         }
     }
+}
+
+fn main() {
+    if env::args().count() != 2 {
+        println!("Usage: msiinfo <path>");
+        return;
+    }
+    let path = env::args().nth(1).expect("path");
+    let mut package = msi::open(path).expect("package");
+    package.print_entries().expect("print_entries");
+
+    print_summary_info(package.summary_info());
 
     for name in package.table_names().unwrap().into_iter() {
         println!("{}", name);

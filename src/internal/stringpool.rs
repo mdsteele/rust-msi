@@ -1,7 +1,11 @@
-use byteorder::{LittleEndian, ReadBytesExt};
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use internal::codepage::CodePage;
-use std::io::{self, Read};
+use std::io::{self, Read, Write};
 use std::u16;
+
+// ========================================================================= //
+
+const LONG_STRING_REFS_BIT: u32 = 0x8000_0000;
 
 // ========================================================================= //
 
@@ -48,8 +52,8 @@ impl StringPoolBuilder {
     pub fn read_from_pool<R: Read>(mut reader: R)
                                    -> io::Result<StringPoolBuilder> {
         let codepage_id = reader.read_u32::<LittleEndian>()?;
-        let long_string_refs = (codepage_id & 0x80000000) != 0;
-        let codepage_id = (codepage_id & 0x7fffffff) as i32;
+        let long_string_refs = (codepage_id & LONG_STRING_REFS_BIT) != 0;
+        let codepage_id = (codepage_id & !LONG_STRING_REFS_BIT) as i32;
         let codepage = match CodePage::from_id(codepage_id) {
             Some(codepage) => codepage,
             None => {
@@ -107,9 +111,9 @@ pub struct StringPool {
 
 impl StringPool {
     /// Creates a new, empty string pool.
-    pub fn new() -> StringPool {
+    pub fn new(codepage: CodePage) -> StringPool {
         StringPool {
-            codepage: CodePage::default(),
+            codepage: codepage,
             strings: Vec::new(),
             long_string_refs: false,
         }
@@ -185,6 +189,33 @@ impl StringPool {
             string.clear();
         }
     }
+
+    /// Writes to the `_StringPool` table.
+    pub fn write_pool<W: Write>(&self, mut writer: W) -> io::Result<()> {
+        let mut codepage_id = self.codepage.id() as u32;
+        if self.long_string_refs {
+            codepage_id |= LONG_STRING_REFS_BIT;
+        }
+        writer.write_u32::<LittleEndian>(codepage_id)?;
+        for &(ref string, refcount) in self.strings.iter() {
+            let length = self.codepage.encode(string.as_str()).len() as u32;
+            if length > (u16::MAX as u32) {
+                writer.write_u16::<LittleEndian>(0)?;
+                writer.write_u16::<LittleEndian>((length >> 16) as u16)?;
+            }
+            writer.write_u16::<LittleEndian>((length & 0xffff) as u16)?;
+            writer.write_u16::<LittleEndian>(refcount)?;
+        }
+        Ok(())
+    }
+
+    /// Writes to the `_StringData` table.
+    pub fn write_data<W: Write>(&self, mut writer: W) -> io::Result<()> {
+        for &(ref string, _) in self.strings.iter() {
+            writer.write_all(&self.codepage.encode(string.as_str()))?;
+        }
+        Ok(())
+    }
 }
 
 // ========================================================================= //
@@ -196,7 +227,7 @@ mod tests {
 
     #[test]
     fn new_string_pool() {
-        let mut string_pool = StringPool::new();
+        let mut string_pool = StringPool::new(CodePage::default());
         assert!(!string_pool.long_string_refs());
         assert_eq!(string_pool.num_strings(), 0);
         assert_eq!(string_pool.incref("Foo".to_string()), StringRef(1));
@@ -224,6 +255,21 @@ mod tests {
         assert_eq!(string_pool.refcount(StringRef(1)), 2);
         assert_eq!(string_pool.get(StringRef(2)), "Quux");
         assert_eq!(string_pool.refcount(StringRef(2)), 7);
+    }
+
+    #[test]
+    fn write_string_pool() {
+        let mut string_pool = StringPool::new(CodePage::Windows1252);
+        assert_eq!(string_pool.incref("Foo".to_string()), StringRef(1));
+        assert_eq!(string_pool.incref("Quux".to_string()), StringRef(2));
+        assert_eq!(string_pool.incref("Foo".to_string()), StringRef(1));
+        let mut pool_output = Vec::<u8>::new();
+        string_pool.write_pool(&mut pool_output).expect("pool");
+        assert_eq!(&pool_output as &[u8],
+                   b"\xe4\x04\x00\x00\x03\x00\x02\x00\x04\x00\x01\x00");
+        let mut data_output = Vec::<u8>::new();
+        string_pool.write_data(&mut data_output).expect("data");
+        assert_eq!(&data_output as &[u8], b"FooQuux");
     }
 
     #[test]
@@ -269,7 +315,7 @@ mod tests {
 
     #[test]
     fn reuse_entries() {
-        let mut string_pool = StringPool::new();
+        let mut string_pool = StringPool::new(CodePage::default());
         assert_eq!(string_pool.incref("Foo".to_string()), StringRef(1));
         assert_eq!(string_pool.incref("Bar".to_string()), StringRef(2));
         assert_eq!(string_pool.num_strings(), 2);

@@ -37,11 +37,19 @@ fn tables_table(long_string_refs: bool) -> Table {
 /// [`Cursor`](https://doc.rust-lang.org/std/io/struct.Cursor.html)).
 pub struct Package<F> {
     comp: cfb::CompoundFile<F>,
+    summary_info: SummaryInfo,
+    is_summary_info_modified: bool,
+    string_pool: StringPool,
+    is_string_pool_modified: bool,
+    finisher: Option<Box<Finish<F>>>,
 }
 
 impl<F> Package<F> {
-    /// Consumes the `Package` object, returning the underlying reader/writer.
-    pub fn into_inner(self) -> F { self.comp.into_inner() }
+    /// Returns summary information for this package.
+    pub fn summary_info(&self) -> &SummaryInfo { &self.summary_info }
+
+    /// Returns the string pool for this package.
+    pub fn string_pool(&self) -> &StringPool { &self.string_pool }
 }
 
 impl<F: Read + Seek> Package<F> {
@@ -49,25 +57,27 @@ impl<F: Read + Seek> Package<F> {
     /// underlying reader also supports the `Write` trait, then the `Package`
     /// object will be writable as well.
     pub fn open(inner: F) -> io::Result<Package<F>> {
-        let comp = cfb::CompoundFile::open(inner)?;
-        Ok(Package { comp: comp })
-    }
-
-    /// Parses the summary information from the MSI package.
-    pub fn get_summary_info(&mut self) -> io::Result<SummaryInfo> {
-        SummaryInfo::read(self.comp.open_stream(SUMMARY_INFO_STREAM_NAME)?)
-    }
-
-    /// Parses the string pool from the MSI package.
-    pub fn get_string_pool(&mut self) -> io::Result<StringPool> {
-        let builder = {
-            let name = streamname::encode(STRING_POOL_TABLE_NAME, true);
-            let stream = self.comp.open_stream(name)?;
-            StringPoolBuilder::read_from_pool(stream)?
+        let mut comp = cfb::CompoundFile::open(inner)?;
+        let summary_info =
+            SummaryInfo::read(comp.open_stream(SUMMARY_INFO_STREAM_NAME)?)?;
+        let string_pool = {
+            let builder = {
+                let name = streamname::encode(STRING_POOL_TABLE_NAME, true);
+                let stream = comp.open_stream(name)?;
+                StringPoolBuilder::read_from_pool(stream)?
+            };
+            let name = streamname::encode(STRING_DATA_TABLE_NAME, true);
+            let stream = comp.open_stream(name)?;
+            builder.build_from_data(stream)?
         };
-        let name = streamname::encode(STRING_DATA_TABLE_NAME, true);
-        let stream = self.comp.open_stream(name)?;
-        builder.build_from_data(stream)
+        Ok(Package {
+            comp: comp,
+            summary_info: summary_info,
+            is_summary_info_modified: false,
+            string_pool: string_pool,
+            is_string_pool_modified: false,
+            finisher: None,
+        })
     }
 
     /// Temporary helper function for testing.
@@ -82,20 +92,18 @@ impl<F: Read + Seek> Package<F> {
 
     /// Returns the names of the database tables in this package.
     pub fn table_names(&mut self) -> io::Result<Vec<String>> {
-        let string_pool = self.get_string_pool()?;
-        let table = tables_table(string_pool.long_string_refs());
+        let table = tables_table(self.string_pool.long_string_refs());
         let stream = self.comp.open_stream(table.encoded_name())?;
         let mut names = Vec::new();
         for row in table.read_rows(stream)? {
-            names.push(row?[0].to_string(&string_pool));
+            names.push(row?[0].to_string(&self.string_pool));
         }
         Ok(names)
     }
 
     /// Temporary helper function for testing.
     pub fn print_column_info(&mut self) -> io::Result<()> {
-        let string_pool = self.get_string_pool()?;
-        let table = columns_table(string_pool.long_string_refs());
+        let table = columns_table(self.string_pool.long_string_refs());
         println!("##### {} #####", table.name());
         {
             let columns = table.columns();
@@ -111,20 +119,78 @@ impl<F: Read + Seek> Package<F> {
         for row in table.read_rows(stream)? {
             let row = row?;
             println!("{:24} {:6} {:24} {:4}",
-                     row[0].to_string(&string_pool),
-                     row[1].to_string(&string_pool),
-                     row[2].to_string(&string_pool),
-                     row[3].to_string(&string_pool));
+                     row[0].to_string(&self.string_pool),
+                     row[1].to_string(&self.string_pool),
+                     row[2].to_string(&self.string_pool),
+                     row[3].to_string(&self.string_pool));
         }
         Ok(())
     }
 }
 
 impl<F: Read + Write + Seek> Package<F> {
-    /// Overwrites the package's summary information.
-    pub fn set_summary_info(&mut self, summary_info: &SummaryInfo)
-                            -> io::Result<()> {
-        summary_info.write(self.comp.create_stream(SUMMARY_INFO_STREAM_NAME)?)
+    /// Returns a mutable reference to the summary information for this
+    /// package.  Call `flush()` or drop the `Package` object to persist any
+    /// changes made to the underlying writer.
+    pub fn summary_info_mut(&mut self) -> &mut SummaryInfo {
+        self.is_summary_info_modified = true;
+        self.set_finisher();
+        &mut self.summary_info
+    }
+
+    /// Flushes any buffered changes to the underlying writer.
+    pub fn flush(&mut self) -> io::Result<()> {
+        if let Some(finisher) = self.finisher.take() {
+            finisher.finish(self)?;
+        }
+        self.comp.flush()
+    }
+
+    fn set_finisher(&mut self) {
+        if self.finisher.is_none() {
+            let finisher: Box<Finish<F>> = Box::new(FinishImpl {});
+            self.finisher = Some(finisher);
+        }
+    }
+}
+
+impl<F> Drop for Package<F> {
+    fn drop(&mut self) {
+        if let Some(finisher) = self.finisher.take() {
+            let _ = finisher.finish(self);
+        }
+    }
+}
+
+// ========================================================================= //
+
+trait Finish<F> {
+    fn finish(&self, package: &mut Package<F>) -> io::Result<()>;
+}
+
+struct FinishImpl {}
+
+impl<F: Read + Write + Seek> Finish<F> for FinishImpl {
+    fn finish(&self, package: &mut Package<F>) -> io::Result<()> {
+        if package.is_summary_info_modified {
+            let stream = package.comp.create_stream(SUMMARY_INFO_STREAM_NAME)?;
+            package.summary_info.write(stream)?;
+            package.is_summary_info_modified = false;
+        }
+        if package.is_string_pool_modified {
+            {
+                let name = streamname::encode(STRING_POOL_TABLE_NAME, true);
+                let stream = package.comp.open_stream(name)?;
+                package.string_pool.write_pool(stream)?;
+            }
+            {
+                let name = streamname::encode(STRING_DATA_TABLE_NAME, true);
+                let stream = package.comp.open_stream(name)?;
+                package.string_pool.write_data(stream)?;
+            }
+            package.is_string_pool_modified = false;
+        }
+        Ok(())
     }
 }
 
