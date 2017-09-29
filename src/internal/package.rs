@@ -3,6 +3,7 @@ use internal::streamname;
 use internal::stringpool::{StringPool, StringPoolBuilder};
 use internal::summary::SummaryInfo;
 use internal::table::{Column, ColumnType, Table};
+use std::collections::BTreeMap;
 use std::io::{self, Read, Seek, Write};
 
 // ========================================================================= //
@@ -17,16 +18,16 @@ const SUMMARY_INFO_STREAM_NAME: &str = "\u{5}SummaryInformation";
 
 fn columns_table(long_string_refs: bool) -> Table {
     Table::new(COLUMNS_TABLE_NAME.to_string(),
-               vec![Column::new("Table".to_string(), ColumnType::Str(64)),
-                    Column::new("Number".to_string(), ColumnType::Uint16),
-                    Column::new("Name".to_string(), ColumnType::Str(64)),
-                    Column::new("Type".to_string(), ColumnType::Uint16)],
+               vec![Column::new("Table", ColumnType::Str(64), true),
+                    Column::new("Number", ColumnType::Uint16, true),
+                    Column::new("Name", ColumnType::Str(64), false),
+                    Column::new("Type", ColumnType::Uint16, false)],
                long_string_refs)
 }
 
 fn tables_table(long_string_refs: bool) -> Table {
     Table::new(TABLES_TABLE_NAME.to_string(),
-               vec![Column::new("Name".to_string(), ColumnType::Str(64))],
+               vec![Column::new("Name", ColumnType::Str(64), true)],
                long_string_refs)
 }
 
@@ -41,6 +42,7 @@ pub struct Package<F> {
     is_summary_info_modified: bool,
     string_pool: StringPool,
     is_string_pool_modified: bool,
+    tables: BTreeMap<String, Table>,
     finisher: Option<Box<Finish<F>>>,
 }
 
@@ -50,6 +52,9 @@ impl<F> Package<F> {
 
     /// Returns the string pool for this package.
     pub fn string_pool(&self) -> &StringPool { &self.string_pool }
+
+    /// Returns the tables in this package.
+    pub fn tables(&self) -> &BTreeMap<String, Table> { &self.tables }
 }
 
 impl<F: Read + Seek> Package<F> {
@@ -70,12 +75,72 @@ impl<F: Read + Seek> Package<F> {
             let stream = comp.open_stream(name)?;
             builder.build_from_data(stream)?
         };
+        let mut all_tables = BTreeMap::<String, Table>::new();
+        let table_names: Vec<String> = {
+            let table = tables_table(string_pool.long_string_refs());
+            let stream = comp.open_stream(table.stream_name())?;
+            let mut names = Vec::<String>::new();
+            for row in table.read_rows(stream)? {
+                names.push(row?[0].to_string(&string_pool));
+            }
+            all_tables.insert(table.name().to_string(), table);
+            names
+        };
+        {
+            let table = columns_table(string_pool.long_string_refs());
+            let stream = comp.open_stream(table.stream_name())?;
+            let mut columns_map: BTreeMap<String, BTreeMap<u32, Column>> =
+                table_names.into_iter()
+                    .map(|name| (name, BTreeMap::new()))
+                    .collect();
+            for row in table.read_rows(stream)? {
+                let row = row?;
+                let table_name = row[0].to_string(&string_pool);
+                if let Some(cols) = columns_map.get_mut(&table_name) {
+                    let col_index = row[1].to_u32() & 0x7fff;
+                    if cols.contains_key(&col_index) {
+                        invalid_data!("Repeat in _Columns: {:?} column {}",
+                                      table_name,
+                                      col_index);
+                    }
+                    let col_name = row[2].to_string(&string_pool);
+                    let type_bits = row[3].to_u32();
+                    let column = Column::from_bitfield(col_name, type_bits);
+                    cols.insert(col_index, column);
+                } else {
+                    invalid_data!("_Columns mentions table {:?}, which \
+                                   isn't in _Tables",
+                                  table_name);
+                }
+            }
+            all_tables.insert(table.name().to_string(), table);
+            for (table_name, columns) in columns_map.into_iter() {
+                if columns.is_empty() {
+                    invalid_data!("No columns found for table {:?}",
+                                  table_name);
+                }
+                let num_columns = columns.len() as u32;
+                if columns.keys().next() != Some(&1) ||
+                   columns.keys().next_back() != Some(&num_columns) {
+                    invalid_data!("Table {:?} does not have a complete set \
+                                   of columns",
+                                  table_name);
+                }
+                let columns: Vec<Column> =
+                    columns.into_iter().map(|(_, column)| column).collect();
+                let table = Table::new(table_name,
+                                       columns,
+                                       string_pool.long_string_refs());
+                all_tables.insert(table.name().to_string(), table);
+            }
+        }
         Ok(Package {
             comp: comp,
             summary_info: summary_info,
             is_summary_info_modified: false,
             string_pool: string_pool,
             is_string_pool_modified: false,
+            tables: all_tables,
             finisher: None,
         })
     }
@@ -86,43 +151,6 @@ impl<F: Read + Seek> Package<F> {
             let (name, is_table) = streamname::decode(entry.name());
             let prefix = if is_table { "T" } else { " " };
             println!("{} {:?}", prefix, name);
-        }
-        Ok(())
-    }
-
-    /// Returns the names of the database tables in this package.
-    pub fn table_names(&mut self) -> io::Result<Vec<String>> {
-        let table = tables_table(self.string_pool.long_string_refs());
-        let stream = self.comp.open_stream(table.encoded_name())?;
-        let mut names = Vec::new();
-        for row in table.read_rows(stream)? {
-            names.push(row?[0].to_string(&self.string_pool));
-        }
-        Ok(names)
-    }
-
-    /// Temporary helper function for testing.
-    pub fn print_column_info(&mut self) -> io::Result<()> {
-        let table = columns_table(self.string_pool.long_string_refs());
-        println!("##### {} #####", table.name());
-        {
-            let columns = table.columns();
-            println!("{:24} {:6} {:24} {:4}",
-                     columns[0].name(),
-                     columns[1].name(),
-                     columns[2].name(),
-                     columns[3].name());
-            println!("------------------------ ------ \
-                      ------------------------ ----");
-        }
-        let stream = self.comp.open_stream(table.encoded_name())?;
-        for row in table.read_rows(stream)? {
-            let row = row?;
-            println!("{:24} {:6} {:24} {:4}",
-                     row[0].to_string(&self.string_pool),
-                     row[1].to_string(&self.string_pool),
-                     row[2].to_string(&self.string_pool),
-                     row[3].to_string(&self.string_pool));
         }
         Ok(())
     }
@@ -180,12 +208,12 @@ impl<F: Read + Write + Seek> Finish<F> for FinishImpl {
         if package.is_string_pool_modified {
             {
                 let name = streamname::encode(STRING_POOL_TABLE_NAME, true);
-                let stream = package.comp.open_stream(name)?;
+                let stream = package.comp.create_stream(name)?;
                 package.string_pool.write_pool(stream)?;
             }
             {
                 let name = streamname::encode(STRING_DATA_TABLE_NAME, true);
-                let stream = package.comp.open_stream(name)?;
+                let stream = package.comp.create_stream(name)?;
                 package.string_pool.write_data(stream)?;
             }
             package.is_string_pool_modified = false;

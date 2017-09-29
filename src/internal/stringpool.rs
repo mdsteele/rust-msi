@@ -28,7 +28,9 @@ impl StringRef {
         Ok(StringRef(number))
     }
 
-    fn number(self) -> u32 {
+    /// Returns the reference number, that is, the 1-based index into the
+    /// string pool for this reference.
+    pub fn number(self) -> u32 {
         let StringRef(number) = self;
         number
     }

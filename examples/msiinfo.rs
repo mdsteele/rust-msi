@@ -41,20 +41,30 @@ fn print_summary_info(summary_info: &msi::SummaryInfo) {
     }
 }
 
+fn print_table_description(table: &msi::Table) {
+    println!("{}", table.name());
+    for column in table.columns() {
+        println!("  {:<16} {}{:?}",
+                 column.name(),
+                 if column.is_key() { '*' } else { ' ' },
+                 column.coltype());
+    }
+}
+
 fn main() {
     if env::args().count() != 2 {
         println!("Usage: msiinfo <path>");
         return;
     }
     let path = env::args().nth(1).expect("path");
-    let mut package = msi::open(path).expect("package");
+    let package = msi::open(path).expect("package");
+
     package.print_entries().expect("print_entries");
 
     print_summary_info(package.summary_info());
 
-    for name in package.table_names().unwrap().into_iter() {
-        println!("{}", name);
+    for table in package.tables().values() {
+        println!();
+        print_table_description(table);
     }
-
-    package.print_column_info().unwrap();
 }

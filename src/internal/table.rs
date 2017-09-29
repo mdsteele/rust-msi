@@ -6,6 +6,7 @@ use std::usize;
 
 // ========================================================================= //
 
+/// A value from one cell in a table row.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RowValue {
     Uint(u32),
@@ -13,6 +14,8 @@ pub enum RowValue {
 }
 
 impl RowValue {
+    /// Formats the value as a string, using the given string pool to look up
+    /// string references.  Integer values will be formatted in hexadecimal.
     pub fn to_string(&self, string_pool: &StringPool) -> String {
         match *self {
             RowValue::Uint(value) => format!("{:x}", value),
@@ -21,19 +24,43 @@ impl RowValue {
             }
         }
     }
+
+    /// Returns the value as an integer.  For string values, this will return
+    /// the string reference number.
+    pub fn to_u32(&self) -> u32 {
+        match *self {
+            RowValue::Uint(value) => value,
+            RowValue::Str(string_ref) => string_ref.number(),
+        }
+    }
 }
 
 // ========================================================================= //
 
+/// A column data type.
 #[allow(dead_code)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ColumnType {
+    /// A 16-bit integer.
     Uint16,
+    /// A 32-bit integer.
     Uint32,
+    /// A string, with the specified maximum length.
     Str(usize),
 }
 
 impl ColumnType {
+    fn from_bitfield(type_bits: u32) -> ColumnType {
+        let field_size = (type_bits & 0xff) as usize;
+        if (type_bits & 0x800) != 0 {
+            ColumnType::Str(field_size)
+        } else if field_size == 2 {
+            ColumnType::Uint16
+        } else {
+            ColumnType::Uint32
+        }
+    }
+
     fn read_value<R: Read>(&self, reader: &mut R, long_string_refs: bool)
                            -> io::Result<RowValue> {
         match *self {
@@ -60,24 +87,48 @@ impl ColumnType {
 
 // ========================================================================= //
 
+/// A database column.
 pub struct Column {
     name: String,
     coltype: ColumnType,
+    is_key: bool,
 }
 
 impl Column {
-    pub fn new(name: String, coltype: ColumnType) -> Column {
+    /// Creates a new column object with the given name, type, and primary key
+    /// status.
+    pub fn new(name: &str, coltype: ColumnType, is_key: bool) -> Column {
         Column {
-            name: name,
+            name: name.to_string(),
             coltype: coltype,
+            is_key: is_key,
         }
     }
 
+    /// Creates a new column object with the given name, and with other
+    /// attributes determened from the given bitfield (taken from the
+    /// `_Columns` table).
+    pub fn from_bitfield(name: String, type_bits: u32) -> Column {
+        Column {
+            name: name,
+            coltype: ColumnType::from_bitfield(type_bits & 0x8ff),
+            is_key: (type_bits & 0x2000) != 0,
+        }
+    }
+
+    /// Returns the name of the column.
     pub fn name(&self) -> &str { &self.name }
+
+    /// Returns the type of data stored in the column.
+    pub fn coltype(&self) -> ColumnType { self.coltype }
+
+    /// Returns true if this is primary key column, false otherwise.
+    pub fn is_key(&self) -> bool { self.is_key }
 }
 
 // ========================================================================= //
 
+/// A database table.
 pub struct Table {
     name: String,
     columns: Vec<Column>,
@@ -85,6 +136,9 @@ pub struct Table {
 }
 
 impl Table {
+    /// Creates a new table object with the given name and columns.  The
+    /// `long_string_refs` argument indicates the size of any encoded string
+    /// refs.
     pub fn new(name: String, columns: Vec<Column>, long_string_refs: bool)
                -> Table {
         Table {
@@ -94,19 +148,21 @@ impl Table {
         }
     }
 
+    /// Returns the name of the table.
     pub fn name(&self) -> &str { &self.name }
 
-    pub fn encoded_name(&self) -> String {
+    /// Returns the name of the CFB stream that holds this table's data.
+    pub(crate) fn stream_name(&self) -> String {
         streamname::encode(&self.name, true)
     }
 
+    /// Returns the list of columns in this table.
     pub fn columns(&self) -> &[Column] { &self.columns }
 
-    pub fn read_rows<R: Read + Seek>(&self, mut reader: R)
-                                     -> io::Result<Rows<R>> {
-        // TODO: We have to SeekFrom::End(0) twice due to a bug in the cfb
-        // crate.
-        reader.seek(SeekFrom::End(0))?;
+    /// Parses row data from the given data source and returns an interator
+    /// over the rows.
+    pub(crate) fn read_rows<R: Read + Seek>(&self, mut reader: R)
+                                            -> io::Result<Rows<R>> {
         let data_length = reader.seek(SeekFrom::End(0))?;
         let row_size = self.columns
             .iter()
