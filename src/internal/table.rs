@@ -1,24 +1,37 @@
 use byteorder::{LittleEndian, ReadBytesExt};
 use internal::streamname;
 use internal::stringpool::{StringPool, StringRef};
+use std::fmt;
 use std::io::{self, Read, Seek, SeekFrom};
 use std::usize;
+
+// ========================================================================= //
+
+const COL_FIELD_SIZE_MASK: i32 = 0xff;
+const COL_STRING_BIT: i32 = 0x800;
+const COL_NULLABLE_BIT: i32 = 0x1000;
+const COL_PRIMARY_KEY_BIT: i32 = 0x2000;
 
 // ========================================================================= //
 
 /// A value from one cell in a table row.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RowValue {
-    Uint(u32),
+    /// A null value.
+    Null,
+    /// An integer value.
+    Int(i32),
+    /// A string value.
     Str(StringRef),
 }
 
 impl RowValue {
     /// Formats the value as a string, using the given string pool to look up
-    /// string references.  Integer values will be formatted in hexadecimal.
+    /// string references.
     pub fn to_string(&self, string_pool: &StringPool) -> String {
         match *self {
-            RowValue::Uint(value) => format!("{:x}", value),
+            RowValue::Null => "NULL".to_string(),
+            RowValue::Int(value) => format!("{}", value),
             RowValue::Str(string_ref) => {
                 string_pool.get(string_ref).to_string()
             }
@@ -27,9 +40,10 @@ impl RowValue {
 
     /// Returns the value as an integer.  For string values, this will return
     /// the string reference number.
-    pub fn to_u32(&self) -> u32 {
+    pub fn to_i32(&self) -> i32 {
         match *self {
-            RowValue::Uint(value) => value,
+            RowValue::Null => 0,
+            RowValue::Int(value) => value,
             RowValue::Str(string_ref) => string_ref.number(),
         }
     }
@@ -38,49 +52,72 @@ impl RowValue {
 // ========================================================================= //
 
 /// A column data type.
-#[allow(dead_code)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ColumnType {
     /// A 16-bit integer.
-    Uint16,
+    Int16,
     /// A 32-bit integer.
-    Uint32,
+    Int32,
     /// A string, with the specified maximum length.
     Str(usize),
 }
 
 impl ColumnType {
-    fn from_bitfield(type_bits: u32) -> ColumnType {
-        let field_size = (type_bits & 0xff) as usize;
-        if (type_bits & 0x800) != 0 {
+    fn from_bitfield(type_bits: i32) -> ColumnType {
+        let field_size = (type_bits & COL_FIELD_SIZE_MASK) as usize;
+        if (type_bits & COL_STRING_BIT) != 0 {
             ColumnType::Str(field_size)
         } else if field_size == 2 {
-            ColumnType::Uint16
+            ColumnType::Int16
         } else {
-            ColumnType::Uint32
+            ColumnType::Int32
         }
     }
 
     fn read_value<R: Read>(&self, reader: &mut R, long_string_refs: bool)
                            -> io::Result<RowValue> {
         match *self {
-            ColumnType::Uint16 => {
-                Ok(RowValue::Uint(reader.read_u16::<LittleEndian>()? as u32))
+            ColumnType::Int16 => {
+                match reader.read_i16::<LittleEndian>()? {
+                    0 => Ok(RowValue::Null),
+                    value => Ok(RowValue::Int((value ^ -0x8000) as i32)),
+                }
             }
-            ColumnType::Uint32 => {
-                Ok(RowValue::Uint(reader.read_u32::<LittleEndian>()?))
+            ColumnType::Int32 => {
+                match reader.read_i32::<LittleEndian>()? {
+                    0 => Ok(RowValue::Null),
+                    value => Ok(RowValue::Int(value ^ -0x8000_0000)),
+                }
             }
             ColumnType::Str(_) => {
-                Ok(RowValue::Str(StringRef::read(reader, long_string_refs)?))
+                match StringRef::read(reader, long_string_refs)? {
+                    Some(string_ref) => Ok(RowValue::Str(string_ref)),
+                    None => Ok(RowValue::Null),
+                }
             }
         }
     }
 
     fn width(&self, long_string_refs: bool) -> u64 {
         match *self {
-            ColumnType::Uint16 => 2,
-            ColumnType::Uint32 => 4,
+            ColumnType::Int16 => 2,
+            ColumnType::Int32 => 4,
             ColumnType::Str(_) => if long_string_refs { 3 } else { 2 },
+        }
+    }
+}
+
+impl fmt::Display for ColumnType {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        match *self {
+            ColumnType::Int16 => formatter.write_str("SMALLINT"),
+            ColumnType::Int32 => formatter.write_str("INTEGER"),
+            ColumnType::Str(field_size) => {
+                formatter.write_str("VARCHAR(")?;
+                field_size.fmt(formatter)?;
+                formatter.write_str(")")?;
+                Ok(())
+            }
         }
     }
 }
@@ -91,7 +128,8 @@ impl ColumnType {
 pub struct Column {
     name: String,
     coltype: ColumnType,
-    is_key: bool,
+    is_primary_key: bool,
+    is_nullable: bool,
 }
 
 impl Column {
@@ -101,18 +139,20 @@ impl Column {
         Column {
             name: name.to_string(),
             coltype: coltype,
-            is_key: is_key,
+            is_primary_key: is_key,
+            is_nullable: false,
         }
     }
 
     /// Creates a new column object with the given name, and with other
     /// attributes determened from the given bitfield (taken from the
     /// `_Columns` table).
-    pub fn from_bitfield(name: String, type_bits: u32) -> Column {
+    pub fn from_bitfield(name: String, type_bits: i32) -> Column {
         Column {
             name: name,
-            coltype: ColumnType::from_bitfield(type_bits & 0x8ff),
-            is_key: (type_bits & 0x2000) != 0,
+            coltype: ColumnType::from_bitfield(type_bits),
+            is_primary_key: (type_bits & COL_PRIMARY_KEY_BIT) != 0,
+            is_nullable: (type_bits & COL_NULLABLE_BIT) != 0,
         }
     }
 
@@ -123,7 +163,10 @@ impl Column {
     pub fn coltype(&self) -> ColumnType { self.coltype }
 
     /// Returns true if this is primary key column, false otherwise.
-    pub fn is_key(&self) -> bool { self.is_key }
+    pub fn is_primary_key(&self) -> bool { self.is_primary_key }
+
+    /// Returns true if values in this column can be null, false otherwise.
+    pub fn is_nullable(&self) -> bool { self.is_nullable }
 }
 
 // ========================================================================= //

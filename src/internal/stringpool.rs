@@ -11,26 +11,28 @@ const LONG_STRING_REFS_BIT: u32 = 0x8000_0000;
 
 /// A reference to a string in the string pool.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct StringRef(pub u32); // TODO: make field non-public
+pub struct StringRef(pub i32); // TODO: make field non-public
 
 impl StringRef {
-    /// Reads a serialized StringRef.  The `long_string_refs` argument
-    /// specifies whether to read three bytes (if true) or two (if false).
+    /// Reads a serialized StringRef and returns it, or `None` for a null
+    /// reference.  The `long_string_refs` argument specifies whether to read
+    /// three bytes (if true) or two (if false).
     pub fn read<R: Read>(reader: &mut R, long_string_refs: bool)
-                         -> io::Result<StringRef> {
-        let mut number = reader.read_u16::<LittleEndian>()? as u32;
+                         -> io::Result<Option<StringRef>> {
+        let mut number = reader.read_u16::<LittleEndian>()? as i32;
         if long_string_refs {
-            number &= (reader.read_u8()? as u32) << 16;
+            number &= (reader.read_u8()? as i32) << 16;
         }
-        if number == 0 {
-            invalid_data!("zero is not a valid string ref");
-        }
-        Ok(StringRef(number))
+        Ok(if number == 0 {
+            None
+        } else {
+            Some(StringRef(number))
+        })
     }
 
     /// Returns the reference number, that is, the 1-based index into the
     /// string pool for this reference.
-    pub fn number(self) -> u32 {
+    pub fn number(self) -> i32 {
         let StringRef(number) = self;
         number
     }
@@ -163,15 +165,15 @@ impl StringPool {
                 debug_assert_eq!(st, "");
                 *st = string;
                 *refcount = 1;
-                return StringRef((index + 1) as u32);
+                return StringRef((index + 1) as i32);
             }
             if *st == string && *refcount < u16::MAX {
                 *refcount += 1;
-                return StringRef((index + 1) as u32);
+                return StringRef((index + 1) as i32);
             }
         }
         self.strings.push((string, 1));
-        StringRef(self.strings.len() as u32)
+        StringRef(self.strings.len() as i32)
     }
 
     /// Decrements the refcount of a string in the pool.

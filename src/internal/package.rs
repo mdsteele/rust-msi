@@ -2,8 +2,8 @@ use cfb;
 use internal::streamname;
 use internal::stringpool::{StringPool, StringPoolBuilder};
 use internal::summary::SummaryInfo;
-use internal::table::{Column, ColumnType, Table};
-use std::collections::BTreeMap;
+use internal::table::{Column, ColumnType, RowValue, Table};
+use std::collections::{BTreeMap, btree_map};
 use std::io::{self, Read, Seek, Write};
 
 // ========================================================================= //
@@ -19,9 +19,9 @@ const SUMMARY_INFO_STREAM_NAME: &str = "\u{5}SummaryInformation";
 fn columns_table(long_string_refs: bool) -> Table {
     Table::new(COLUMNS_TABLE_NAME.to_string(),
                vec![Column::new("Table", ColumnType::Str(64), true),
-                    Column::new("Number", ColumnType::Uint16, true),
+                    Column::new("Number", ColumnType::Int16, true),
                     Column::new("Name", ColumnType::Str(64), false),
-                    Column::new("Type", ColumnType::Uint16, false)],
+                    Column::new("Type", ColumnType::Int16, false)],
                long_string_refs)
 }
 
@@ -53,8 +53,13 @@ impl<F> Package<F> {
     /// Returns the string pool for this package.
     pub fn string_pool(&self) -> &StringPool { &self.string_pool }
 
-    /// Returns the tables in this package.
-    pub fn tables(&self) -> &BTreeMap<String, Table> { &self.tables }
+    /// Returns the table with the given name (if any).
+    pub fn table(&self, table_name: &str) -> Option<&Table> {
+        self.tables.get(table_name)
+    }
+
+    /// Returns an iterator over the tables in this package.
+    pub fn tables(&self) -> Tables { Tables(self.tables.values()) }
 }
 
 impl<F: Read + Seek> Package<F> {
@@ -89,7 +94,7 @@ impl<F: Read + Seek> Package<F> {
         {
             let table = columns_table(string_pool.long_string_refs());
             let stream = comp.open_stream(table.stream_name())?;
-            let mut columns_map: BTreeMap<String, BTreeMap<u32, Column>> =
+            let mut columns_map: BTreeMap<String, BTreeMap<i32, Column>> =
                 table_names.into_iter()
                     .map(|name| (name, BTreeMap::new()))
                     .collect();
@@ -97,14 +102,14 @@ impl<F: Read + Seek> Package<F> {
                 let row = row?;
                 let table_name = row[0].to_string(&string_pool);
                 if let Some(cols) = columns_map.get_mut(&table_name) {
-                    let col_index = row[1].to_u32() & 0x7fff;
+                    let col_index = row[1].to_i32();
                     if cols.contains_key(&col_index) {
                         invalid_data!("Repeat in _Columns: {:?} column {}",
                                       table_name,
                                       col_index);
                     }
                     let col_name = row[2].to_string(&string_pool);
-                    let type_bits = row[3].to_u32();
+                    let type_bits = row[3].to_i32();
                     let column = Column::from_bitfield(col_name, type_bits);
                     cols.insert(col_index, column);
                 } else {
@@ -119,7 +124,7 @@ impl<F: Read + Seek> Package<F> {
                     invalid_data!("No columns found for table {:?}",
                                   table_name);
                 }
-                let num_columns = columns.len() as u32;
+                let num_columns = columns.len() as i32;
                 if columns.keys().next() != Some(&1) ||
                    columns.keys().next_back() != Some(&num_columns) {
                     invalid_data!("Table {:?} does not have a complete set \
@@ -153,6 +158,21 @@ impl<F: Read + Seek> Package<F> {
             println!("{} {:?}", prefix, name);
         }
         Ok(())
+    }
+
+    /// Read and return all rows from a table.
+    pub fn read_table_rows(&mut self, table_name: &str)
+                           -> io::Result<Vec<Vec<RowValue>>> {
+        if let Some(table) = self.tables.get(table_name) {
+            let stream = self.comp.open_stream(table.stream_name())?;
+            let mut rows = Vec::<Vec<RowValue>>::new();
+            for row in table.read_rows(stream)? {
+                rows.push(row?);
+            }
+            Ok(rows)
+        } else {
+            not_found!("Table {:?} does not exist", table_name);
+        }
     }
 }
 
@@ -189,6 +209,28 @@ impl<F> Drop for Package<F> {
         }
     }
 }
+
+// ========================================================================= //
+
+/// An iterator over the database tables in a package.
+#[derive(Clone)]
+pub struct Tables<'a>(btree_map::Values<'a, String, Table>);
+
+impl<'a> Iterator for Tables<'a> {
+    type Item = <btree_map::Values<'a, String, Table> as Iterator>::Item;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let Tables(ref mut iter) = *self;
+        iter.next()
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let Tables(ref iter) = *self;
+        iter.size_hint()
+    }
+}
+
+impl<'a> ExactSizeIterator for Tables<'a> {}
 
 // ========================================================================= //
 

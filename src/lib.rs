@@ -21,7 +21,7 @@ pub use internal::codepage::CodePage;
 pub use internal::package::Package;
 pub use internal::stringpool::{StringPool, StringRef};
 pub use internal::summary::SummaryInfo;
-pub use internal::table::{Column, ColumnType, Table};
+pub use internal::table::{Column, ColumnType, RowValue, Table};
 use std::fs;
 use std::io;
 use std::path::Path;

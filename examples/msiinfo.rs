@@ -1,8 +1,11 @@
 extern crate chrono;
+extern crate clap;
 extern crate msi;
 
 use chrono::{DateTime, NaiveDateTime, Utc};
-use std::env;
+use clap::{App, Arg, SubCommand};
+use std::cmp;
+use std::io::{Read, Seek};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 fn to_datetime(timestamp: SystemTime) -> DateTime<Utc> {
@@ -10,6 +13,13 @@ fn to_datetime(timestamp: SystemTime) -> DateTime<Utc> {
     let naive = NaiveDateTime::from_timestamp(delta.as_secs() as i64,
                                               delta.subsec_nanos());
     DateTime::<Utc>::from_utc(naive, Utc)
+}
+
+fn pad(mut string: String, fill: char, width: usize) -> String {
+    while string.len() < width {
+        string.push(fill);
+    }
+    string
 }
 
 fn print_summary_info(summary_info: &msi::SummaryInfo) {
@@ -44,27 +54,104 @@ fn print_summary_info(summary_info: &msi::SummaryInfo) {
 fn print_table_description(table: &msi::Table) {
     println!("{}", table.name());
     for column in table.columns() {
-        println!("  {:<16} {}{:?}",
+        println!("  {:<16} {}{}{}",
                  column.name(),
-                 if column.is_key() { '*' } else { ' ' },
-                 column.coltype());
+                 if column.is_primary_key() { '*' } else { ' ' },
+                 column.coltype(),
+                 if column.is_nullable() { "?" } else { "" });
+    }
+}
+
+fn print_table_contents<F: Read + Seek>(package: &mut msi::Package<F>,
+                                        table_name: &str) {
+    let rows = package.read_table_rows(table_name).expect("read rows");
+    let table = package.table(table_name).unwrap();
+    let mut col_widths: Vec<usize> =
+        table.columns().iter().map(|column| column.name().len()).collect();
+    let rows: Vec<Vec<String>> = rows.into_iter()
+        .map(|row| {
+            let mut strings = Vec::with_capacity(row.len());
+            for (index, value) in row.into_iter().enumerate() {
+                let string = value.to_string(package.string_pool());
+                col_widths[index] = cmp::max(col_widths[index], string.len());
+                strings.push(string);
+            }
+            strings
+        })
+        .collect();
+    {
+        let mut line = String::new();
+        for (index, column) in table.columns().iter().enumerate() {
+            let string =
+                pad(column.name().to_string(), ' ', col_widths[index]);
+            line.push_str(&string);
+            line.push_str("  ");
+        }
+        println!("{}", line);
+    }
+    {
+        let mut line = String::new();
+        for &width in col_widths.iter() {
+            let string = pad(String::new(), '-', width);
+            line.push_str(&string);
+            line.push_str("  ");
+        }
+        println!("{}", line);
+    }
+    for row in rows.into_iter() {
+        let mut line = String::new();
+        for (index, value) in row.into_iter().enumerate() {
+            let string = pad(value, ' ', col_widths[index]);
+            line.push_str(&string);
+            line.push_str("  ");
+        }
+        println!("{}", line);
     }
 }
 
 fn main() {
-    if env::args().count() != 2 {
-        println!("Usage: msiinfo <path>");
-        return;
-    }
-    let path = env::args().nth(1).expect("path");
-    let package = msi::open(path).expect("package");
-
-    package.print_entries().expect("print_entries");
-
-    print_summary_info(package.summary_info());
-
-    for table in package.tables().values() {
-        println!();
-        print_table_description(table);
+    let matches = App::new("msiinfo")
+        .version("0.1")
+        .author("Matthew D. Steele <mdsteele@alum.mit.edu>")
+        .about("Inspects MSI files")
+        .subcommand(SubCommand::with_name("describe")
+            .about("Prints schema for a table in an MSI file")
+            .arg(Arg::with_name("path").required(true))
+            .arg(Arg::with_name("table").required(true)))
+        .subcommand(SubCommand::with_name("export")
+            .about("Prints all rows for a table in an MSI file")
+            .arg(Arg::with_name("path").required(true))
+            .arg(Arg::with_name("table").required(true)))
+        .subcommand(SubCommand::with_name("summary")
+            .about("Prints summary information for an MSI file")
+            .arg(Arg::with_name("path").required(true)))
+        .subcommand(SubCommand::with_name("tables")
+            .about("Lists database tables in an MSI file")
+            .arg(Arg::with_name("path").required(true)))
+        .get_matches();
+    if let Some(submatches) = matches.subcommand_matches("describe") {
+        let path = submatches.value_of("path").unwrap();
+        let table_name = submatches.value_of("table").unwrap();
+        let package = msi::open(path).expect("open package");
+        if let Some(table) = package.table(table_name) {
+            print_table_description(table);
+        } else {
+            println!("No table {:?} exists in the database.", table_name);
+        }
+    } else if let Some(submatches) = matches.subcommand_matches("export") {
+        let path = submatches.value_of("path").unwrap();
+        let table_name = submatches.value_of("table").unwrap();
+        let mut package = msi::open(path).expect("open package");
+        print_table_contents(&mut package, table_name);
+    } else if let Some(submatches) = matches.subcommand_matches("summary") {
+        let path = submatches.value_of("path").unwrap();
+        let package = msi::open(path).expect("open package");
+        print_summary_info(package.summary_info());
+    } else if let Some(submatches) = matches.subcommand_matches("tables") {
+        let path = submatches.value_of("path").unwrap();
+        let package = msi::open(path).expect("open package");
+        for table in package.tables() {
+            println!("{}", table.name());
+        }
     }
 }

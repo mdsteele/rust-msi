@@ -11,4 +11,14 @@ macro_rules! invalid_data {
     };
 }
 
+macro_rules! not_found {
+    ($e:expr) => {
+        return Err(::std::io::Error::new(::std::io::ErrorKind::NotFound, $e))
+    };
+    ($fmt:expr, $($arg:tt)+) => {
+        return Err(::std::io::Error::new(::std::io::ErrorKind::NotFound,
+                                         format!($fmt, $($arg)+)))
+    };
+}
+
 // ========================================================================= //
