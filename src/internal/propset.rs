@@ -251,10 +251,11 @@ impl PropertySet {
             }
             property_offsets.insert(name, offset);
         }
-        let codepage = if let Some(&offset) =
-            property_offsets.get(&PROPERTY_CODEPAGE) {
-            reader.seek(SeekFrom::Start(section_offset as u64 +
-                                        offset as u64))?;
+        let codepage = if let Some(&offset) = property_offsets
+            .get(&PROPERTY_CODEPAGE)
+        {
+            reader
+                .seek(SeekFrom::Start(section_offset as u64 + offset as u64))?;
             let value = PropertyValue::read(reader.by_ref(),
                                             CodePage::default())?;
             if let PropertyValue::I2(codepage_id) = value {
@@ -273,8 +274,8 @@ impl PropertySet {
         };
         let mut property_values = OrderMap::<u32, PropertyValue>::new();
         for (name, offset) in property_offsets.into_iter() {
-            reader.seek(SeekFrom::Start(section_offset as u64 +
-                                        offset as u64))?;
+            reader
+                .seek(SeekFrom::Start(section_offset as u64 + offset as u64))?;
             let value = PropertyValue::read(reader.by_ref(), codepage)?;
             if value.minimum_version() > format_version {
                 invalid_data!("Property value of type {} is not supported \
@@ -286,13 +287,13 @@ impl PropertySet {
             property_values.insert(name, value);
         }
         Ok(PropertySet {
-            os: os,
-            os_version: os_version,
-            clsid: clsid,
-            fmtid: fmtid,
-            codepage: codepage,
-            properties: property_values,
-        })
+               os: os,
+               os_version: os_version,
+               clsid: clsid,
+               fmtid: fmtid,
+               codepage: codepage,
+               properties: property_values,
+           })
     }
 
     pub fn write<W: Write>(&self, mut writer: W) -> io::Result<()> {
@@ -304,11 +305,12 @@ impl PropertySet {
         }
         writer.write_u16::<LittleEndian>(format_version.version_number())?;
         writer.write_u16::<LittleEndian>(self.os_version)?;
-        writer.write_u16::<LittleEndian>(match self.os {
-                OperatingSystem::Win16 => 0,
-                OperatingSystem::Macintosh => 1,
-                OperatingSystem::Win32 => 2,
-            })?;
+        writer
+            .write_u16::<LittleEndian>(match self.os {
+                                           OperatingSystem::Win16 => 0,
+                                           OperatingSystem::Macintosh => 1,
+                                           OperatingSystem::Win32 => 2,
+                                       })?;
         writer.write_all(&self.clsid)?;
         writer.write_u32::<LittleEndian>(1)?; // Reserved field
 
@@ -388,14 +390,13 @@ mod tests {
         assert_eq!(PropertyValue::read(input, CodePage::Utf8).unwrap(),
                    PropertyValue::I4(123456789));
 
-        let input: &[u8] = &[30, 0, 0, 0, 14, 0, 0, 0, b'H', b'e', b'l',
-                             b'l', b'o', b',', b' ', b'w', b'o', b'r', b'l',
-                             b'd', b'!', 0];
+        let input: &[u8] =
+            b"\x1e\x00\x00\x00\x0e\x00\x00\x00Hello, world!\x00";
         assert_eq!(PropertyValue::read(input, CodePage::Utf8).unwrap(),
                    PropertyValue::LpStr("Hello, world!".to_string()));
 
         let sat_2017_mar_18_at_18_46_36_gmt = UNIX_EPOCH +
-                                              Duration::from_secs(1489862796);
+            Duration::from_secs(1489862796);
         let input: &[u8] = &[64, 0, 0, 0, 0, 206, 112, 248, 23, 160, 210, 1];
         assert_eq!(PropertyValue::read(input, CodePage::Utf8).unwrap(),
                    PropertyValue::FileTime(sat_2017_mar_18_at_18_46_36_gmt));
@@ -426,12 +427,12 @@ mod tests {
         let value = PropertyValue::LpStr("Hello, world!".to_string());
         let mut output = Vec::<u8>::new();
         value.write(&mut output, CodePage::Utf8).unwrap();
-        assert_eq!(&output as &[u8],
-                   &[30, 0, 0, 0, 14, 0, 0, 0, b'H', b'e', b'l', b'l', b'o',
-                     b',', b' ', b'w', b'o', b'r', b'l', b'd', b'!', 0, 0, 0]);
+        assert_eq!(
+            &output as &[u8],
+            b"\x1e\x00\x00\x00\x0e\x00\x00\x00Hello, world!\x00\x00\x00");
 
         let sat_2017_mar_18_at_18_46_36_gmt = UNIX_EPOCH +
-                                              Duration::from_secs(1489862796);
+            Duration::from_secs(1489862796);
         let value = PropertyValue::FileTime(sat_2017_mar_18_at_18_46_36_gmt);
         let mut output = Vec::<u8>::new();
         value.write(&mut output, CodePage::Utf8).unwrap();
@@ -441,18 +442,20 @@ mod tests {
 
     #[test]
     fn property_value_round_trip() {
-        let values = &[PropertyValue::Empty,
-                       PropertyValue::Null,
-                       PropertyValue::I1(-123),
-                       PropertyValue::I1(123),
-                       PropertyValue::I2(-12345),
-                       PropertyValue::I2(12345),
-                       PropertyValue::I4(-123456789),
-                       PropertyValue::I4(123456789),
-                       PropertyValue::LpStr("".to_string()),
-                       PropertyValue::LpStr("foo".to_string()),
-                       PropertyValue::LpStr("foobar".to_string()),
-                       PropertyValue::FileTime(SystemTime::now())];
+        let values = &[
+            PropertyValue::Empty,
+            PropertyValue::Null,
+            PropertyValue::I1(-123),
+            PropertyValue::I1(123),
+            PropertyValue::I2(-12345),
+            PropertyValue::I2(12345),
+            PropertyValue::I4(-123456789),
+            PropertyValue::I4(123456789),
+            PropertyValue::LpStr("".to_string()),
+            PropertyValue::LpStr("foo".to_string()),
+            PropertyValue::LpStr("foobar".to_string()),
+            PropertyValue::FileTime(SystemTime::now()),
+        ];
         let codepage = CodePage::Utf8;
         for value in values.iter() {
             let mut output = Vec::<u8>::new();

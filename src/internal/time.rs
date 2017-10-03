@@ -36,7 +36,7 @@ mod tests {
     #[test]
     fn to_system_time() {
         let sat_2017_mar_18_at_18_46_36_gmt = UNIX_EPOCH +
-                                              Duration::from_secs(1489862796);
+            Duration::from_secs(1489862796);
         assert_eq!(system_time_from_filetime(131343363960000000),
                    sat_2017_mar_18_at_18_46_36_gmt);
     }
@@ -44,7 +44,7 @@ mod tests {
     #[test]
     fn from_system_time() {
         let sat_2017_mar_18_at_18_46_36_gmt = UNIX_EPOCH +
-                                              Duration::from_secs(1489862796);
+            Duration::from_secs(1489862796);
         assert_eq!(filetime_from_system_time(sat_2017_mar_18_at_18_46_36_gmt),
                    131343363960000000);
     }

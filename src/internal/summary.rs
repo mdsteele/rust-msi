@@ -15,8 +15,8 @@ use uuid::Uuid;
 // The first three fields are in little-endian, and the last two in big-endian,
 // because that's how Windows encodes UUIDs.  For details, see:
 //     https://en.wikipedia.org/wiki/Universally_unique_identifier#Encoding
-const FMTID: [u8; 16] = [0xe0, 0x85, 0x9f, 0xf2, 0xf9, 0x4f, 0x68, 0x10,
-                         0xab, 0x91, 0x08, 0x00, 0x2b, 0x27, 0xb3, 0xd9];
+const FMTID: [u8; 16] =
+    *b"\xe0\x85\x9f\xf2\xf9\x4f\x68\x10\xab\x91\x08\x00\x2b\x27\xb3\xd9";
 
 const PROPERTY_TITLE: u32 = 2;
 const PROPERTY_SUBJECT: u32 = 3;
@@ -162,8 +162,8 @@ impl SummaryInfo {
     pub fn uuid(&self) -> Option<Uuid> {
         match self.properties.get(PROPERTY_UUID) {
             Some(&PropertyValue::LpStr(ref string)) => {
-                let trimmed = string.trim_left_matches('{')
-                    .trim_right_matches('}');
+                let trimmed =
+                    string.trim_left_matches('{').trim_right_matches('}');
                 Uuid::parse_str(trimmed).ok()
             }
             _ => None,

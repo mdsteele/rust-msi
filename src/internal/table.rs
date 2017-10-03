@@ -217,11 +217,11 @@ impl Table {
             0
         };
         Ok(Rows {
-            table: self,
-            reader: reader,
-            num_rows: num_rows,
-            next_row: 0,
-        })
+               table: self,
+               reader: reader,
+               num_rows: num_rows,
+               next_row: 0,
+           })
     }
 }
 
@@ -243,9 +243,11 @@ impl<'a, R: Read + Seek> Rows<'a, R> {
             let width = column.coltype.width(self.table.long_string_refs);
             self.reader
                 .seek(SeekFrom::Start(offset * self.num_rows +
-                                      width * self.next_row))?;
-            row.push(column.coltype
-                .read_value(&mut self.reader, self.table.long_string_refs)?);
+                                          width * self.next_row))?;
+            row.push(column
+                         .coltype
+                         .read_value(&mut self.reader,
+                                     self.table.long_string_refs)?);
             offset += width;
         }
         self.next_row += 1;

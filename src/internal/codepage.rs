@@ -195,26 +195,28 @@ mod tests {
 
     #[test]
     fn id_round_trip() {
-        let codepages = &[CodePage::Windows1250,
-                          CodePage::Windows1251,
-                          CodePage::Windows1252,
-                          CodePage::Windows1253,
-                          CodePage::Windows1254,
-                          CodePage::Windows1255,
-                          CodePage::Windows1256,
-                          CodePage::Windows1257,
-                          CodePage::Windows1258,
-                          CodePage::MacintoshRoman,
-                          CodePage::MacintoshCyrillic,
-                          CodePage::Iso88591,
-                          CodePage::Iso88592,
-                          CodePage::Iso88593,
-                          CodePage::Iso88594,
-                          CodePage::Iso88595,
-                          CodePage::Iso88596,
-                          CodePage::Iso88597,
-                          CodePage::Iso88598,
-                          CodePage::Utf8];
+        let codepages = &[
+            CodePage::Windows1250,
+            CodePage::Windows1251,
+            CodePage::Windows1252,
+            CodePage::Windows1253,
+            CodePage::Windows1254,
+            CodePage::Windows1255,
+            CodePage::Windows1256,
+            CodePage::Windows1257,
+            CodePage::Windows1258,
+            CodePage::MacintoshRoman,
+            CodePage::MacintoshCyrillic,
+            CodePage::Iso88591,
+            CodePage::Iso88592,
+            CodePage::Iso88593,
+            CodePage::Iso88594,
+            CodePage::Iso88595,
+            CodePage::Iso88596,
+            CodePage::Iso88597,
+            CodePage::Iso88598,
+            CodePage::Utf8,
+        ];
         for &codepage in codepages.iter() {
             assert_eq!(CodePage::from_id(codepage.id()), Some(codepage));
         }

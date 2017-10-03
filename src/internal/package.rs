@@ -17,12 +17,16 @@ const SUMMARY_INFO_STREAM_NAME: &str = "\u{5}SummaryInformation";
 // ========================================================================= //
 
 fn columns_table(long_string_refs: bool) -> Table {
-    Table::new(COLUMNS_TABLE_NAME.to_string(),
-               vec![Column::new("Table", ColumnType::Str(64), true),
-                    Column::new("Number", ColumnType::Int16, true),
-                    Column::new("Name", ColumnType::Str(64), false),
-                    Column::new("Type", ColumnType::Int16, false)],
-               long_string_refs)
+    Table::new(
+        COLUMNS_TABLE_NAME.to_string(),
+        vec![
+            Column::new("Table", ColumnType::Str(64), true),
+            Column::new("Number", ColumnType::Int16, true),
+            Column::new("Name", ColumnType::Str(64), false),
+            Column::new("Type", ColumnType::Int16, false),
+        ],
+        long_string_refs,
+    )
 }
 
 fn tables_table(long_string_refs: bool) -> Table {
@@ -94,8 +98,10 @@ impl<F: Read + Seek> Package<F> {
         {
             let table = columns_table(string_pool.long_string_refs());
             let stream = comp.open_stream(table.stream_name())?;
-            let mut columns_map: BTreeMap<String, BTreeMap<i32, Column>> =
-                table_names.into_iter()
+            let mut columns_map: BTreeMap<String,
+                                          BTreeMap<i32, Column>> =
+                table_names
+                    .into_iter()
                     .map(|name| (name, BTreeMap::new()))
                     .collect();
             for row in table.read_rows(stream)? {
@@ -126,7 +132,8 @@ impl<F: Read + Seek> Package<F> {
                 }
                 let num_columns = columns.len() as i32;
                 if columns.keys().next() != Some(&1) ||
-                   columns.keys().next_back() != Some(&num_columns) {
+                    columns.keys().next_back() != Some(&num_columns)
+                {
                     invalid_data!("Table {:?} does not have a complete set \
                                    of columns",
                                   table_name);
@@ -140,14 +147,14 @@ impl<F: Read + Seek> Package<F> {
             }
         }
         Ok(Package {
-            comp: comp,
-            summary_info: summary_info,
-            is_summary_info_modified: false,
-            string_pool: string_pool,
-            is_string_pool_modified: false,
-            tables: all_tables,
-            finisher: None,
-        })
+               comp: comp,
+               summary_info: summary_info,
+               is_summary_info_modified: false,
+               string_pool: string_pool,
+               is_string_pool_modified: false,
+               tables: all_tables,
+               finisher: None,
+           })
     }
 
     /// Temporary helper function for testing.

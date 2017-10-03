@@ -11,7 +11,7 @@ const LONG_STRING_REFS_BIT: u32 = 0x8000_0000;
 
 /// A reference to a string in the string pool.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct StringRef(pub i32); // TODO: make field non-public
+pub struct StringRef(i32);
 
 impl StringRef {
     /// Reads a serialized StringRef and returns it, or `None` for a null
@@ -24,16 +24,17 @@ impl StringRef {
             number &= (reader.read_u8()? as i32) << 16;
         }
         Ok(if number == 0 {
-            None
-        } else {
-            Some(StringRef(number))
-        })
+               None
+           } else {
+               Some(StringRef(number))
+           })
     }
 
     /// Returns the reference number, that is, the 1-based index into the
     /// string pool for this reference.
     pub fn number(self) -> i32 {
         let StringRef(number) = self;
+        debug_assert!(number > 0);
         number
     }
 
@@ -76,16 +77,16 @@ impl StringPoolBuilder {
             let mut refcount = reader.read_u16::<LittleEndian>()?;
             if length == 0 && refcount > 0 {
                 length = ((refcount as u32) << 16) &
-                         (reader.read_u16::<LittleEndian>()? as u32);
+                    (reader.read_u16::<LittleEndian>()? as u32);
                 refcount = reader.read_u16::<LittleEndian>()?;
             }
             lengths_and_refcounts.push((length, refcount));
         }
         Ok(StringPoolBuilder {
-            codepage: codepage,
-            long_string_refs: long_string_refs,
-            lengths_and_refcounts: lengths_and_refcounts,
-        })
+               codepage: codepage,
+               long_string_refs: long_string_refs,
+               lengths_and_refcounts: lengths_and_refcounts,
+           })
     }
 
     pub fn build_from_data<R: Read>(self, mut reader: R)
@@ -97,10 +98,10 @@ impl StringPoolBuilder {
             strings.push((self.codepage.decode(&buffer), refcount));
         }
         Ok(StringPool {
-            codepage: self.codepage,
-            strings: strings,
-            long_string_refs: self.long_string_refs,
-        })
+               codepage: self.codepage,
+               strings: strings,
+               long_string_refs: self.long_string_refs,
+           })
     }
 }
 
@@ -160,7 +161,8 @@ impl StringPool {
         // TODO: change the internal representation of StringPool to make this
         // more efficient.
         for (index, &mut (ref mut st, ref mut refcount)) in
-            self.strings.iter_mut().enumerate() {
+            self.strings.iter_mut().enumerate()
+        {
             if *refcount == 0 {
                 debug_assert_eq!(st, "");
                 *st = string;
