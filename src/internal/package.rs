@@ -5,14 +5,48 @@ use internal::summary::SummaryInfo;
 use internal::table::{Column, ColumnType, RowValue, Table};
 use std::collections::{BTreeMap, btree_map};
 use std::io::{self, Read, Seek, Write};
+use uuid::Uuid;
 
 // ========================================================================= //
+
+const INSTALLER_PACKAGE_CLSID: &str = "000C1084-0000-0000-C000-000000000046";
+const PATCH_PACKAGE_CLSID: &str = "000C1086-0000-0000-C000-000000000046";
+const TRANSFORM_PACKAGE_CLSID: &str = "000C1082-0000-0000-C000-000000000046";
 
 const COLUMNS_TABLE_NAME: &str = "_Columns";
 const TABLES_TABLE_NAME: &str = "_Tables";
 const STRING_DATA_TABLE_NAME: &str = "_StringData";
 const STRING_POOL_TABLE_NAME: &str = "_StringPool";
+
 const SUMMARY_INFO_STREAM_NAME: &str = "\u{5}SummaryInformation";
+
+// ========================================================================= //
+
+/// The type of MSI package (e.g. installer or patch).
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PackageType {
+    /// An installer package, which installs a new application.
+    Installer,
+    /// A patch package, which provides an update to an application.
+    Patch,
+    /// A transform, which is a collection of changes applied to an
+    /// installation.
+    Transform,
+}
+
+impl PackageType {
+    fn from_clsid(clsid: &Uuid) -> Option<PackageType> {
+        if *clsid == Uuid::parse_str(INSTALLER_PACKAGE_CLSID).unwrap() {
+            Some(PackageType::Installer)
+        } else if *clsid == Uuid::parse_str(PATCH_PACKAGE_CLSID).unwrap() {
+            Some(PackageType::Patch)
+        } else if *clsid == Uuid::parse_str(TRANSFORM_PACKAGE_CLSID).unwrap() {
+            Some(PackageType::Transform)
+        } else {
+            None
+        }
+    }
+}
 
 // ========================================================================= //
 
@@ -42,6 +76,7 @@ fn tables_table(long_string_refs: bool) -> Table {
 /// [`Cursor`](https://doc.rust-lang.org/std/io/struct.Cursor.html)).
 pub struct Package<F> {
     comp: cfb::CompoundFile<F>,
+    package_type: PackageType,
     summary_info: SummaryInfo,
     is_summary_info_modified: bool,
     string_pool: StringPool,
@@ -51,6 +86,9 @@ pub struct Package<F> {
 }
 
 impl<F> Package<F> {
+    /// Returns what type of package this is.
+    pub fn package_type(&self) -> PackageType { self.package_type }
+
     /// Returns summary information for this package.
     pub fn summary_info(&self) -> &SummaryInfo { &self.summary_info }
 
@@ -72,6 +110,17 @@ impl<F: Read + Seek> Package<F> {
     /// object will be writable as well.
     pub fn open(inner: F) -> io::Result<Package<F>> {
         let mut comp = cfb::CompoundFile::open(inner)?;
+        let package_type = {
+            let root_entry = comp.root_entry();
+            let clsid = root_entry.clsid();
+            match PackageType::from_clsid(clsid) {
+                Some(ptype) => ptype,
+                None => {
+                    invalid_data!("Unrecognized package CLSID ({})",
+                                  clsid.hyphenated())
+                }
+            }
+        };
         let summary_info =
             SummaryInfo::read(comp.open_stream(SUMMARY_INFO_STREAM_NAME)?)?;
         let string_pool = {
@@ -148,6 +197,7 @@ impl<F: Read + Seek> Package<F> {
         }
         Ok(Package {
                comp: comp,
+               package_type: package_type,
                summary_info: summary_info,
                is_summary_info_modified: false,
                string_pool: string_pool,

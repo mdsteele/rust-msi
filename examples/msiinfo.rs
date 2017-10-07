@@ -22,7 +22,9 @@ fn pad(mut string: String, fill: char, width: usize) -> String {
     string
 }
 
-fn print_summary_info(summary_info: &msi::SummaryInfo) {
+fn print_summary_info(package_type: msi::PackageType,
+                      summary_info: &msi::SummaryInfo) {
+    println!("Package type: {:?}", package_type);
     let codepage = summary_info.codepage();
     println!("   Code page: {} ({})", codepage.id(), codepage.name());
     if let Some(title) = summary_info.title() {
@@ -146,7 +148,7 @@ fn main() {
     } else if let Some(submatches) = matches.subcommand_matches("summary") {
         let path = submatches.value_of("path").unwrap();
         let package = msi::open(path).expect("open package");
-        print_summary_info(package.summary_info());
+        print_summary_info(package.package_type(), package.summary_info());
     } else if let Some(submatches) = matches.subcommand_matches("tables") {
         let path = submatches.value_of("path").unwrap();
         let package = msi::open(path).expect("open package");

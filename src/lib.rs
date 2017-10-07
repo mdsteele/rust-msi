@@ -3,7 +3,7 @@
 //!
 //! A Windows Installer file, or *MSI file*, represents a Windows software
 //! package and a declarative description of how it should be installed.
-//! An MSI file consists of a relational database stored with a [Compound
+//! An MSI file consists of a relational database stored within a [Compound
 //! File Binary](https://en.wikipedia.org/wiki/Compound_File_Binary_Format)
 //! file.
 
@@ -18,7 +18,7 @@ extern crate uuid;
 mod internal;
 
 pub use internal::codepage::CodePage;
-pub use internal::package::Package;
+pub use internal::package::{Package, PackageType};
 pub use internal::stringpool::{StringPool, StringRef};
 pub use internal::summary::SummaryInfo;
 pub use internal::table::{Column, ColumnType, RowValue, Table};

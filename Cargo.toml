@@ -10,7 +10,7 @@ readme = "README.md"
 
 [dependencies]
 byteorder = "1"
-cfb = "0.2"
+cfb = "0.3"
 encoding = "0.2"
 ordermap = "0.2"
 uuid = "0.5"
