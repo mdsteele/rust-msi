@@ -2,7 +2,7 @@ use cfb;
 use internal::streamname;
 use internal::stringpool::{StringPool, StringPoolBuilder};
 use internal::summary::SummaryInfo;
-use internal::table::{Column, ColumnType, RowValue, Table};
+use internal::table::{Column, ColumnType, Rows, Table};
 use std::collections::{BTreeMap, btree_map};
 use std::io::{self, Read, Seek, Write};
 use uuid::Uuid;
@@ -92,9 +92,6 @@ impl<F> Package<F> {
     /// Returns summary information for this package.
     pub fn summary_info(&self) -> &SummaryInfo { &self.summary_info }
 
-    /// Returns the string pool for this package.
-    pub fn string_pool(&self) -> &StringPool { &self.string_pool }
-
     /// Returns the table with the given name (if any).
     pub fn table(&self, table_name: &str) -> Option<&Table> {
         self.tables.get(table_name)
@@ -138,8 +135,9 @@ impl<F: Read + Seek> Package<F> {
             let table = tables_table(string_pool.long_string_refs());
             let stream = comp.open_stream(table.stream_name())?;
             let mut names = Vec::<String>::new();
-            for row in table.read_rows(stream)? {
-                names.push(row?[0].to_string(&string_pool));
+            let rows = table.read_rows(stream)?;
+            for row in Rows::new(&string_pool, &table, rows) {
+                names.push(row[0].to_string());
             }
             all_tables.insert(table.name().to_string(), table);
             names
@@ -153,19 +151,19 @@ impl<F: Read + Seek> Package<F> {
                     .into_iter()
                     .map(|name| (name, BTreeMap::new()))
                     .collect();
-            for row in table.read_rows(stream)? {
-                let row = row?;
-                let table_name = row[0].to_string(&string_pool);
-                if let Some(cols) = columns_map.get_mut(&table_name) {
-                    let col_index = row[1].to_i32();
+            let rows = table.read_rows(stream)?;
+            for row in Rows::new(&string_pool, &table, rows) {
+                let table_name = row[0].as_str().unwrap();
+                if let Some(cols) = columns_map.get_mut(table_name) {
+                    let col_index = row[1].as_int().unwrap();
                     if cols.contains_key(&col_index) {
                         invalid_data!("Repeat in _Columns: {:?} column {}",
                                       table_name,
                                       col_index);
                     }
-                    let col_name = row[2].to_string(&string_pool);
-                    let type_bits = row[3].to_i32();
-                    let column = Column::from_bitfield(col_name, type_bits);
+                    let col_name = row[2].to_string();
+                    let type_bits = row[3].as_int().unwrap();
+                    let column = Column::from_bitfield(col_name, type_bits)?;
                     cols.insert(col_index, column);
                 } else {
                     invalid_data!("_Columns mentions table {:?}, which \
@@ -218,15 +216,13 @@ impl<F: Read + Seek> Package<F> {
     }
 
     /// Read and return all rows from a table.
-    pub fn read_table_rows(&mut self, table_name: &str)
-                           -> io::Result<Vec<Vec<RowValue>>> {
+    pub fn read_table_rows(&mut self, table_name: &str) -> io::Result<Rows> {
         if let Some(table) = self.tables.get(table_name) {
-            let stream = self.comp.open_stream(table.stream_name())?;
-            let mut rows = Vec::<Vec<RowValue>>::new();
-            for row in table.read_rows(stream)? {
-                rows.push(row?);
-            }
-            Ok(rows)
+            let rows = {
+                let stream = self.comp.open_stream(table.stream_name())?;
+                table.read_rows(stream)?
+            };
+            Ok(Rows::new(&self.string_pool, table, rows))
         } else {
             not_found!("Table {:?} does not exist", table_name);
         }

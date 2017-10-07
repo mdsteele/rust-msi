@@ -66,15 +66,20 @@ fn print_table_description(table: &msi::Table) {
 
 fn print_table_contents<F: Read + Seek>(package: &mut msi::Package<F>,
                                         table_name: &str) {
-    let rows = package.read_table_rows(table_name).expect("read rows");
-    let table = package.table(table_name).unwrap();
-    let mut col_widths: Vec<usize> =
-        table.columns().iter().map(|column| column.name().len()).collect();
-    let rows: Vec<Vec<String>> = rows.into_iter()
+    let mut col_widths: Vec<usize> = package
+        .table(table_name)
+        .unwrap()
+        .columns()
+        .iter()
+        .map(|column| column.name().len())
+        .collect();
+    let rows: Vec<Vec<String>> = package
+        .read_table_rows(table_name)
+        .expect("read rows")
         .map(|row| {
             let mut strings = Vec::with_capacity(row.len());
-            for (index, value) in row.into_iter().enumerate() {
-                let string = value.to_string(package.string_pool());
+            for index in 0..row.len() {
+                let string = row[index].to_string();
                 col_widths[index] = cmp::max(col_widths[index], string.len());
                 strings.push(string);
             }
@@ -83,7 +88,13 @@ fn print_table_contents<F: Read + Seek>(package: &mut msi::Package<F>,
         .collect();
     {
         let mut line = String::new();
-        for (index, column) in table.columns().iter().enumerate() {
+        for (index, column) in package
+            .table(table_name)
+            .unwrap()
+            .columns()
+            .iter()
+            .enumerate()
+        {
             let string =
                 pad(column.name().to_string(), ' ', col_widths[index]);
             line.push_str(&string);
