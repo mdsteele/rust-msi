@@ -259,6 +259,7 @@ impl PropertySet {
             let value = PropertyValue::read(reader.by_ref(),
                                             CodePage::default())?;
             if let PropertyValue::I2(codepage_id) = value {
+                let codepage_id = codepage_id as u16;
                 if let Some(codepage) = CodePage::from_id(codepage_id as i32) {
                     codepage
                 } else {

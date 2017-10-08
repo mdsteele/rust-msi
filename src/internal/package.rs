@@ -22,34 +22,6 @@ const SUMMARY_INFO_STREAM_NAME: &str = "\u{5}SummaryInformation";
 
 // ========================================================================= //
 
-/// The type of MSI package (e.g. installer or patch).
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum PackageType {
-    /// An installer package, which installs a new application.
-    Installer,
-    /// A patch package, which provides an update to an application.
-    Patch,
-    /// A transform, which is a collection of changes applied to an
-    /// installation.
-    Transform,
-}
-
-impl PackageType {
-    fn from_clsid(clsid: &Uuid) -> Option<PackageType> {
-        if *clsid == Uuid::parse_str(INSTALLER_PACKAGE_CLSID).unwrap() {
-            Some(PackageType::Installer)
-        } else if *clsid == Uuid::parse_str(PATCH_PACKAGE_CLSID).unwrap() {
-            Some(PackageType::Patch)
-        } else if *clsid == Uuid::parse_str(TRANSFORM_PACKAGE_CLSID).unwrap() {
-            Some(PackageType::Transform)
-        } else {
-            None
-        }
-    }
-}
-
-// ========================================================================= //
-
 fn columns_table(long_string_refs: bool) -> Table {
     Table::new(
         COLUMNS_TABLE_NAME.to_string(),
@@ -71,11 +43,66 @@ fn tables_table(long_string_refs: bool) -> Table {
 
 // ========================================================================= //
 
+/// The type of MSI package (e.g. installer or patch).
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PackageType {
+    /// An installer package, which installs a new application.
+    Installer,
+    /// A patch package, which provides an update to an application.
+    Patch,
+    /// A transform, which is a collection of changes applied to an
+    /// installation.
+    Transform,
+}
+
+impl PackageType {
+    fn from_clsid(clsid: &Uuid) -> Option<PackageType> {
+        if *clsid == PackageType::Installer.clsid() {
+            Some(PackageType::Installer)
+        } else if *clsid == PackageType::Patch.clsid() {
+            Some(PackageType::Patch)
+        } else if *clsid == PackageType::Transform.clsid() {
+            Some(PackageType::Transform)
+        } else {
+            None
+        }
+    }
+
+    fn clsid(&self) -> Uuid {
+        match *self {
+            PackageType::Installer => {
+                Uuid::parse_str(INSTALLER_PACKAGE_CLSID).unwrap()
+            }
+            PackageType::Patch => {
+                Uuid::parse_str(PATCH_PACKAGE_CLSID).unwrap()
+            }
+            PackageType::Transform => {
+                Uuid::parse_str(TRANSFORM_PACKAGE_CLSID).unwrap()
+            }
+        }
+    }
+
+    fn default_title(&self) -> &str {
+        match *self {
+            PackageType::Installer => "Installation Database",
+            PackageType::Patch => "Patch",
+            PackageType::Transform => "Transform",
+        }
+    }
+}
+
+// ========================================================================= //
+
 /// An MSI package file, backed by an underlying reader/writer (such as a
 /// [`File`](https://doc.rust-lang.org/std/fs/struct.File.html) or
 /// [`Cursor`](https://doc.rust-lang.org/std/io/struct.Cursor.html)).
 pub struct Package<F> {
-    comp: cfb::CompoundFile<F>,
+    // The comp field is always `Some`, unless we are about to destroy the
+    // `Package` object.  The only reason for it to be an `Option` is to make
+    // it possible for the `into_inner()` method to move the `CompoundFile` out
+    // of the `Package` object, even though `Package` implements `Drop`
+    // (normally you can't move fields out an object that implements `Drop`).
+    comp: Option<cfb::CompoundFile<F>>,
     package_type: PackageType,
     summary_info: SummaryInfo,
     is_summary_info_modified: bool,
@@ -99,6 +126,20 @@ impl<F> Package<F> {
 
     /// Returns an iterator over the tables in this package.
     pub fn tables(&self) -> Tables { Tables(self.tables.values()) }
+
+    /// Consumes the `Package` object, returning the underlying reader/writer.
+    pub fn into_inner(mut self) -> io::Result<F> {
+        if let Some(finisher) = self.finisher.take() {
+            finisher.finish(&mut self)?;
+        }
+        Ok(self.comp.take().unwrap().into_inner())
+    }
+
+    fn comp(&self) -> &cfb::CompoundFile<F> { self.comp.as_ref().unwrap() }
+
+    fn comp_mut(&mut self) -> &mut cfb::CompoundFile<F> {
+        self.comp.as_mut().unwrap()
+    }
 }
 
 impl<F: Read + Seek> Package<F> {
@@ -133,42 +174,49 @@ impl<F: Read + Seek> Package<F> {
         let mut all_tables = BTreeMap::<String, Table>::new();
         let table_names: Vec<String> = {
             let table = tables_table(string_pool.long_string_refs());
-            let stream = comp.open_stream(table.stream_name())?;
+            let stream_name = table.stream_name();
             let mut names = Vec::<String>::new();
-            let rows = table.read_rows(stream)?;
-            for row in Rows::new(&string_pool, &table, rows) {
-                names.push(row[0].to_string());
+            if comp.exists(&stream_name) {
+                let stream = comp.open_stream(&stream_name)?;
+                let rows = table.read_rows(stream)?;
+                for row in Rows::new(&string_pool, &table, rows) {
+                    names.push(row[0].to_string());
+                }
             }
             all_tables.insert(table.name().to_string(), table);
             names
         };
         {
             let table = columns_table(string_pool.long_string_refs());
-            let stream = comp.open_stream(table.stream_name())?;
+            let stream_name = table.stream_name();
             let mut columns_map: BTreeMap<String,
                                           BTreeMap<i32, Column>> =
                 table_names
                     .into_iter()
                     .map(|name| (name, BTreeMap::new()))
                     .collect();
-            let rows = table.read_rows(stream)?;
-            for row in Rows::new(&string_pool, &table, rows) {
-                let table_name = row[0].as_str().unwrap();
-                if let Some(cols) = columns_map.get_mut(table_name) {
-                    let col_index = row[1].as_int().unwrap();
-                    if cols.contains_key(&col_index) {
-                        invalid_data!("Repeat in _Columns: {:?} column {}",
-                                      table_name,
-                                      col_index);
+            if comp.exists(&stream_name) {
+                let stream = comp.open_stream(&stream_name)?;
+                let rows = table.read_rows(stream)?;
+                for row in Rows::new(&string_pool, &table, rows) {
+                    let table_name = row[0].as_str().unwrap();
+                    if let Some(cols) = columns_map.get_mut(table_name) {
+                        let col_index = row[1].as_int().unwrap();
+                        if cols.contains_key(&col_index) {
+                            invalid_data!("Repeat in _Columns: {:?} column {}",
+                                          table_name,
+                                          col_index);
+                        }
+                        let col_name = row[2].to_string();
+                        let type_bits = row[3].as_int().unwrap();
+                        let column = Column::from_bitfield(col_name,
+                                                           type_bits)?;
+                        cols.insert(col_index, column);
+                    } else {
+                        invalid_data!("_Columns mentions table {:?}, which \
+                                       isn't in _Tables",
+                                      table_name);
                     }
-                    let col_name = row[2].to_string();
-                    let type_bits = row[3].as_int().unwrap();
-                    let column = Column::from_bitfield(col_name, type_bits)?;
-                    cols.insert(col_index, column);
-                } else {
-                    invalid_data!("_Columns mentions table {:?}, which \
-                                   isn't in _Tables",
-                                  table_name);
                 }
             }
             all_tables.insert(table.name().to_string(), table);
@@ -194,7 +242,7 @@ impl<F: Read + Seek> Package<F> {
             }
         }
         Ok(Package {
-               comp: comp,
+               comp: Some(comp),
                package_type: package_type,
                summary_info: summary_info,
                is_summary_info_modified: false,
@@ -207,7 +255,7 @@ impl<F: Read + Seek> Package<F> {
 
     /// Temporary helper function for testing.
     pub fn print_entries(&self) -> io::Result<()> {
-        for entry in self.comp.read_storage("/")? {
+        for entry in self.comp().read_storage("/")? {
             let (name, is_table) = streamname::decode(entry.name());
             let prefix = if is_table { "T" } else { " " };
             println!("{} {:?}", prefix, name);
@@ -218,9 +266,15 @@ impl<F: Read + Seek> Package<F> {
     /// Read and return all rows from a table.
     pub fn read_table_rows(&mut self, table_name: &str) -> io::Result<Rows> {
         if let Some(table) = self.tables.get(table_name) {
+            let stream_name = table.stream_name();
             let rows = {
-                let stream = self.comp.open_stream(table.stream_name())?;
-                table.read_rows(stream)?
+                let comp = self.comp.as_mut().unwrap();
+                if comp.exists(&stream_name) {
+                    let stream = comp.open_stream(&stream_name)?;
+                    table.read_rows(stream)?
+                } else {
+                    Vec::new()
+                }
             };
             Ok(Rows::new(&self.string_pool, table, rows))
         } else {
@@ -230,6 +284,41 @@ impl<F: Read + Seek> Package<F> {
 }
 
 impl<F: Read + Write + Seek> Package<F> {
+    /// Creates a new, empty package of the given type, using the underlying
+    /// reader/writer.  The reader/writer should be initially empty.
+    pub fn create(package_type: PackageType, inner: F)
+                  -> io::Result<Package<F>> {
+        let mut comp = cfb::CompoundFile::create(inner)?;
+        comp.set_storage_clsid("/", package_type.clsid())?;
+        let mut summary_info = SummaryInfo::new();
+        summary_info.set_title(package_type.default_title().to_string());
+        let string_pool = StringPool::new(summary_info.codepage());
+        let tables = {
+            let mut tables = BTreeMap::<String, Table>::new();
+            let table = tables_table(string_pool.long_string_refs());
+            tables.insert(table.name().to_string(), table);
+            let table = columns_table(string_pool.long_string_refs());
+            tables.insert(table.name().to_string(), table);
+            tables
+        };
+        let mut package = Package {
+            comp: Some(comp),
+            package_type: package_type,
+            summary_info: summary_info,
+            is_summary_info_modified: true,
+            string_pool: string_pool,
+            is_string_pool_modified: true,
+            tables: tables,
+            finisher: None,
+        };
+        package.set_finisher();
+        // TODO: create _Validation table
+        package.flush()?;
+        debug_assert!(!package.is_summary_info_modified);
+        debug_assert!(!package.is_string_pool_modified);
+        Ok(package)
+    }
+
     /// Returns a mutable reference to the summary information for this
     /// package.  Call `flush()` or drop the `Package` object to persist any
     /// changes made to the underlying writer.
@@ -244,7 +333,7 @@ impl<F: Read + Write + Seek> Package<F> {
         if let Some(finisher) = self.finisher.take() {
             finisher.finish(self)?;
         }
-        self.comp.flush()
+        self.comp_mut().flush()
     }
 
     fn set_finisher(&mut self) {
@@ -296,24 +385,51 @@ struct FinishImpl {}
 impl<F: Read + Write + Seek> Finish<F> for FinishImpl {
     fn finish(&self, package: &mut Package<F>) -> io::Result<()> {
         if package.is_summary_info_modified {
-            let stream = package.comp.create_stream(SUMMARY_INFO_STREAM_NAME)?;
+            let stream = package
+                .comp
+                .as_mut()
+                .unwrap()
+                .create_stream(SUMMARY_INFO_STREAM_NAME)?;
             package.summary_info.write(stream)?;
             package.is_summary_info_modified = false;
         }
         if package.is_string_pool_modified {
             {
                 let name = streamname::encode(STRING_POOL_TABLE_NAME, true);
-                let stream = package.comp.create_stream(name)?;
+                let stream =
+                    package.comp.as_mut().unwrap().create_stream(name)?;
                 package.string_pool.write_pool(stream)?;
             }
             {
                 let name = streamname::encode(STRING_DATA_TABLE_NAME, true);
-                let stream = package.comp.create_stream(name)?;
+                let stream =
+                    package.comp.as_mut().unwrap().create_stream(name)?;
                 package.string_pool.write_data(stream)?;
             }
             package.is_string_pool_modified = false;
         }
         Ok(())
+    }
+}
+
+// ========================================================================= //
+
+#[cfg(test)]
+mod tests {
+    use super::{Package, PackageType};
+    use std::io::Cursor;
+
+    #[test]
+    fn set_summary_information() {
+        let cursor = Cursor::new(Vec::new());
+        let mut package = Package::create(PackageType::Installer, cursor)
+            .expect("create");
+        package.summary_info_mut().set_author("Jane Doe".to_string());
+
+        let cursor = package.into_inner().unwrap();
+        let package = Package::open(cursor).expect("open");
+        assert_eq!(package.package_type(), PackageType::Installer);
+        assert_eq!(package.summary_info().author(), Some("Jane Doe"));
     }
 }
 

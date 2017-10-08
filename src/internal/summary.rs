@@ -35,9 +35,11 @@ pub struct SummaryInfo {
 
 impl SummaryInfo {
     /// Creates an empty `SummaryInfo` with no properties set.
-    pub fn new() -> SummaryInfo {
+    pub(crate) fn new() -> SummaryInfo {
         let properties = PropertySet::new(OperatingSystem::Win32, 10, FMTID);
-        SummaryInfo { properties: properties }
+        let mut summary = SummaryInfo { properties: properties };
+        summary.set_codepage(CodePage::Utf8);
+        summary
     }
 
     pub(crate) fn read<R: Read + Seek>(reader: R) -> io::Result<SummaryInfo> {
