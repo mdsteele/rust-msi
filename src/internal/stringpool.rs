@@ -21,13 +21,35 @@ impl StringRef {
                          -> io::Result<Option<StringRef>> {
         let mut number = reader.read_u16::<LittleEndian>()? as i32;
         if long_string_refs {
-            number &= (reader.read_u8()? as i32) << 16;
+            number |= (reader.read_u8()? as i32) << 16;
         }
         Ok(if number == 0 {
                None
            } else {
                Some(StringRef(number))
            })
+    }
+
+    /// Serializes a nullable StringRef.  The `long_string_refs` argument
+    /// specifies whether to write three bytes (if true) or two (if false).
+    pub fn write<W: Write>(writer: &mut W, string_ref: Option<StringRef>,
+                           long_string_refs: bool)
+                           -> io::Result<()> {
+        let number = if let Some(StringRef(number)) = string_ref {
+            number
+        } else {
+            0
+        };
+        if long_string_refs {
+            writer.write_u16::<LittleEndian>((number & 0xffff) as u16)?;
+            writer.write_u8(((number >> 16) & 0xff) as u8)?;
+        } else if number <= (u16::MAX as i32) {
+            writer.write_u16::<LittleEndian>(number as u16)?;
+        } else {
+            invalid_input!("Cannot write {:?} with long_string_refs=false",
+                           StringRef(number));
+        }
+        Ok(())
     }
 
     /// Returns the reference number, that is, the 1-based index into the
@@ -129,6 +151,7 @@ impl StringPool {
 
     /// Returns the number of strings in the string pool (including empty
     /// entries).
+    #[allow(dead_code)]
     pub fn num_strings(&self) -> u32 { self.strings.len() as u32 }
 
     /// Returns true if string references should be serialized with three bytes
@@ -146,6 +169,7 @@ impl StringPool {
     }
 
     /// Returns the pool's refcount for the given string reference.
+    #[allow(dead_code)]
     pub fn refcount(&self, string_ref: StringRef) -> u16 {
         let index = string_ref.index();
         if index < self.strings.len() {
@@ -179,6 +203,7 @@ impl StringPool {
     }
 
     /// Decrements the refcount of a string in the pool.
+    #[allow(dead_code)]
     pub fn decref(&mut self, string_ref: StringRef) {
         let index = string_ref.index();
         if index >= self.strings.len() {
@@ -230,6 +255,47 @@ impl StringPool {
 mod tests {
     use super::{StringPool, StringPoolBuilder, StringRef};
     use internal::codepage::CodePage;
+
+    #[test]
+    fn read_string_ref() {
+        let mut input: &[u8] = b"\x00\x00";
+        assert_eq!(StringRef::read(&mut input, false).unwrap(), None);
+
+        let mut input: &[u8] = b"\x34\x12";
+        assert_eq!(StringRef::read(&mut input, false).unwrap(),
+                   Some(StringRef(0x1234)));
+
+        let mut input: &[u8] = b"\x00\x00\x00";
+        assert_eq!(StringRef::read(&mut input, true).unwrap(), None);
+
+        let mut input: &[u8] = b"\x00\x00\x02";
+        assert_eq!(StringRef::read(&mut input, true).unwrap(),
+                   Some(StringRef(0x20000)));
+
+        let mut input: &[u8] = b"\x56\x34\x12";
+        assert_eq!(StringRef::read(&mut input, true).unwrap(),
+                   Some(StringRef(0x123456)));
+    }
+
+    #[test]
+    fn write_string_ref() {
+        let mut output = Vec::<u8>::new();
+        StringRef::write(&mut output, None, false).unwrap();
+        assert_eq!(&output as &[u8], b"\x00\x00");
+
+        let mut output = Vec::<u8>::new();
+        StringRef::write(&mut output, Some(StringRef(0x1234)), false).unwrap();
+        assert_eq!(&output as &[u8], b"\x34\x12");
+
+        let mut output = Vec::<u8>::new();
+        StringRef::write(&mut output, None, true).unwrap();
+        assert_eq!(&output as &[u8], b"\x00\x00\x00");
+
+        let mut output = Vec::<u8>::new();
+        StringRef::write(&mut output, Some(StringRef(0x123456)), true)
+            .unwrap();
+        assert_eq!(&output as &[u8], b"\x56\x34\x12");
+    }
 
     #[test]
     fn new_string_pool() {

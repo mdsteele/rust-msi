@@ -1,8 +1,10 @@
 use cfb;
+use internal::codepage::CodePage;
 use internal::streamname;
 use internal::stringpool::{StringPool, StringPoolBuilder};
 use internal::summary::SummaryInfo;
 use internal::table::{Column, ColumnType, Rows, Table};
+use internal::value::{Value, ValueRef};
 use std::collections::{BTreeMap, btree_map};
 use std::io::{self, Read, Seek, Write};
 use uuid::Uuid;
@@ -119,12 +121,17 @@ impl<F> Package<F> {
     /// Returns summary information for this package.
     pub fn summary_info(&self) -> &SummaryInfo { &self.summary_info }
 
-    /// Returns the table with the given name (if any).
+    /// Returns the code page used for serializing strings in the database.
+    pub fn database_codepage(&self) -> CodePage { self.string_pool.codepage() }
+
+    // TODO: pub fn set_database_codepage
+
+    /// Returns the database table with the given name (if any).
     pub fn table(&self, table_name: &str) -> Option<&Table> {
         self.tables.get(table_name)
     }
 
-    /// Returns an iterator over the tables in this package.
+    /// Returns an iterator over the database tables in this package.
     pub fn tables(&self) -> Tables { Tables(self.tables.values()) }
 
     /// Consumes the `Package` object, returning the underlying reader/writer.
@@ -326,6 +333,78 @@ impl<F: Read + Write + Seek> Package<F> {
         self.is_summary_info_modified = true;
         self.set_finisher();
         &mut self.summary_info
+    }
+
+    /// Inserts a new row into a table.  Returns an error without modifying the
+    /// table if the values are of the wrong types (or otherwise invalid) for
+    /// the table, or if the primary key values are not unique within the
+    /// table, or if the table doesn't exist.
+    pub fn insert_row(&mut self, table_name: &str, values: Vec<Value>)
+                      -> io::Result<()> {
+        if let Some(table) = self.tables.get(table_name) {
+            // Validate the new row.
+            if values.len() != table.columns().len() {
+                invalid_input!("Table {:?} has {} columns, but {} values \
+                                were provided",
+                               table_name,
+                               table.columns().len(),
+                               values.len());
+            }
+            for (column, value) in table.columns().iter().zip(values.iter()) {
+                if !column.is_valid_value(value) {
+                    invalid_input!("{:?} is not a valid value for column {:?}",
+                                   value,
+                                   column.name());
+                }
+            }
+            // Read in the rows from the table.
+            let stream_name = table.stream_name();
+            let key_indices = table.primary_key_indices();
+            let mut rows = BTreeMap::<Vec<Value>, Vec<ValueRef>>::new();
+            let comp = self.comp.as_mut().unwrap();
+            if comp.exists(&stream_name) {
+                let stream = comp.open_stream(&stream_name)?;
+                for row in table.read_rows(stream)?.into_iter() {
+                    let mut keys = Vec::with_capacity(key_indices.len());
+                    for &index in key_indices.iter() {
+                        keys.push(row[index].to_value(&self.string_pool));
+                    }
+                    if rows.contains_key(&keys) {
+                        invalid_data!("Malformed table {:?} contains \
+                                       multiple rows with key {:?}",
+                                      table_name,
+                                      keys);
+                    }
+                    rows.insert(keys, row);
+                }
+            }
+            // Check if this row already exists in the table.
+            let mut keys = Vec::with_capacity(key_indices.len());
+            for &index in key_indices.iter() {
+                keys.push(values[index].clone());
+            }
+            if rows.contains_key(&keys) {
+                already_exists!("Table {:?} already contains a row with \
+                                 key {:?}",
+                                table_name,
+                                keys);
+            }
+            // Insert the new row into the table.
+            let mut row = Vec::<ValueRef>::with_capacity(values.len());
+            for value in values.into_iter() {
+                row.push(ValueRef::create(value, &mut self.string_pool));
+            }
+            rows.insert(keys, row);
+            // Write table back out to the file.
+            let rows: Vec<Vec<ValueRef>> =
+                rows.into_iter().map(|(_, row)| row).collect();
+            let stream = comp.create_stream(&stream_name)?;
+            table.write_rows(stream, rows)?;
+        } else {
+            not_found!("Table {:?} does not exist", table_name);
+        }
+        self.set_finisher();
+        Ok(())
     }
 
     /// Flushes any buffered changes to the underlying writer.

@@ -19,9 +19,9 @@ mod internal;
 
 pub use internal::codepage::CodePage;
 pub use internal::package::{Package, PackageType, Tables};
-pub use internal::stringpool::{StringPool, StringRef};
 pub use internal::summary::SummaryInfo;
-pub use internal::table::{Column, ColumnType, Row, Rows, Table, Value};
+pub use internal::table::{Column, ColumnType, Row, Rows, Table};
+pub use internal::value::Value;
 use std::fs;
 use std::io;
 use std::path::Path;

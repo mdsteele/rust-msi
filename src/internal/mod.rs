@@ -9,3 +9,4 @@ pub mod stringpool;
 pub mod summary;
 pub mod table;
 pub mod time;
+pub mod value;
