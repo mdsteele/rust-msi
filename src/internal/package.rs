@@ -1,9 +1,10 @@
 use cfb;
 use internal::codepage::CodePage;
+use internal::column::Column;
 use internal::streamname;
 use internal::stringpool::{StringPool, StringPoolBuilder};
 use internal::summary::SummaryInfo;
-use internal::table::{Column, ColumnType, Rows, Table};
+use internal::table::{Rows, Table};
 use internal::value::{Value, ValueRef};
 use std::collections::{BTreeMap, btree_map};
 use std::io::{self, Read, Seek, Write};
@@ -28,10 +29,10 @@ fn columns_table(long_string_refs: bool) -> Table {
     Table::new(
         COLUMNS_TABLE_NAME.to_string(),
         vec![
-            Column::new("Table", ColumnType::Str(64), true),
-            Column::new("Number", ColumnType::Int16, true),
-            Column::new("Name", ColumnType::Str(64), false),
-            Column::new("Type", ColumnType::Int16, false),
+            Column::build("Table").primary_key().string(64),
+            Column::build("Number").primary_key().int16(),
+            Column::build("Name").string(64),
+            Column::build("Type").int16(),
         ],
         long_string_refs,
     )
@@ -39,7 +40,7 @@ fn columns_table(long_string_refs: bool) -> Table {
 
 fn tables_table(long_string_refs: bool) -> Table {
     Table::new(TABLES_TABLE_NAME.to_string(),
-               vec![Column::new("Name", ColumnType::Str(64), true)],
+               vec![Column::build("Name").primary_key().string(64)],
                long_string_refs)
 }
 

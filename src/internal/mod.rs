@@ -2,6 +2,7 @@
 mod macros;
 
 pub mod codepage;
+pub mod column;
 pub mod package;
 pub mod propset;
 pub mod streamname;

@@ -18,9 +18,10 @@ extern crate uuid;
 mod internal;
 
 pub use internal::codepage::CodePage;
+pub use internal::column::{Column, ColumnBuilder, ColumnType};
 pub use internal::package::{Package, PackageType, Tables};
 pub use internal::summary::SummaryInfo;
-pub use internal::table::{Column, ColumnType, Row, Rows, Table};
+pub use internal::table::{Row, Rows, Table};
 pub use internal::value::Value;
 use std::fs;
 use std::io;
