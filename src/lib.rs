@@ -19,6 +19,7 @@ mod internal;
 
 pub use internal::codepage::CodePage;
 pub use internal::column::{Column, ColumnBuilder, ColumnType};
+pub use internal::expr::Expr;
 pub use internal::package::{Package, PackageType, Tables};
 pub use internal::summary::SummaryInfo;
 pub use internal::table::{Row, Rows, Table};
@@ -32,6 +33,11 @@ use std::path::Path;
 /// Opens an existing MSI file at the given path in read-only mode.
 pub fn open<P: AsRef<Path>>(path: P) -> io::Result<Package<fs::File>> {
     Package::open(fs::File::open(path)?)
+}
+
+/// Opens an existing MSI file at the given path in read-write mode.
+pub fn open_rw<P: AsRef<Path>>(path: P) -> io::Result<Package<fs::File>> {
+    Package::open(fs::OpenOptions::new().read(true).write(true).open(path)?)
 }
 
 // ========================================================================= //

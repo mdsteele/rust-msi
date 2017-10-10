@@ -56,6 +56,25 @@ impl Value {
             Value::Str(ref string) => Some(string.as_str()),
         }
     }
+
+    /// Creates a boolean value.
+    pub(crate) fn from_bool(boolean: bool) -> Value {
+        if boolean {
+            Value::Int(1)
+        } else {
+            Value::Int(0)
+        }
+    }
+
+    /// Coerces the `Value` to a boolean.  Returns false for null, zero, and
+    /// empty string; returns true for all other values.
+    pub(crate) fn to_bool(&self) -> bool {
+        match *self {
+            Value::Null => false,
+            Value::Int(number) => number != 0,
+            Value::Str(ref string) => !string.is_empty(),
+        }
+    }
 }
 
 impl fmt::Display for Value {

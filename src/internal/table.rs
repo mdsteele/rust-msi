@@ -116,6 +116,13 @@ pub struct Row<'a> {
 }
 
 impl<'a> Row<'a> {
+    pub(crate) fn new(table: &'a Table, values: Vec<Value>) -> Row<'a> {
+        Row {
+            table: table,
+            values: values,
+        }
+    }
+
     /// Returns the number of columns in the row.
     pub fn len(&self) -> usize { self.table.columns().len() }
 }
@@ -168,10 +175,7 @@ impl<'a> Iterator for Rows<'a> {
                 .map(|value_ref| value_ref.to_value(self.string_pool))
                 .collect();
             self.next_row_index += 1;
-            Some(Row {
-                     table: self.table,
-                     values: values,
-                 })
+            Some(Row::new(self.table, values))
         } else {
             None
         }
