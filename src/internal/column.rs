@@ -40,6 +40,14 @@ impl ColumnType {
         }
     }
 
+    fn bitfield(&self) -> i32 {
+        match *self {
+            ColumnType::Int16 => 0x2,
+            ColumnType::Int32 => 0x4,
+            ColumnType::Str(max_len) => COL_STRING_BIT | (max_len as i32),
+        }
+    }
+
     pub(crate) fn read_value<R: Read>(&self, reader: &mut R,
                                       long_string_refs: bool)
                                       -> io::Result<ValueRef> {
@@ -176,6 +184,20 @@ impl Column {
                is_nullable: (type_bits & COL_NULLABLE_BIT) != 0,
                is_primary_key: (type_bits & COL_PRIMARY_KEY_BIT) != 0,
            })
+    }
+
+    pub(crate) fn bitfield(&self) -> i32 {
+        let mut bits = self.coltype.bitfield();
+        if self.is_localizable {
+            bits |= COL_LOCALIZABLE_BIT;
+        }
+        if self.is_nullable {
+            bits |= COL_NULLABLE_BIT;
+        }
+        if self.is_primary_key {
+            bits |= COL_PRIMARY_KEY_BIT;
+        }
+        bits
     }
 
     /// Returns the name of the column.

@@ -1,5 +1,6 @@
 use internal::table::Row;
 use internal::value::Value;
+use std::collections::HashSet;
 use std::ops;
 
 // ========================================================================= //
@@ -26,6 +27,11 @@ impl Expr {
 
     /// Returns an expression that evaluates to a null value.
     pub fn null() -> Expr { Expr { ast: Ast::Literal(Value::Null) } }
+
+    /// Returns an expression that evaluates to the given boolean value.
+    pub fn boolean(boolean: bool) -> Expr {
+        Expr { ast: Ast::Literal(Value::from_bool(boolean)) }
+    }
 
     /// Returns an expression that evaluates to the given integer value.
     pub fn integer(integer: i32) -> Expr {
@@ -108,6 +114,13 @@ impl Expr {
     /// expression (such as dividing a number by zero, or applying a bitwise
     /// operator to a string) will result in a null value.
     pub fn eval(&self, row: &Row) -> Value { self.ast.eval(row) }
+
+    /// Returns the set of all column names referenced by this expression.
+    pub fn column_names(&self) -> HashSet<&str> {
+        let mut names = HashSet::new();
+        self.ast.populate_column_names(&mut names);
+        names
+    }
 }
 
 /// Produces an expression that evaluates to the negative of the subexpression.
@@ -255,6 +268,22 @@ impl Ast {
                 } else {
                     Value::from_bool(arg2.eval(row).to_bool())
                 }
+            }
+        }
+    }
+
+    fn populate_column_names<'a>(&'a self, names: &mut HashSet<&'a str>) {
+        match *self {
+            Ast::Literal(_) => {}
+            Ast::Column(ref name) => {
+                names.insert(name.as_str());
+            }
+            Ast::UnOp(_, ref arg) => arg.populate_column_names(names),
+            Ast::BinOp(_, ref arg1, ref arg2) |
+            Ast::And(ref arg1, ref arg2) |
+            Ast::Or(ref arg1, ref arg2) => {
+                arg1.populate_column_names(names);
+                arg2.populate_column_names(names);
             }
         }
     }
@@ -409,6 +438,7 @@ mod tests {
     use internal::column::Column;
     use internal::table::{Row, Table};
     use internal::value::Value;
+    use std::collections::HashSet;
 
     #[test]
     fn evaluate() {
@@ -454,6 +484,16 @@ mod tests {
                        Expr::col("Str2"))
                        .eval(&row),
                    Value::Str("foo:bar".to_string()));
+    }
+
+    #[test]
+    fn column_names() {
+        let expr = (Expr::col("Foo") / Expr::integer(10))
+            .le(Expr::col("Bar"))
+            .or(Expr::col("Baz").ge(Expr::col("Foo")));
+        let expected: HashSet<&str> =
+            vec!["Foo", "Bar", "Baz"].into_iter().collect();
+        assert_eq!(expr.column_names(), expected);
     }
 }
 

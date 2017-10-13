@@ -123,6 +123,7 @@ impl StringPoolBuilder {
                codepage: self.codepage,
                strings: strings,
                long_string_refs: self.long_string_refs,
+               is_modified: false,
            })
     }
 }
@@ -134,6 +135,7 @@ pub struct StringPool {
     codepage: CodePage,
     strings: Vec<(String, u16)>,
     long_string_refs: bool,
+    is_modified: bool,
 }
 
 impl StringPool {
@@ -143,6 +145,7 @@ impl StringPool {
             codepage: codepage,
             strings: Vec::new(),
             long_string_refs: false,
+            is_modified: true,
         }
     }
 
@@ -157,6 +160,10 @@ impl StringPool {
     /// Returns true if string references should be serialized with three bytes
     /// instead of two.
     pub fn long_string_refs(&self) -> bool { self.long_string_refs }
+
+    pub(crate) fn is_modified(&self) -> bool { self.is_modified }
+
+    pub(crate) fn mark_unmodified(&mut self) { self.is_modified = false; }
 
     /// Returns the string in the pool for the given reference.
     pub fn get(&self, string_ref: StringRef) -> &str {
@@ -182,6 +189,7 @@ impl StringPool {
     /// Inserts a string into the pool, or increments its refcount if it's
     /// already in the pool, and returns the index of the string in the pool.
     pub fn incref(&mut self, string: String) -> StringRef {
+        self.is_modified = true;
         // TODO: change the internal representation of StringPool to make this
         // more efficient.
         for (index, &mut (ref mut st, ref mut refcount)) in
@@ -215,6 +223,7 @@ impl StringPool {
         if *refcount < 1 {
             panic!("decref: string refcount is already zero");
         }
+        self.is_modified = true;
         *refcount -= 1;
         if *refcount == 0 {
             string.clear();

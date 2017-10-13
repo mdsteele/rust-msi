@@ -1,12 +1,13 @@
 use cfb;
 use internal::codepage::CodePage;
 use internal::column::Column;
+use internal::query::{Delete, Insert, Update};
 use internal::streamname;
 use internal::stringpool::{StringPool, StringPoolBuilder};
 use internal::summary::SummaryInfo;
 use internal::table::{Rows, Table};
-use internal::value::{Value, ValueRef};
-use std::collections::{BTreeMap, btree_map};
+use internal::value::Value;
+use std::collections::{BTreeMap, HashSet, btree_map};
 use std::io::{self, Read, Seek, Write};
 use uuid::Uuid;
 
@@ -110,7 +111,6 @@ pub struct Package<F> {
     summary_info: SummaryInfo,
     is_summary_info_modified: bool,
     string_pool: StringPool,
-    is_string_pool_modified: bool,
     tables: BTreeMap<String, Table>,
     finisher: Option<Box<Finish<F>>>,
 }
@@ -126,6 +126,11 @@ impl<F> Package<F> {
     pub fn database_codepage(&self) -> CodePage { self.string_pool.codepage() }
 
     // TODO: pub fn set_database_codepage
+
+    /// Returns true if the database has a table with the given name.
+    pub fn has_table(&self, table_name: &str) -> bool {
+        self.tables.contains_key(table_name)
+    }
 
     /// Returns the database table with the given name (if any).
     pub fn table(&self, table_name: &str) -> Option<&Table> {
@@ -255,7 +260,6 @@ impl<F: Read + Seek> Package<F> {
                summary_info: summary_info,
                is_summary_info_modified: false,
                string_pool: string_pool,
-               is_string_pool_modified: false,
                tables: all_tables,
                finisher: None,
            })
@@ -315,7 +319,6 @@ impl<F: Read + Write + Seek> Package<F> {
             summary_info: summary_info,
             is_summary_info_modified: true,
             string_pool: string_pool,
-            is_string_pool_modified: true,
             tables: tables,
             finisher: None,
         };
@@ -323,7 +326,7 @@ impl<F: Read + Write + Seek> Package<F> {
         // TODO: create _Validation table
         package.flush()?;
         debug_assert!(!package.is_summary_info_modified);
-        debug_assert!(!package.is_string_pool_modified);
+        debug_assert!(!package.string_pool.is_modified());
         Ok(package)
     }
 
@@ -336,76 +339,84 @@ impl<F: Read + Write + Seek> Package<F> {
         &mut self.summary_info
     }
 
-    /// Inserts a new row into a table.  Returns an error without modifying the
-    /// table if the values are of the wrong types (or otherwise invalid) for
-    /// the table, or if the primary key values are not unique within the
-    /// table, or if the table doesn't exist.
-    pub fn insert_row(&mut self, table_name: &str, values: Vec<Value>)
-                      -> io::Result<()> {
-        if let Some(table) = self.tables.get(table_name) {
-            // Validate the new row.
-            if values.len() != table.columns().len() {
-                invalid_input!("Table {:?} has {} columns, but {} values \
-                                were provided",
-                               table_name,
-                               table.columns().len(),
-                               values.len());
-            }
-            for (column, value) in table.columns().iter().zip(values.iter()) {
-                if !column.is_valid_value(value) {
-                    invalid_input!("{:?} is not a valid value for column {:?}",
-                                   value,
-                                   column.name());
-                }
-            }
-            // Read in the rows from the table.
-            let stream_name = table.stream_name();
-            let key_indices = table.primary_key_indices();
-            let mut rows = BTreeMap::<Vec<Value>, Vec<ValueRef>>::new();
-            let comp = self.comp.as_mut().unwrap();
-            if comp.exists(&stream_name) {
-                let stream = comp.open_stream(&stream_name)?;
-                for row in table.read_rows(stream)?.into_iter() {
-                    let mut keys = Vec::with_capacity(key_indices.len());
-                    for &index in key_indices.iter() {
-                        keys.push(row[index].to_value(&self.string_pool));
-                    }
-                    if rows.contains_key(&keys) {
-                        invalid_data!("Malformed table {:?} contains \
-                                       multiple rows with key {:?}",
-                                      table_name,
-                                      keys);
-                    }
-                    rows.insert(keys, row);
-                }
-            }
-            // Check if this row already exists in the table.
-            let mut keys = Vec::with_capacity(key_indices.len());
-            for &index in key_indices.iter() {
-                keys.push(values[index].clone());
-            }
-            if rows.contains_key(&keys) {
-                already_exists!("Table {:?} already contains a row with \
-                                 key {:?}",
-                                table_name,
-                                keys);
-            }
-            // Insert the new row into the table.
-            let mut row = Vec::<ValueRef>::with_capacity(values.len());
-            for value in values.into_iter() {
-                row.push(ValueRef::create(value, &mut self.string_pool));
-            }
-            rows.insert(keys, row);
-            // Write table back out to the file.
-            let rows: Vec<Vec<ValueRef>> =
-                rows.into_iter().map(|(_, row)| row).collect();
-            let stream = comp.create_stream(&stream_name)?;
-            table.write_rows(stream, rows)?;
-        } else {
-            not_found!("Table {:?} does not exist", table_name);
+    /// Creates a new database table.  Returns an error without modifying the
+    /// table name or columns are invalid, or if a table with that name already
+    /// exists.
+    pub fn create_table(&mut self, table_name: String, columns: Vec<Column>)
+                        -> io::Result<()> {
+        if columns.is_empty() {
+            invalid_input!("Cannot create a table with no columns");
         }
-        self.set_finisher();
+        if !columns.iter().any(Column::is_primary_key) {
+            invalid_input!("Cannot create a table without at least one \
+                            primary key column");
+        }
+        {
+            let mut column_names = HashSet::<&str>::new();
+            for column in columns.iter() {
+                let name = column.name();
+                if column_names.contains(name) {
+                    invalid_input!("Cannot create a table with multiple \
+                                    columns with the same name ({:?})",
+                                   name);
+                }
+                column_names.insert(name);
+            }
+        }
+        if self.tables.contains_key(&table_name) {
+            already_exists!("Database table {:?} already exists", table_name);
+        }
+        self.insert_rows(
+            Insert::into(COLUMNS_TABLE_NAME.to_string()).rows(
+                columns
+                    .iter()
+                    .enumerate()
+                    .map(|(index, column)| {
+                        vec![
+                            Value::Str(table_name.clone()),
+                            Value::Int(1 + index as i32),
+                            Value::Str(column.name().to_string()),
+                            Value::Int(column.bitfield()),
+                        ]
+                    })
+                    .collect(),
+            ),
+        )?;
+        self.insert_rows(Insert::into(TABLES_TABLE_NAME.to_string())
+                             .row(vec![Value::Str(table_name.clone())]))?;
+        let long_string_refs = self.string_pool.long_string_refs();
+        let table = Table::new(table_name.clone(), columns, long_string_refs);
+        self.tables.insert(table_name, table);
         Ok(())
+    }
+
+    /// Attempts to execute a delete query.  Returns an error without modifying
+    /// the database if the query fails (e.g. due to the table not existing).
+    pub fn delete_rows(&mut self, query: Delete) -> io::Result<()> {
+        self.set_finisher();
+        query.exec(self.comp.as_mut().unwrap(),
+                   &mut self.string_pool,
+                   &self.tables)
+    }
+
+    /// Attempts to execute an insert query.  Returns an error without
+    /// modifying the database if the query fails (e.g. due to values being
+    /// invalid, or keys not being unique, or the table not existing).
+    pub fn insert_rows(&mut self, query: Insert) -> io::Result<()> {
+        self.set_finisher();
+        query.exec(self.comp.as_mut().unwrap(),
+                   &mut self.string_pool,
+                   &self.tables)
+    }
+
+    /// Attempts to execute an update query.  Returns an error without
+    /// modifying the database if the query fails (e.g. due to values being
+    /// invalid, or column names being incorrect, or the table not existing).
+    pub fn update_rows(&mut self, query: Update) -> io::Result<()> {
+        self.set_finisher();
+        query.exec(self.comp.as_mut().unwrap(),
+                   &mut self.string_pool,
+                   &self.tables)
     }
 
     /// Flushes any buffered changes to the underlying writer.
@@ -473,7 +484,7 @@ impl<F: Read + Write + Seek> Finish<F> for FinishImpl {
             package.summary_info.write(stream)?;
             package.is_summary_info_modified = false;
         }
-        if package.is_string_pool_modified {
+        if package.string_pool.is_modified() {
             {
                 let name = streamname::encode(STRING_POOL_TABLE_NAME, true);
                 let stream =
@@ -486,7 +497,7 @@ impl<F: Read + Write + Seek> Finish<F> for FinishImpl {
                     package.comp.as_mut().unwrap().create_stream(name)?;
                 package.string_pool.write_data(stream)?;
             }
-            package.is_string_pool_modified = false;
+            package.string_pool.mark_unmodified();
         }
         Ok(())
     }
@@ -497,6 +508,10 @@ impl<F: Read + Write + Seek> Finish<F> for FinishImpl {
 #[cfg(test)]
 mod tests {
     use super::{Package, PackageType};
+    use internal::column::{Column, ColumnType};
+    use internal::expr::Expr;
+    use internal::query::{Delete, Insert, Update};
+    use internal::value::Value;
     use std::io::Cursor;
 
     #[test]
@@ -506,10 +521,151 @@ mod tests {
             .expect("create");
         package.summary_info_mut().set_author("Jane Doe".to_string());
 
-        let cursor = package.into_inner().unwrap();
+        let cursor = package.into_inner().expect("into_inner");
         let package = Package::open(cursor).expect("open");
         assert_eq!(package.package_type(), PackageType::Installer);
         assert_eq!(package.summary_info().author(), Some("Jane Doe"));
+    }
+
+    #[test]
+    fn create_table() {
+        let cursor = Cursor::new(Vec::new());
+        let mut package = Package::create(PackageType::Installer, cursor)
+            .expect("create");
+        let columns = vec![
+            Column::build("Number").primary_key().int16(),
+            Column::build("Word").nullable().string(50),
+        ];
+        package
+            .create_table("Numbers".to_string(), columns)
+            .expect("create_table");
+        assert!(package.has_table("Numbers"));
+
+        let cursor = package.into_inner().expect("into_inner");
+        let package = Package::open(cursor).expect("open");
+        assert!(package.has_table("Numbers"));
+        let table = package.table("Numbers").unwrap();
+        assert_eq!(table.name(), "Numbers");
+
+        assert!(table.has_column("Number"));
+        let column = table.get_column("Number").unwrap();
+        assert_eq!(column.name(), "Number");
+        assert_eq!(column.coltype(), ColumnType::Int16);
+        assert!(column.is_primary_key());
+        assert!(!column.is_nullable());
+
+        assert!(table.has_column("Word"));
+        let column = table.get_column("Word").unwrap();
+        assert_eq!(column.name(), "Word");
+        assert_eq!(column.coltype(), ColumnType::Str(50));
+        assert!(!column.is_primary_key());
+        assert!(column.is_nullable());
+    }
+
+    #[test]
+    fn insert_rows() {
+        let cursor = Cursor::new(Vec::new());
+        let mut package = Package::create(PackageType::Installer, cursor)
+            .expect("create");
+        let columns = vec![
+            Column::build("Number").primary_key().int16(),
+            Column::build("Word").nullable().string(50),
+        ];
+        package
+            .create_table("Numbers".to_string(), columns)
+            .expect("create_table");
+        package
+            .insert_rows(
+                Insert::into("Numbers".to_string())
+                    .row(vec![Value::Int(2), Value::Str("Two".to_string())])
+                    .row(vec![Value::Int(4), Value::Str("Four".to_string())])
+                    .row(vec![Value::Int(1), Value::Str("One".to_string())]),
+            )
+            .expect("insert");
+        assert_eq!(package.read_table_rows("Numbers").unwrap().len(), 3);
+
+        let cursor = package.into_inner().expect("into_inner");
+        let mut package = Package::open(cursor).expect("open");
+        let rows = package.read_table_rows("Numbers").unwrap();
+        assert_eq!(rows.len(), 3);
+        let values: Vec<(i32, String)> = rows.map(|row| {
+            (row[0].as_int().unwrap(), row[1].as_str().unwrap().to_string())
+        }).collect();
+        assert_eq!(
+            values,
+            vec![
+                (1, "One".to_string()),
+                (2, "Two".to_string()),
+                (4, "Four".to_string()),
+            ]
+        );
+    }
+
+    #[test]
+    fn delete_rows() {
+        let cursor = Cursor::new(Vec::new());
+        let mut package = Package::create(PackageType::Installer, cursor)
+            .expect("create");
+        let columns = vec![
+            Column::build("Key").primary_key().int16(),
+            Column::build("Value").nullable().int32(),
+        ];
+        package
+            .create_table("Mapping".to_string(), columns)
+            .expect("create_table");
+        package
+            .insert_rows(Insert::into("Mapping".to_string())
+                             .row(vec![Value::Int(1), Value::Int(17)])
+                             .row(vec![Value::Int(2), Value::Int(42)])
+                             .row(vec![Value::Int(3), Value::Int(17)]))
+            .expect("insert");
+        package
+            .delete_rows(Delete::from("Mapping".to_string())
+                             .with(Expr::col("Value").eq(Expr::integer(17))))
+            .unwrap();
+
+        let cursor = package.into_inner().expect("into_inner");
+        let mut package = Package::open(cursor).expect("open");
+        let rows = package.read_table_rows("Mapping").unwrap();
+        let values: Vec<(i32, i32)> =
+            rows.map(|row| {
+                         (row[0].as_int().unwrap(), row[1].as_int().unwrap())
+                     }).collect();
+        assert_eq!(values, vec![(2, 42)]);
+    }
+
+    #[test]
+    fn update_rows() {
+        let cursor = Cursor::new(Vec::new());
+        let mut package = Package::create(PackageType::Installer, cursor)
+            .expect("create");
+        let columns = vec![
+            Column::build("Key").primary_key().int16(),
+            Column::build("Value").nullable().int32(),
+        ];
+        package
+            .create_table("Mapping".to_string(), columns)
+            .expect("create_table");
+        package
+            .insert_rows(Insert::into("Mapping".to_string())
+                             .row(vec![Value::Int(1), Value::Int(17)])
+                             .row(vec![Value::Int(2), Value::Int(42)])
+                             .row(vec![Value::Int(3), Value::Int(17)]))
+            .expect("insert");
+        package
+            .update_rows(Update::table("Mapping".to_string())
+                             .set("Value".to_string(), Value::Int(-5))
+                             .with(Expr::col("Value").eq(Expr::integer(17))))
+            .unwrap();
+
+        let cursor = package.into_inner().expect("into_inner");
+        let mut package = Package::open(cursor).expect("open");
+        let rows = package.read_table_rows("Mapping").unwrap();
+        let values: Vec<(i32, i32)> =
+            rows.map(|row| {
+                         (row[0].as_int().unwrap(), row[1].as_int().unwrap())
+                     }).collect();
+        assert_eq!(values, vec![(1, -5), (2, 42), (3, -5)]);
     }
 }
 

@@ -38,6 +38,19 @@ impl Table {
     /// Returns the list of columns in this table.
     pub fn columns(&self) -> &[Column] { &self.columns }
 
+    /// Returns true if this table has a column with the given name.
+    pub fn has_column(&self, column_name: &str) -> bool {
+        self.index_for_column_name(column_name).is_some()
+    }
+
+    /// Returns the column with the given name, if any.
+    pub fn get_column(&self, column_name: &str) -> Option<&Column> {
+        match self.index_for_column_name(column_name) {
+            Some(index) => Some(&self.columns[index]),
+            None => None,
+        }
+    }
+
     /// Returns the indices of table's primary key columns.
     pub fn primary_key_indices(&self) -> Vec<usize> {
         self.columns
@@ -51,15 +64,13 @@ impl Table {
             .collect()
     }
 
-    fn index_for_column_name(&self, column_name: &str) -> usize {
+    fn index_for_column_name(&self, column_name: &str) -> Option<usize> {
         for (index, column) in self.columns.iter().enumerate() {
             if column.name() == column_name {
-                return index;
+                return Some(index);
             }
         }
-        panic!("Table {:?} has no column named {:?}",
-               self.name,
-               column_name);
+        None
     }
 
     /// Parses row data from the given data source and returns an interator
@@ -117,28 +128,62 @@ pub struct Row<'a> {
 
 impl<'a> Row<'a> {
     pub(crate) fn new(table: &'a Table, values: Vec<Value>) -> Row<'a> {
+        debug_assert_eq!(values.len(), table.columns().len());
         Row {
             table: table,
             values: values,
         }
     }
 
-    /// Returns the number of columns in the row.
-    pub fn len(&self) -> usize { self.table.columns().len() }
+    /// Returns the number of values in the row.
+    pub fn len(&self) -> usize { self.values.len() }
+
+    /// Returns the list of columns in this row.
+    pub fn columns(&self) -> &[Column] { self.table.columns() }
+
+    /// Returns true if this row has a column with the given name.
+    pub fn has_column(&self, column_name: &str) -> bool {
+        self.table.has_column(column_name)
+    }
+
+    pub(crate) fn index_for_column_name(&self, column_name: &str)
+                                        -> Option<usize> {
+        self.table.index_for_column_name(column_name)
+    }
 }
 
+/// Gets the value of the column with the given index.  Panics if `index >=
+/// self.len()`.
 impl<'a> Index<usize> for Row<'a> {
     type Output = Value;
 
-    fn index(&self, index: usize) -> &Value { &self.values[index] }
+    fn index(&self, index: usize) -> &Value {
+        debug_assert_eq!(self.values.len(), self.table.columns().len());
+        if index < self.values.len() {
+            &self.values[index]
+        } else {
+            panic!("Table {:?} has only {} columns (index was {})",
+                   self.table.name,
+                   self.values.len(),
+                   index);
+        }
+    }
 }
 
+/// Gets the value of the column with the given name.  Panics if
+/// `!self.has_column(column_name)`.
 impl<'a, 'b> Index<&'b str> for Row<'a> {
     type Output = Value;
 
     fn index(&self, column_name: &str) -> &Value {
-        let index = self.table.index_for_column_name(column_name);
-        &self.values[index]
+        match self.table.index_for_column_name(column_name) {
+            Some(index) => &self.values[index],
+            None => {
+                panic!("Table {:?} has no column named {:?}",
+                       self.table.name,
+                       column_name);
+            }
+        }
     }
 }
 

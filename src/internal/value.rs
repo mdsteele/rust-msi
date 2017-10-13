@@ -112,7 +112,6 @@ impl ValueRef {
     }
 
     /// Removes the reference from the string pool (if is a string reference).
-    #[allow(dead_code)]
     pub fn remove(self, string_pool: &mut StringPool) {
         match self {
             ValueRef::Null | ValueRef::Int(_) => {}
