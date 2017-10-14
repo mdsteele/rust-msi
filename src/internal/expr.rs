@@ -457,7 +457,7 @@ mod tests {
             Value::Null,
             Value::Int(-17),
         ];
-        let row = Row::new(&table, values);
+        let row = Row::new(table, values);
 
         assert_eq!(Expr::col("Str2").gt(Expr::col("Str1")).eval(&row),
                    Value::from_bool(false));

@@ -149,6 +149,7 @@ impl fmt::Display for ColumnType {
 // ========================================================================= //
 
 /// A database column.
+#[derive(Clone)]
 pub struct Column {
     name: String,
     coltype: ColumnType,
@@ -170,6 +171,16 @@ impl Column {
     /// ```
     pub fn build(name: &str) -> ColumnBuilder {
         ColumnBuilder::new(name.to_string())
+    }
+
+    pub(crate) fn with_name_prefix(&self, prefix: &str) -> Column {
+        Column {
+            name: format!("{}.{}", prefix, self.name),
+            coltype: self.coltype,
+            is_localizable: self.is_localizable,
+            is_nullable: self.is_nullable,
+            is_primary_key: self.is_primary_key,
+        }
     }
 
     /// Creates a new column object with the given name, and with other

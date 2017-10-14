@@ -74,8 +74,8 @@ fn print_table_contents<F: Read + Seek>(package: &mut msi::Package<F>,
         .map(|column| column.name().len())
         .collect();
     let rows: Vec<Vec<String>> = package
-        .read_table_rows(table_name)
-        .expect("read rows")
+        .select_rows(msi::Select::table(table_name))
+        .expect("select")
         .map(|row| {
             let mut strings = Vec::with_capacity(row.len());
             for index in 0..row.len() {

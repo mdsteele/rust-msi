@@ -4,10 +4,12 @@ use internal::stringpool::StringPool;
 use internal::value::{Value, ValueRef};
 use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::ops::Index;
+use std::rc::Rc;
 
 // ========================================================================= //
 
 /// A database table.
+#[derive(Clone)]
 pub struct Table {
     name: String,
     columns: Vec<Column>,
@@ -18,13 +20,14 @@ impl Table {
     /// Creates a new table object with the given name and columns.  The
     /// `long_string_refs` argument indicates the size of any encoded string
     /// refs.
-    pub fn new(name: String, columns: Vec<Column>, long_string_refs: bool)
-               -> Table {
-        Table {
-            name: name,
-            columns: columns,
-            long_string_refs: long_string_refs,
-        }
+    pub(crate) fn new(name: String, columns: Vec<Column>,
+                      long_string_refs: bool)
+                      -> Rc<Table> {
+        Rc::new(Table {
+                    name: name,
+                    columns: columns,
+                    long_string_refs: long_string_refs,
+                })
     }
 
     /// Returns the name of the table.
@@ -34,6 +37,8 @@ impl Table {
     pub(crate) fn stream_name(&self) -> String {
         streamname::encode(&self.name, true)
     }
+
+    pub(crate) fn long_string_refs(&self) -> bool { self.long_string_refs }
 
     /// Returns the list of columns in this table.
     pub fn columns(&self) -> &[Column] { &self.columns }
@@ -64,7 +69,8 @@ impl Table {
             .collect()
     }
 
-    fn index_for_column_name(&self, column_name: &str) -> Option<usize> {
+    pub(crate) fn index_for_column_name(&self, column_name: &str)
+                                        -> Option<usize> {
         for (index, column) in self.columns.iter().enumerate() {
             if column.name() == column_name {
                 return Some(index);
@@ -121,13 +127,14 @@ impl Table {
 // ========================================================================= //
 
 /// One row from a database table.
-pub struct Row<'a> {
-    table: &'a Table,
+#[derive(Clone)]
+pub struct Row {
+    table: Rc<Table>,
     values: Vec<Value>,
 }
 
-impl<'a> Row<'a> {
-    pub(crate) fn new(table: &'a Table, values: Vec<Value>) -> Row<'a> {
+impl Row {
+    pub(crate) fn new(table: Rc<Table>, values: Vec<Value>) -> Row {
         debug_assert_eq!(values.len(), table.columns().len());
         Row {
             table: table,
@@ -154,7 +161,7 @@ impl<'a> Row<'a> {
 
 /// Gets the value of the column with the given index.  Panics if `index >=
 /// self.len()`.
-impl<'a> Index<usize> for Row<'a> {
+impl Index<usize> for Row {
     type Output = Value;
 
     fn index(&self, index: usize) -> &Value {
@@ -172,7 +179,7 @@ impl<'a> Index<usize> for Row<'a> {
 
 /// Gets the value of the column with the given name.  Panics if
 /// `!self.has_column(column_name)`.
-impl<'a, 'b> Index<&'b str> for Row<'a> {
+impl<'a> Index<&'a str> for Row {
     type Output = Value;
 
     fn index(&self, column_name: &str) -> &Value {
@@ -192,13 +199,13 @@ impl<'a, 'b> Index<&'b str> for Row<'a> {
 /// An iterator over the rows in a database table.
 pub struct Rows<'a> {
     string_pool: &'a StringPool,
-    table: &'a Table,
+    table: Rc<Table>,
     rows: Vec<Vec<ValueRef>>,
     next_row_index: usize,
 }
 
 impl<'a> Rows<'a> {
-    pub(crate) fn new(string_pool: &'a StringPool, table: &'a Table,
+    pub(crate) fn new(string_pool: &'a StringPool, table: Rc<Table>,
                       rows: Vec<Vec<ValueRef>>)
                       -> Rows<'a> {
         Rows {
@@ -208,19 +215,24 @@ impl<'a> Rows<'a> {
             next_row_index: 0,
         }
     }
+
+    pub(crate) fn into_table_and_values(self)
+                                        -> (Rc<Table>, Vec<Vec<ValueRef>>) {
+        (self.table, self.rows)
+    }
 }
 
 impl<'a> Iterator for Rows<'a> {
-    type Item = Row<'a>;
+    type Item = Row;
 
-    fn next(&mut self) -> Option<Row<'a>> {
+    fn next(&mut self) -> Option<Row> {
         if self.next_row_index < self.rows.len() {
             let values: Vec<Value> = self.rows[self.next_row_index]
                 .iter()
                 .map(|value_ref| value_ref.to_value(self.string_pool))
                 .collect();
             self.next_row_index += 1;
-            Some(Row::new(self.table, values))
+            Some(Row::new(self.table.clone(), values))
         } else {
             None
         }

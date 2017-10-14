@@ -1,10 +1,11 @@
 use cfb;
 use internal::expr::Expr;
 use internal::stringpool::StringPool;
-use internal::table::{Row, Table};
+use internal::table::{Row, Rows, Table};
 use internal::value::{Value, ValueRef};
 use std::collections::{BTreeMap, HashSet};
 use std::io::{self, Read, Seek, Write};
+use std::rc::Rc;
 
 // ========================================================================= //
 
@@ -16,9 +17,9 @@ pub struct Delete {
 
 impl Delete {
     /// Starts building a query that will delete rows from the specified table.
-    pub fn from(table_name: String) -> Delete {
+    pub fn from(table_name: &str) -> Delete {
         Delete {
-            table_name: table_name,
+            table_name: table_name.to_string(),
             condition: Expr::boolean(true),
         }
     }
@@ -34,7 +35,7 @@ impl Delete {
 
     pub(crate) fn exec<F>(self, comp: &mut cfb::CompoundFile<F>,
                           string_pool: &mut StringPool,
-                          tables: &BTreeMap<String, Table>)
+                          tables: &BTreeMap<String, Rc<Table>>)
                           -> io::Result<()>
     where
         F: Read + Write + Seek,
@@ -65,7 +66,7 @@ impl Delete {
                 .iter()
                 .map(|value_ref| value_ref.to_value(string_pool))
                 .collect();
-            let row = Row::new(&table, values);
+            let row = Row::new(table.clone(), values);
             if self.condition.eval(&row).to_bool() {
                 for value_ref in value_refs.iter() {
                     value_ref.remove(string_pool);
@@ -92,9 +93,9 @@ pub struct Insert {
 
 impl Insert {
     /// Starts building a query that will insert rows into the specified table.
-    pub fn into(table_name: String) -> Insert {
+    pub fn into(table_name: &str) -> Insert {
         Insert {
-            table_name: table_name,
+            table_name: table_name.to_string(),
             new_rows: Vec::new(),
         }
     }
@@ -113,7 +114,7 @@ impl Insert {
 
     pub(crate) fn exec<F>(self, comp: &mut cfb::CompoundFile<F>,
                           string_pool: &mut StringPool,
-                          tables: &BTreeMap<String, Table>)
+                          tables: &BTreeMap<String, Rc<Table>>)
                           -> io::Result<()>
     where
         F: Read + Write + Seek,
@@ -202,6 +203,187 @@ impl Insert {
 
 // ========================================================================= //
 
+enum Join {
+    Table(String),
+    Inner(Box<Select>, Box<Select>, Expr),
+}
+
+impl Join {
+    fn exec<'a, F>(self, comp: &mut cfb::CompoundFile<F>,
+                   string_pool: &'a StringPool,
+                   tables: &BTreeMap<String, Rc<Table>>)
+                   -> io::Result<Rows<'a>>
+    where
+        F: Read + Seek,
+    {
+        match self {
+            Join::Table(table_name) => {
+                let table = match tables.get(&table_name) {
+                    Some(table) => table,
+                    None => {
+                        not_found!("Table {:?} does not exist", table_name)
+                    }
+                };
+                let stream_name = table.stream_name();
+                let rows = if comp.exists(&stream_name) {
+                    let stream = comp.open_stream(&stream_name)?;
+                    table.read_rows(stream)?
+                } else {
+                    Vec::new()
+                };
+                Ok(Rows::new(string_pool, table.clone(), rows))
+            }
+            Join::Inner(select1, select2, condition) => {
+                let (table1, rows1) = select1
+                    .exec(comp, string_pool, tables)?
+                    .into_table_and_values();
+                let (table2, rows2) = select2
+                    .exec(comp, string_pool, tables)?
+                    .into_table_and_values();
+                let columns = table1
+                    .columns()
+                    .iter()
+                    .map(|column| column.with_name_prefix(table1.name()))
+                    .chain(table2.columns().iter().map(|column| {
+                        column.with_name_prefix(table2.name())
+                    }))
+                    .collect();
+                let table = Table::new("<join>".to_string(),
+                                       columns,
+                                       string_pool.long_string_refs());
+                let mut rows = Vec::<Vec<ValueRef>>::new();
+                for value_refs1 in rows1.iter() {
+                    for value_refs2 in rows2.iter() {
+                        let value_refs: Vec<ValueRef> = value_refs1
+                            .iter()
+                            .chain(value_refs2.iter())
+                            .cloned()
+                            .collect();
+                        let values: Vec<Value> = value_refs
+                            .iter()
+                            .map(|value_ref| value_ref.to_value(string_pool))
+                            .collect();
+                        let row = Row::new(table.clone(), values);
+                        if condition.eval(&row).to_bool() {
+                            rows.push(value_refs);
+                        }
+                    }
+                }
+                Ok(Rows::new(string_pool, table, rows))
+            }
+        }
+    }
+}
+
+// ========================================================================= //
+
+/// A database query to select rows.
+pub struct Select {
+    from: Join,
+    condition: Expr,
+    column_names: Vec<String>,
+}
+
+impl Select {
+    /// Starts building a query that will select rows from the specified table.
+    pub fn table(table_name: &str) -> Select {
+        Select {
+            from: Join::Table(table_name.to_string()),
+            condition: Expr::boolean(true),
+            column_names: vec![],
+        }
+    }
+
+    /// Performs an inner join between this and another query, producing a row
+    /// for each pair of rows from the two tables that matches the expression.
+    pub fn inner_join(self, rhs: Select, on: Expr) -> Select {
+        Select {
+            from: Join::Inner(Box::new(self), Box::new(rhs), on),
+            condition: Expr::boolean(true),
+            column_names: vec![],
+        }
+    }
+
+    /// Transforms the selected rows to only include the specified columns, in
+    /// the order given.
+    pub fn columns(mut self, column_names: &[&str]) -> Select {
+        self.column_names =
+            column_names.iter().map(|name| name.to_string()).collect();
+        self
+    }
+
+    /// Adds a restriction on which rows should be selected by the query; only
+    /// rows that match the given boolean expression will be returned.  (This
+    /// method would have been called `where()`, to better match SQL, but
+    /// `where` is a reserved word in Rust.)
+    pub fn with(mut self, condition: Expr) -> Select {
+        self.condition = self.condition.and(condition);
+        self
+    }
+
+    pub(crate) fn exec<'a, F>(self, comp: &mut cfb::CompoundFile<F>,
+                              string_pool: &'a StringPool,
+                              tables: &BTreeMap<String, Rc<Table>>)
+                              -> io::Result<Rows<'a>>
+    where
+        F: Read + Seek,
+    {
+        // Join the table(s) to be queried.
+        let rows = self.from.exec(comp, string_pool, tables)?;
+        let (mut table, mut rows) = rows.into_table_and_values();
+        // Validate the selected column names.
+        let mut column_indices =
+            Vec::<usize>::with_capacity(self.column_names.len());
+        for column_name in self.column_names.iter() {
+            match table.index_for_column_name(column_name.as_str()) {
+                Some(index) => column_indices.push(index),
+                None => {
+                    invalid_input!("Table {:?} has no column named {:?}",
+                                   table.name(),
+                                   column_name);
+                }
+            }
+        }
+        // Validate the condition.
+        for column_name in self.condition.column_names().into_iter() {
+            if !table.has_column(column_name) {
+                invalid_input!("Table {:?} has no column named {:?}",
+                               table.name(),
+                               column_name);
+            }
+        }
+        // Filter the rows to those matching the condition.
+        let condition = self.condition;
+        rows.retain(|value_refs| {
+                        let values: Vec<Value> = value_refs
+                            .iter()
+                            .map(|value_ref| value_ref.to_value(string_pool))
+                            .collect();
+                        let row = Row::new(table.clone(), values);
+                        condition.eval(&row).to_bool()
+                    });
+        // Limit the table to the specified columns.
+        if !column_indices.is_empty() {
+            let columns = column_indices
+                .iter()
+                .map(|&index| table.columns()[index].clone())
+                .collect();
+            table = Table::new("<select>".to_string(),
+                               columns,
+                               table.long_string_refs());
+            for value_refs in rows.iter_mut() {
+                *value_refs = column_indices
+                    .iter()
+                    .map(|&index| value_refs[index])
+                    .collect();
+            }
+        }
+        Ok(Rows::new(string_pool, table, rows))
+    }
+}
+
+// ========================================================================= //
+
 /// A database query to update existing rows.
 pub struct Update {
     table_name: String,
@@ -211,17 +393,17 @@ pub struct Update {
 
 impl Update {
     /// Starts building a query that will update rows in the specified table.
-    pub fn table(table_name: String) -> Update {
+    pub fn table(table_name: &str) -> Update {
         Update {
-            table_name: table_name,
+            table_name: table_name.to_string(),
             updates: Vec::new(),
             condition: Expr::boolean(true),
         }
     }
 
     /// Adds a column value to be set by the query.
-    pub fn set(mut self, column_name: String, value: Value) -> Update {
-        self.updates.push((column_name, value));
+    pub fn set(mut self, column_name: &str, value: Value) -> Update {
+        self.updates.push((column_name.to_string(), value));
         self
     }
 
@@ -236,7 +418,7 @@ impl Update {
 
     pub(crate) fn exec<F>(self, comp: &mut cfb::CompoundFile<F>,
                           string_pool: &mut StringPool,
-                          tables: &BTreeMap<String, Table>)
+                          tables: &BTreeMap<String, Rc<Table>>)
                           -> io::Result<()>
     where
         F: Read + Write + Seek,
@@ -281,7 +463,7 @@ impl Update {
                 .iter()
                 .map(|value_ref| value_ref.to_value(string_pool))
                 .collect();
-            let row = Row::new(&table, values);
+            let row = Row::new(table.clone(), values);
             if self.condition.eval(&row).to_bool() {
                 for &(ref column_name, ref value) in self.updates.iter() {
                     let index = row.index_for_column_name(column_name)
