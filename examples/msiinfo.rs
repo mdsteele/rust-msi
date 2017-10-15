@@ -5,7 +5,7 @@ extern crate msi;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use clap::{App, Arg, SubCommand};
 use std::cmp;
-use std::io::{Read, Seek};
+use std::io::{self, Read, Seek};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 fn to_datetime(timestamp: SystemTime) -> DateTime<Utc> {
@@ -67,7 +67,7 @@ fn print_table_description(table: &msi::Table) {
 fn print_table_contents<F: Read + Seek>(package: &mut msi::Package<F>,
                                         table_name: &str) {
     let mut col_widths: Vec<usize> = package
-        .table(table_name)
+        .get_table(table_name)
         .unwrap()
         .columns()
         .iter()
@@ -89,7 +89,7 @@ fn print_table_contents<F: Read + Seek>(package: &mut msi::Package<F>,
     {
         let mut line = String::new();
         for (index, column) in package
-            .table(table_name)
+            .get_table(table_name)
             .unwrap()
             .columns()
             .iter()
@@ -135,6 +135,10 @@ fn main() {
                         .about("Prints all rows for a table in an MSI file")
                         .arg(Arg::with_name("path").required(true))
                         .arg(Arg::with_name("table").required(true)))
+        .subcommand(SubCommand::with_name("extract")
+                        .about("Extract a binary stream from an MSI file")
+                        .arg(Arg::with_name("path").required(true))
+                        .arg(Arg::with_name("stream").required(true)))
         .subcommand(SubCommand::with_name("streams")
                         .about("Lists binary streams in an MSI file")
                         .arg(Arg::with_name("path").required(true)))
@@ -149,7 +153,7 @@ fn main() {
         let path = submatches.value_of("path").unwrap();
         let table_name = submatches.value_of("table").unwrap();
         let package = msi::open(path).expect("open package");
-        if let Some(table) = package.table(table_name) {
+        if let Some(table) = package.get_table(table_name) {
             print_table_description(table);
         } else {
             println!("No table {:?} exists in the database.", table_name);
@@ -159,6 +163,12 @@ fn main() {
         let table_name = submatches.value_of("table").unwrap();
         let mut package = msi::open(path).expect("open package");
         print_table_contents(&mut package, table_name);
+    } else if let Some(submatches) = matches.subcommand_matches("extract") {
+        let path = submatches.value_of("path").unwrap();
+        let stream_name = submatches.value_of("stream").unwrap();
+        let mut package = msi::open(path).expect("open package");
+        let mut stream = package.read_stream(&stream_name).expect("read");
+        io::copy(&mut stream, &mut io::stdout()).expect("extract");
     } else if let Some(submatches) = matches.subcommand_matches("streams") {
         let path = submatches.value_of("path").unwrap();
         let package = msi::open(path).expect("open package");

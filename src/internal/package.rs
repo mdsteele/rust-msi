@@ -2,7 +2,8 @@ use cfb;
 use internal::codepage::CodePage;
 use internal::column::Column;
 use internal::query::{Delete, Insert, Select, Update};
-use internal::streamname;
+use internal::stream::{StreamReader, StreamWriter, Streams};
+use internal::streamname::{self, SUMMARY_INFO_STREAM_NAME};
 use internal::stringpool::{StringPool, StringPoolBuilder};
 use internal::summary::SummaryInfo;
 use internal::table::{Rows, Table};
@@ -23,8 +24,6 @@ const COLUMNS_TABLE_NAME: &str = "_Columns";
 const TABLES_TABLE_NAME: &str = "_Tables";
 const STRING_DATA_TABLE_NAME: &str = "_StringData";
 const STRING_POOL_TABLE_NAME: &str = "_StringPool";
-
-const SUMMARY_INFO_STREAM_NAME: &str = "\u{5}SummaryInformation";
 
 // ========================================================================= //
 
@@ -135,19 +134,23 @@ impl<F> Package<F> {
     }
 
     /// Returns the database table with the given name (if any).
-    pub fn table(&self, table_name: &str) -> Option<&Table> {
+    pub fn get_table(&self, table_name: &str) -> Option<&Table> {
         self.tables.get(table_name).map(Rc::borrow)
     }
 
     /// Returns an iterator over the database tables in this package.
     pub fn tables(&self) -> Tables { Tables { iter: self.tables.values() } }
 
-    /// Returns an iterator over the binary streams (i.e. embedded files) in
-    /// this package.
+    /// Returns true if the database has an embedded binary stream with the
+    /// given name.
+    pub fn has_stream(&self, stream_name: &str) -> bool {
+        self.comp().is_stream(&streamname::encode(stream_name, false))
+    }
+
+    /// Returns an iterator over the embedded binary streams in this package.
     pub fn streams(&self) -> Streams {
         // Reading the root storage always succeeds.
-        let entries = self.comp().read_storage("/").expect("read root");
-        Streams { entries: entries }
+        Streams::new(self.comp().read_storage("/").expect("read root"))
     }
 
     /// Consumes the `Package` object, returning the underlying reader/writer.
@@ -286,6 +289,16 @@ impl<F: Read + Seek> Package<F> {
         query
             .exec(self.comp.as_mut().unwrap(), &self.string_pool, &self.tables)
     }
+
+    /// Opens an existing binary stream in the package for reading.
+    pub fn read_stream(&mut self, stream_name: &str)
+                       -> io::Result<StreamReader<F>> {
+        let encoded_name = streamname::encode(stream_name, false);
+        if !self.comp().is_stream(&encoded_name) {
+            not_found!("Stream {:?} does not exist", stream_name);
+        }
+        Ok(StreamReader::new(self.comp_mut().open_stream(&encoded_name)?))
+    }
 }
 
 impl<F: Read + Write + Seek> Package<F> {
@@ -412,6 +425,13 @@ impl<F: Read + Write + Seek> Package<F> {
                    &self.tables)
     }
 
+    /// Creates (or overwrites) a binary stream in the package.
+    pub fn write_stream(&mut self, stream_name: &str)
+                        -> io::Result<StreamWriter<F>> {
+        let encoded_name = streamname::encode(stream_name, false);
+        Ok(StreamWriter::new(self.comp_mut().create_stream(&encoded_name)?))
+    }
+
     /// Flushes any buffered changes to the underlying writer.
     pub fn flush(&mut self) -> io::Result<()> {
         if let Some(finisher) = self.finisher.take() {
@@ -432,35 +452,6 @@ impl<F> Drop for Package<F> {
     fn drop(&mut self) {
         if let Some(finisher) = self.finisher.take() {
             let _ = finisher.finish(self);
-        }
-    }
-}
-
-// ========================================================================= //
-
-/// An iterator over the names of the binary streams in a package.
-///
-/// No guarantees are made about the order in which items are returned.
-pub struct Streams<'a> {
-    entries: cfb::Entries<'a>,
-}
-
-impl<'a> Iterator for Streams<'a> {
-    type Item = String;
-
-    fn next(&mut self) -> Option<String> {
-        loop {
-            let entry = match self.entries.next() {
-                Some(entry) => entry,
-                None => return None,
-            };
-            if !entry.is_stream() || entry.name() == SUMMARY_INFO_STREAM_NAME {
-                continue;
-            }
-            let (name, is_table) = streamname::decode(entry.name());
-            if !is_table {
-                return Some(name);
-            }
         }
     }
 }
@@ -534,7 +525,7 @@ mod tests {
     use internal::expr::Expr;
     use internal::query::{Delete, Insert, Select, Update};
     use internal::value::Value;
-    use std::io::Cursor;
+    use std::io::{Cursor, Read, Write};
 
     #[test]
     fn set_summary_information() {
@@ -566,7 +557,7 @@ mod tests {
         let cursor = package.into_inner().expect("into_inner");
         let package = Package::open(cursor).expect("open");
         assert!(package.has_table("Numbers"));
-        let table = package.table("Numbers").unwrap();
+        let table = package.get_table("Numbers").unwrap();
         assert_eq!(table.name(), "Numbers");
 
         assert!(table.has_column("Number"));
@@ -785,6 +776,30 @@ mod tests {
                          (row[0].as_int().unwrap(), row[1].as_int().unwrap())
                      }).collect();
         assert_eq!(values, vec![(1, 6), (2, 4), (3, 6)]);
+    }
+
+    #[test]
+    fn write_stream() {
+        let cursor = Cursor::new(Vec::new());
+        let mut package = Package::create(PackageType::Installer, cursor)
+            .expect("create");
+        package
+            .write_stream("Hello")
+            .unwrap()
+            .write_all(b"Hello, world!")
+            .unwrap();
+        assert!(package.has_stream("Hello"));
+        assert_eq!(package.streams().collect::<Vec<String>>(),
+                   vec!["Hello".to_string()]);
+
+        let cursor = package.into_inner().expect("into_inner");
+        let mut package = Package::open(cursor).expect("open");
+        assert!(package.has_stream("Hello"));
+        assert_eq!(package.streams().collect::<Vec<String>>(),
+                   vec!["Hello".to_string()]);
+        let mut data = Vec::<u8>::new();
+        package.read_stream("Hello").unwrap().read_to_end(&mut data).unwrap();
+        assert_eq!(data.as_slice(), b"Hello, world!");
     }
 }
 
