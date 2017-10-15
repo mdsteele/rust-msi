@@ -20,7 +20,7 @@ mod internal;
 pub use internal::codepage::CodePage;
 pub use internal::column::{Column, ColumnBuilder, ColumnType};
 pub use internal::expr::Expr;
-pub use internal::package::{Package, PackageType, Tables};
+pub use internal::package::{Package, PackageType, Streams, Tables};
 pub use internal::query::{Delete, Insert, Select, Update};
 pub use internal::summary::SummaryInfo;
 pub use internal::table::{Row, Rows, Table};

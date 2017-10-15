@@ -140,7 +140,15 @@ impl<F> Package<F> {
     }
 
     /// Returns an iterator over the database tables in this package.
-    pub fn tables(&self) -> Tables { Tables(self.tables.values()) }
+    pub fn tables(&self) -> Tables { Tables { iter: self.tables.values() } }
+
+    /// Returns an iterator over the binary streams (i.e. embedded files) in
+    /// this package.
+    pub fn streams(&self) -> Streams {
+        // Reading the root storage always succeeds.
+        let entries = self.comp().read_storage("/").expect("read root");
+        Streams { entries: entries }
+    }
 
     /// Consumes the `Package` object, returning the underlying reader/writer.
     pub fn into_inner(mut self) -> io::Result<F> {
@@ -277,18 +285,6 @@ impl<F: Read + Seek> Package<F> {
     pub fn select_rows(&mut self, query: Select) -> io::Result<Rows> {
         query
             .exec(self.comp.as_mut().unwrap(), &self.string_pool, &self.tables)
-    }
-
-    // TODO: replace this method with a method for getting the names of all
-    // (non-table) binary streams in the package.
-    /// Temporary helper function for testing.
-    pub fn print_entries(&self) -> io::Result<()> {
-        for entry in self.comp().read_storage("/")? {
-            let (name, is_table) = streamname::decode(entry.name());
-            let prefix = if is_table { "T" } else { " " };
-            println!("{} {:?}", prefix, name);
-        }
-        Ok(())
     }
 }
 
@@ -442,22 +438,51 @@ impl<F> Drop for Package<F> {
 
 // ========================================================================= //
 
+/// An iterator over the names of the binary streams in a package.
+///
+/// No guarantees are made about the order in which items are returned.
+pub struct Streams<'a> {
+    entries: cfb::Entries<'a>,
+}
+
+impl<'a> Iterator for Streams<'a> {
+    type Item = String;
+
+    fn next(&mut self) -> Option<String> {
+        loop {
+            let entry = match self.entries.next() {
+                Some(entry) => entry,
+                None => return None,
+            };
+            if !entry.is_stream() || entry.name() == SUMMARY_INFO_STREAM_NAME {
+                continue;
+            }
+            let (name, is_table) = streamname::decode(entry.name());
+            if !is_table {
+                return Some(name);
+            }
+        }
+    }
+}
+
+// ========================================================================= //
+
 /// An iterator over the database tables in a package.
+///
+/// No guarantees are made about the order in which items are returned.
 #[derive(Clone)]
-pub struct Tables<'a>(btree_map::Values<'a, String, Rc<Table>>);
+pub struct Tables<'a> {
+    iter: btree_map::Values<'a, String, Rc<Table>>,
+}
 
 impl<'a> Iterator for Tables<'a> {
     type Item = &'a Table;
 
     fn next(&mut self) -> Option<&'a Table> {
-        let Tables(ref mut iter) = *self;
-        iter.next().map(Rc::borrow)
+        self.iter.next().map(Rc::borrow)
     }
 
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let Tables(ref iter) = *self;
-        iter.size_hint()
-    }
+    fn size_hint(&self) -> (usize, Option<usize>) { self.iter.size_hint() }
 }
 
 impl<'a> ExactSizeIterator for Tables<'a> {}

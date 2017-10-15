@@ -135,6 +135,9 @@ fn main() {
                         .about("Prints all rows for a table in an MSI file")
                         .arg(Arg::with_name("path").required(true))
                         .arg(Arg::with_name("table").required(true)))
+        .subcommand(SubCommand::with_name("streams")
+                        .about("Lists binary streams in an MSI file")
+                        .arg(Arg::with_name("path").required(true)))
         .subcommand(SubCommand::with_name("summary")
                         .about("Prints summary information for an MSI file")
                         .arg(Arg::with_name("path").required(true)))
@@ -156,6 +159,12 @@ fn main() {
         let table_name = submatches.value_of("table").unwrap();
         let mut package = msi::open(path).expect("open package");
         print_table_contents(&mut package, table_name);
+    } else if let Some(submatches) = matches.subcommand_matches("streams") {
+        let path = submatches.value_of("path").unwrap();
+        let package = msi::open(path).expect("open package");
+        for stream_name in package.streams() {
+            println!("{}", stream_name);
+        }
     } else if let Some(submatches) = matches.subcommand_matches("summary") {
         let path = submatches.value_of("path").unwrap();
         let package = msi::open(path).expect("open package");
