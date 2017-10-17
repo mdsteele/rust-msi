@@ -208,7 +208,7 @@ impl<F: Read + Seek> Package<F> {
                                      table.clone(),
                                      table.read_rows(stream)?);
                 for row in rows {
-                    names.push(row[0].to_string());
+                    names.push(row[0].as_str().unwrap().to_string());
                 }
             }
             all_tables.insert(table.name().to_string(), table);
@@ -237,7 +237,7 @@ impl<F: Read + Seek> Package<F> {
                                           table_name,
                                           col_index);
                         }
-                        let col_name = row[2].to_string();
+                        let col_name = row[2].as_str().unwrap().to_string();
                         let type_bits = row[3].as_int().unwrap();
                         let column = Column::from_bitfield(col_name,
                                                            type_bits)?;

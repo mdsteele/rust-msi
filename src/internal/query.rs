@@ -4,6 +4,7 @@ use internal::stringpool::StringPool;
 use internal::table::{Row, Rows, Table};
 use internal::value::{Value, ValueRef};
 use std::collections::{BTreeMap, HashSet};
+use std::fmt;
 use std::io::{self, Read, Seek, Write};
 use std::rc::Rc;
 
@@ -12,7 +13,7 @@ use std::rc::Rc;
 /// A database query to delete existing rows.
 pub struct Delete {
     table_name: String,
-    condition: Expr,
+    condition: Option<Expr>,
 }
 
 impl Delete {
@@ -20,7 +21,7 @@ impl Delete {
     pub fn from(table_name: &str) -> Delete {
         Delete {
             table_name: table_name.to_string(),
-            condition: Expr::boolean(true),
+            condition: None,
         }
     }
 
@@ -29,7 +30,11 @@ impl Delete {
     /// method would have been called `where()`, to better match SQL, but
     /// `where` is a reserved word in Rust.)
     pub fn with(mut self, condition: Expr) -> Delete {
-        self.condition = self.condition.and(condition);
+        self.condition = if let Some(expr) = self.condition {
+            Some(expr.and(condition))
+        } else {
+            Some(condition)
+        };
         self
     }
 
@@ -45,11 +50,13 @@ impl Delete {
             None => not_found!("Table {:?} does not exist", self.table_name),
         };
         // Validate the condition.
-        for column_name in self.condition.column_names().into_iter() {
-            if !table.has_column(column_name) {
-                invalid_input!("Table {:?} has no column named {:?}",
-                               self.table_name,
-                               column_name);
+        if let Some(ref expr) = self.condition {
+            for column_name in expr.column_names().into_iter() {
+                if !table.has_column(column_name) {
+                    invalid_input!("Table {:?} has no column named {:?}",
+                                   self.table_name,
+                                   column_name);
+                }
             }
         }
         // Read in the rows from the table.
@@ -62,12 +69,18 @@ impl Delete {
         };
         // Delete rows from the table.
         rows.retain(|value_refs| {
-            let values: Vec<Value> = value_refs
-                .iter()
-                .map(|value_ref| value_ref.to_value(string_pool))
-                .collect();
-            let row = Row::new(table.clone(), values);
-            if self.condition.eval(&row).to_bool() {
+            let should_delete = match self.condition {
+                Some(ref expr) => {
+                    let values: Vec<Value> = value_refs
+                        .iter()
+                        .map(|value_ref| value_ref.to_value(string_pool))
+                        .collect();
+                    let row = Row::new(table.clone(), values);
+                    expr.eval(&row).to_bool()
+                }
+                None => true,
+            };
+            if should_delete {
                 for value_ref in value_refs.iter() {
                     value_ref.remove(string_pool);
                 }
@@ -79,6 +92,18 @@ impl Delete {
         // Write the table back out to the file.
         let stream = comp.create_stream(&stream_name)?;
         table.write_rows(stream, rows)?;
+        Ok(())
+    }
+}
+
+impl fmt::Display for Delete {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        formatter.write_str("DELETE FROM ")?;
+        formatter.write_str(&self.table_name)?;
+        if let Some(ref expr) = self.condition {
+            formatter.write_str(" WHERE ")?;
+            expr.fmt(formatter)?;
+        }
         Ok(())
     }
 }
@@ -201,6 +226,36 @@ impl Insert {
     }
 }
 
+impl fmt::Display for Insert {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        formatter.write_str("INSERT INTO ")?;
+        formatter.write_str(&self.table_name)?;
+        if !self.new_rows.is_empty() {
+            formatter.write_str(" VALUES ")?;
+            let mut outer_comma = false;
+            for new_row in self.new_rows.iter() {
+                if outer_comma {
+                    formatter.write_str(", ")?;
+                } else {
+                    outer_comma = true;
+                }
+                formatter.write_str("(")?;
+                let mut inner_comma = false;
+                for value in new_row.iter() {
+                    if inner_comma {
+                        formatter.write_str(", ")?;
+                    } else {
+                        inner_comma = true;
+                    }
+                    value.fmt(formatter)?;
+                }
+                formatter.write_str(")")?;
+            }
+        }
+        Ok(())
+    }
+}
+
 // ========================================================================= //
 
 enum Join {
@@ -275,13 +330,29 @@ impl Join {
     }
 }
 
+impl fmt::Display for Join {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        match self {
+            &Join::Table(ref table_name) => table_name.fmt(formatter),
+            &Join::Inner(ref lhs, ref rhs, ref on) => {
+                lhs.format_for_join(formatter)?;
+                formatter.write_str(" INNER JOIN ")?;
+                rhs.format_for_join(formatter)?;
+                formatter.write_str(" ON ")?;
+                on.fmt(formatter)?;
+                Ok(())
+            }
+        }
+    }
+}
+
 // ========================================================================= //
 
 /// A database query to select rows.
 pub struct Select {
     from: Join,
-    condition: Expr,
     column_names: Vec<String>,
+    condition: Option<Expr>,
 }
 
 impl Select {
@@ -289,8 +360,8 @@ impl Select {
     pub fn table(table_name: &str) -> Select {
         Select {
             from: Join::Table(table_name.to_string()),
-            condition: Expr::boolean(true),
             column_names: vec![],
+            condition: None,
         }
     }
 
@@ -299,8 +370,8 @@ impl Select {
     pub fn inner_join(self, rhs: Select, on: Expr) -> Select {
         Select {
             from: Join::Inner(Box::new(self), Box::new(rhs), on),
-            condition: Expr::boolean(true),
             column_names: vec![],
+            condition: None,
         }
     }
 
@@ -317,7 +388,11 @@ impl Select {
     /// method would have been called `where()`, to better match SQL, but
     /// `where` is a reserved word in Rust.)
     pub fn with(mut self, condition: Expr) -> Select {
-        self.condition = self.condition.and(condition);
+        self.condition = if let Some(expr) = self.condition {
+            Some(expr.and(condition))
+        } else {
+            Some(condition)
+        };
         self
     }
 
@@ -345,23 +420,26 @@ impl Select {
             }
         }
         // Validate the condition.
-        for column_name in self.condition.column_names().into_iter() {
-            if !table.has_column(column_name) {
-                invalid_input!("Table {:?} has no column named {:?}",
-                               table.name(),
-                               column_name);
+        if let Some(ref expr) = self.condition {
+            for column_name in expr.column_names().into_iter() {
+                if !table.has_column(column_name) {
+                    invalid_input!("Table {:?} has no column named {:?}",
+                                   table.name(),
+                                   column_name);
+                }
             }
         }
         // Filter the rows to those matching the condition.
-        let condition = self.condition;
-        rows.retain(|value_refs| {
-                        let values: Vec<Value> = value_refs
-                            .iter()
-                            .map(|value_ref| value_ref.to_value(string_pool))
-                            .collect();
-                        let row = Row::new(table.clone(), values);
-                        condition.eval(&row).to_bool()
-                    });
+        if let Some(condition) = self.condition {
+            rows.retain(|value_refs| {
+                let values: Vec<Value> = value_refs
+                    .iter()
+                    .map(|value_ref| value_ref.to_value(string_pool))
+                    .collect();
+                let row = Row::new(table.clone(), values);
+                condition.eval(&row).to_bool()
+            });
+        }
         // Limit the table to the specified columns.
         if !column_indices.is_empty() {
             let columns = column_indices
@@ -380,6 +458,45 @@ impl Select {
         }
         Ok(Rows::new(string_pool, table, rows))
     }
+
+    fn format_for_join(&self, formatter: &mut fmt::Formatter)
+                       -> Result<(), fmt::Error> {
+        if self.column_names.is_empty() && self.condition.is_none() {
+            if let Join::Table(ref name) = self.from {
+                return formatter.write_str(name.as_str());
+            }
+        }
+        formatter.write_str("(")?;
+        (self as &fmt::Display).fmt(formatter)?;
+        formatter.write_str(")")?;
+        Ok(())
+    }
+}
+
+impl fmt::Display for Select {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        formatter.write_str("SELECT ")?;
+        if self.column_names.is_empty() {
+            formatter.write_str("*")?;
+        } else {
+            let mut comma = false;
+            for column_name in self.column_names.iter() {
+                if comma {
+                    formatter.write_str(", ")?;
+                } else {
+                    comma = true;
+                }
+                formatter.write_str(&column_name)?;
+            }
+        }
+        formatter.write_str(" FROM ")?;
+        self.from.fmt(formatter)?;
+        if let Some(ref expr) = self.condition {
+            formatter.write_str(" WHERE ")?;
+            expr.fmt(formatter)?;
+        }
+        Ok(())
+    }
 }
 
 // ========================================================================= //
@@ -388,7 +505,7 @@ impl Select {
 pub struct Update {
     table_name: String,
     updates: Vec<(String, Value)>,
-    condition: Expr,
+    condition: Option<Expr>,
 }
 
 impl Update {
@@ -397,7 +514,7 @@ impl Update {
         Update {
             table_name: table_name.to_string(),
             updates: Vec::new(),
-            condition: Expr::boolean(true),
+            condition: None,
         }
     }
 
@@ -412,7 +529,11 @@ impl Update {
     /// method would have been called `where()`, to better match SQL, but
     /// `where` is a reserved word in Rust.)
     pub fn with(mut self, condition: Expr) -> Update {
-        self.condition = self.condition.and(condition);
+        self.condition = if let Some(expr) = self.condition {
+            Some(expr.and(condition))
+        } else {
+            Some(condition)
+        };
         self
     }
 
@@ -442,11 +563,13 @@ impl Update {
             }
         }
         // Validate the condition.
-        for column_name in self.condition.column_names().into_iter() {
-            if !table.has_column(column_name) {
-                invalid_input!("Table {:?} has no column named {:?}",
-                               self.table_name,
-                               column_name);
+        if let Some(ref expr) = self.condition {
+            for column_name in expr.column_names().into_iter() {
+                if !table.has_column(column_name) {
+                    invalid_input!("Table {:?} has no column named {:?}",
+                                   self.table_name,
+                                   column_name);
+                }
             }
         }
         // Read in the rows from the table.
@@ -459,15 +582,21 @@ impl Update {
         };
         // Update the rows.
         for value_refs in rows.iter_mut() {
-            let values: Vec<Value> = value_refs
-                .iter()
-                .map(|value_ref| value_ref.to_value(string_pool))
-                .collect();
-            let row = Row::new(table.clone(), values);
-            if self.condition.eval(&row).to_bool() {
+            let should_update = match self.condition {
+                Some(ref expr) => {
+                    let values: Vec<Value> = value_refs
+                        .iter()
+                        .map(|value_ref| value_ref.to_value(string_pool))
+                        .collect();
+                    let row = Row::new(table.clone(), values);
+                    expr.eval(&row).to_bool()
+                }
+                None => true,
+            };
+            if should_update {
                 for &(ref column_name, ref value) in self.updates.iter() {
-                    let index = row.index_for_column_name(column_name)
-                        .unwrap();
+                    let index =
+                        table.index_for_column_name(column_name).unwrap();
                     let value_ref = &mut value_refs[index];
                     value_ref.remove(string_pool);
                     *value_ref = ValueRef::create(value.clone(), string_pool);
@@ -478,6 +607,122 @@ impl Update {
         let stream = comp.create_stream(&stream_name)?;
         table.write_rows(stream, rows)?;
         Ok(())
+    }
+}
+
+impl fmt::Display for Update {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        formatter.write_str("UPDATE ")?;
+        formatter.write_str(&self.table_name)?;
+        formatter.write_str(" SET ")?;
+        let mut comma = false;
+        for &(ref column_name, ref value) in self.updates.iter() {
+            if comma {
+                formatter.write_str(", ")?;
+            } else {
+                comma = true;
+            }
+            formatter.write_str(&column_name)?;
+            formatter.write_str(" = ")?;
+            value.fmt(formatter)?;
+        }
+        if let Some(ref expr) = self.condition {
+            formatter.write_str(" WHERE ")?;
+            expr.fmt(formatter)?;
+        }
+        Ok(())
+    }
+}
+
+// ========================================================================= //
+
+#[cfg(test)]
+mod tests {
+    use super::{Delete, Insert, Select, Update};
+    use internal::expr::Expr;
+    use internal::value::Value;
+
+    #[test]
+    fn display_delete() {
+        let query = Delete::from("Foobar");
+        assert_eq!(format!("{}", query), "DELETE FROM Foobar".to_string());
+
+        let query = Delete::from("Foobar")
+            .with(Expr::col("Foo").lt(Expr::integer(17)));
+        assert_eq!(format!("{}", query),
+                   "DELETE FROM Foobar WHERE Foo < 17".to_string());
+    }
+
+    #[test]
+    fn display_insert() {
+        let query = Insert::into("Foobar");
+        assert_eq!(format!("{}", query), "INSERT INTO Foobar".to_string());
+
+        let query = Insert::into("Foobar")
+            .row(vec![Value::Str("Foo".to_string()), Value::Null]);
+        assert_eq!(format!("{}", query),
+                   "INSERT INTO Foobar VALUES (\"Foo\", NULL)".to_string());
+
+        let query = Insert::into("Foobar")
+            .row(vec![Value::Int(1), Value::Int(2)])
+            .rows(vec![
+                vec![Value::Int(3), Value::Int(4)],
+                vec![Value::Int(5), Value::Int(6)],
+            ])
+            .row(vec![Value::Int(7), Value::Int(8)]);
+        assert_eq!(format!("{}", query),
+                   "INSERT INTO Foobar VALUES (1, 2), (3, 4), (5, 6), (7, 8)"
+                       .to_string());
+    }
+
+    #[test]
+    fn display_select() {
+        let query = Select::table("Foobar");
+        assert_eq!(format!("{}", query), "SELECT * FROM Foobar".to_string());
+
+        let query = Select::table("Foobar")
+            .columns(&["Foo", "Bar"])
+            .with(Expr::col("Foo").lt(Expr::integer(17)));
+        assert_eq!(format!("{}", query),
+                   "SELECT Foo, Bar FROM Foobar WHERE Foo < 17".to_string());
+
+        let query = Select::table("Foobar")
+            .inner_join(Select::table("Quux"),
+                        Expr::col("Foobar.Key").eq(Expr::col("Quux.Quay")))
+            .columns(&["Foobar.Foo", "Quux.Baz"]);
+        assert_eq!(format!("{}", query),
+                   "SELECT Foobar.Foo, Quux.Baz FROM Foobar INNER JOIN \
+                    Quux ON Foobar.Key = Quux.Quay"
+                       .to_string());
+
+        let query = Select::table("Foobar")
+            .inner_join(Select::table("Quux")
+                            .with(Expr::col("Quay").gt(Expr::integer(42))),
+                        Expr::col("Foobar.Key").eq(Expr::col("Quux.Quay")))
+            .columns(&["Foobar.Foo", "Quux.Baz"]);
+        assert_eq!(format!("{}", query),
+                   "SELECT Foobar.Foo, Quux.Baz \
+                    FROM Foobar \
+                    INNER JOIN (SELECT * FROM Quux WHERE Quay > 42) \
+                    ON Foobar.Key = Quux.Quay"
+                       .to_string());
+    }
+
+    #[test]
+    fn display_update() {
+        let query = Update::table("Foobar").set("Foo", Value::Int(17));
+        assert_eq!(format!("{}", query),
+                   "UPDATE Foobar SET Foo = 17".to_string());
+
+        let query = Update::table("Foobar")
+            .set("Foo", Value::Int(17))
+            .set("Bar", Value::Null)
+            .set("Baz", Value::Str("quux".to_string()))
+            .with(Expr::col("Foo").lt(Expr::integer(17)));
+        assert_eq!(format!("{}", query),
+                   "UPDATE Foobar SET Foo = 17, Bar = NULL, Baz = \"quux\" \
+                    WHERE Foo < 17"
+                       .to_string());
     }
 }
 

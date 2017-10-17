@@ -1,6 +1,7 @@
 use internal::table::Row;
 use internal::value::Value;
 use std::collections::HashSet;
+use std::fmt;
 use std::ops;
 
 // ========================================================================= //
@@ -234,6 +235,12 @@ impl ops::Shr<Expr> for Expr {
     }
 }
 
+impl fmt::Display for Expr {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        self.ast.fmt(formatter)
+    }
+}
+
 // ========================================================================= //
 
 /// An abstract syntax tree for expressions.
@@ -286,6 +293,86 @@ impl Ast {
                 arg2.populate_column_names(names);
             }
         }
+    }
+
+    fn format_with_precedence(&self, formatter: &mut fmt::Formatter,
+                              parent_prec: i32)
+                              -> Result<(), fmt::Error> {
+        match self {
+            &Ast::Literal(ref value) => {
+                (value as &fmt::Display).fmt(formatter)
+            }
+            &Ast::Column(ref name) => formatter.write_str(name.as_str()),
+            &Ast::UnOp(op, ref arg) => {
+                match op {
+                    UnOp::Neg => formatter.write_str("-")?,
+                    UnOp::BitNot => formatter.write_str("~")?,
+                    UnOp::BoolNot => formatter.write_str("NOT ")?,
+                }
+                arg.format_with_precedence(formatter, 10)
+            }
+            &Ast::BinOp(op, ref arg1, ref arg2) => {
+                let op_prec = op.precedence();
+                if op_prec < parent_prec {
+                    formatter.write_str("(")?;
+                }
+                arg1.format_with_precedence(formatter, op_prec)?;
+                match op {
+                    BinOp::Eq => formatter.write_str(" = ")?,
+                    BinOp::Ne => formatter.write_str(" != ")?,
+                    BinOp::Lt => formatter.write_str(" < ")?,
+                    BinOp::Le => formatter.write_str(" <= ")?,
+                    BinOp::Gt => formatter.write_str(" > ")?,
+                    BinOp::Ge => formatter.write_str(" >= ")?,
+                    BinOp::Add => formatter.write_str(" + ")?,
+                    BinOp::Sub => formatter.write_str(" - ")?,
+                    BinOp::Mul => formatter.write_str(" * ")?,
+                    BinOp::Div => formatter.write_str(" / ")?,
+                    BinOp::BitAnd => formatter.write_str(" & ")?,
+                    BinOp::BitOr => formatter.write_str(" | ")?,
+                    BinOp::BitXor => formatter.write_str(" ^ ")?,
+                    BinOp::Shl => formatter.write_str(" << ")?,
+                    BinOp::Shr => formatter.write_str(" >> ")?,
+                }
+                arg2.format_with_precedence(formatter, op_prec)?;
+                if op_prec < parent_prec {
+                    formatter.write_str(")")?;
+                }
+                Ok(())
+            }
+            &Ast::And(ref arg1, ref arg2) => {
+                let op_prec = 2;
+                if op_prec < parent_prec {
+                    formatter.write_str("(")?;
+                }
+                arg1.format_with_precedence(formatter, op_prec)?;
+                formatter.write_str(" AND ")?;
+                arg2.format_with_precedence(formatter, op_prec)?;
+                if op_prec < parent_prec {
+                    formatter.write_str(")")?;
+                }
+                Ok(())
+            }
+            &Ast::Or(ref arg1, ref arg2) => {
+                let op_prec = 1;
+                if op_prec < parent_prec {
+                    formatter.write_str("(")?;
+                }
+                arg1.format_with_precedence(formatter, op_prec)?;
+                formatter.write_str(" OR ")?;
+                arg2.format_with_precedence(formatter, op_prec)?;
+                if op_prec < parent_prec {
+                    formatter.write_str(")")?;
+                }
+                Ok(())
+            }
+        }
+    }
+}
+
+impl fmt::Display for Ast {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        self.format_with_precedence(formatter, 0)
     }
 }
 
@@ -428,6 +515,26 @@ impl BinOp {
             }
         }
     }
+
+    fn precedence(&self) -> i32 {
+        match *self {
+            BinOp::Eq => 3,
+            BinOp::Ne => 3,
+            BinOp::Lt => 3,
+            BinOp::Le => 3,
+            BinOp::Gt => 3,
+            BinOp::Ge => 3,
+            BinOp::Add => 8,
+            BinOp::Sub => 8,
+            BinOp::Mul => 9,
+            BinOp::Div => 9,
+            BinOp::BitAnd => 6,
+            BinOp::BitOr => 4,
+            BinOp::BitXor => 5,
+            BinOp::Shl => 7,
+            BinOp::Shr => 7,
+        }
+    }
 }
 
 // ========================================================================= //
@@ -494,6 +601,24 @@ mod tests {
         let expected: HashSet<&str> =
             vec!["Foo", "Bar", "Baz"].into_iter().collect();
         assert_eq!(expr.column_names(), expected);
+    }
+
+    #[test]
+    fn display() {
+        let expr = (Expr::col("Foo") / Expr::integer(10))
+            .le(Expr::col("Bar"))
+            .or(Expr::col("Baz").ge(Expr::col("Foo")));
+        assert_eq!(format!("{}", expr),
+                   "Foo / 10 <= Bar OR Baz >= Foo".to_string());
+
+        let expr = Expr::col("Foo") * (Expr::integer(10) + Expr::col("Bar"));
+        assert_eq!(format!("{}", expr), "Foo * (10 + Bar)".to_string());
+
+        let expr = Expr::col("Foo").and(Expr::col("Bar")).or(Expr::col("Baz"));
+        assert_eq!(format!("{}", expr), "Foo AND Bar OR Baz".to_string());
+
+        let expr = Expr::col("Foo").or(Expr::col("Bar")).and(Expr::col("Baz"));
+        assert_eq!(format!("{}", expr), "(Foo OR Bar) AND Baz".to_string());
     }
 }
 

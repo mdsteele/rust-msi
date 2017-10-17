@@ -82,7 +82,7 @@ impl fmt::Display for Value {
         match *self {
             Value::Null => formatter.write_str("NULL"),
             Value::Int(number) => number.fmt(formatter),
-            Value::Str(ref string) => formatter.write_str(&string),
+            Value::Str(ref string) => (string as &fmt::Debug).fmt(formatter),
         }
     }
 }
@@ -145,7 +145,7 @@ mod tests {
         assert_eq!(format!("{}", Value::Int(42)), "42".to_string());
         assert_eq!(format!("{}", Value::Int(-137)), "-137".to_string());
         assert_eq!(format!("{}", Value::Str("Hello, world!".to_string())),
-                   "Hello, world!".to_string());
+                   "\"Hello, world!\"".to_string());
     }
 
     #[test]

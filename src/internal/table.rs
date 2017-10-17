@@ -152,11 +152,6 @@ impl Row {
     pub fn has_column(&self, column_name: &str) -> bool {
         self.table.has_column(column_name)
     }
-
-    pub(crate) fn index_for_column_name(&self, column_name: &str)
-                                        -> Option<usize> {
-        self.table.index_for_column_name(column_name)
-    }
 }
 
 /// Gets the value of the column with the given index.  Panics if `index >=
