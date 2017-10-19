@@ -216,6 +216,21 @@ impl Column {
         bits
     }
 
+    /// Determines if the given name is a valid column name.
+    pub(crate) fn is_valid_name(name: &str) -> bool {
+        name.starts_with(|chr| {
+                             chr >= 'A' && chr <= 'Z' ||
+                                 chr >= 'a' && chr <= 'z' ||
+                                 chr == '_'
+                         }) &&
+            !name.contains(|chr| {
+                               !(chr >= 'A' && chr <= 'Z' ||
+                                     chr >= 'a' && chr <= 'z' ||
+                                     chr >= '0' && chr <= '9' ||
+                                     chr == '_')
+                           })
+    }
+
     /// Returns the name of the column.
     pub fn name(&self) -> &str { &self.name }
 
@@ -326,6 +341,17 @@ mod tests {
     use internal::codepage::CodePage;
     use internal::stringpool::StringPool;
     use internal::value::{Value, ValueRef};
+
+    #[test]
+    fn valid_column_name() {
+        assert!(Column::is_valid_name("fooBar"));
+        assert!(Column::is_valid_name("_Whatever"));
+        assert!(Column::is_valid_name("Catch22"));
+
+        assert!(!Column::is_valid_name(""));
+        assert!(!Column::is_valid_name("Foo.Bar"));
+        assert!(!Column::is_valid_name("99Bottles"));
+    }
 
     #[test]
     fn read_column_value() {

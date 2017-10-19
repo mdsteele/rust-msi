@@ -158,6 +158,12 @@ impl StringPool {
     /// Gets the code page used for serializing the string data.
     pub fn codepage(&self) -> CodePage { self.codepage }
 
+    /// Sets the code page used for serializing the string data.
+    pub fn set_codepage(&mut self, codepage: CodePage) {
+        self.is_modified = true;
+        self.codepage = codepage;
+    }
+
     /// Returns the number of strings in the string pool (including empty
     /// entries).
     #[allow(dead_code)]

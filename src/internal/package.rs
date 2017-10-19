@@ -128,8 +128,6 @@ impl<F> Package<F> {
     /// Returns the code page used for serializing strings in the database.
     pub fn database_codepage(&self) -> CodePage { self.string_pool.codepage() }
 
-    // TODO: pub fn set_database_codepage
-
     /// Returns true if the database has a table with the given name.
     pub fn has_table(&self, table_name: &str) -> bool {
         self.tables.contains_key(table_name)
@@ -295,7 +293,9 @@ impl<F: Read + Seek> Package<F> {
     /// Opens an existing binary stream in the package for reading.
     pub fn read_stream(&mut self, stream_name: &str)
                        -> io::Result<StreamReader<F>> {
-        // TODO: Validate stream name.
+        if !streamname::is_valid(stream_name, false) {
+            invalid_input!("{:?} is not a valid stream name", stream_name);
+        }
         let encoded_name = streamname::encode(stream_name, false);
         if !self.comp().is_stream(&encoded_name) {
             not_found!("Stream {:?} does not exist", stream_name);
@@ -348,6 +348,12 @@ impl<F: Read + Write + Seek> Package<F> {
         &mut self.summary_info
     }
 
+    /// Sets the code page used for serializing strings in the database.
+    pub fn set_database_codepage(&mut self, codepage: CodePage) {
+        self.set_finisher();
+        self.string_pool.set_codepage(codepage)
+    }
+
     /// Creates a new database table.  Returns an error without modifying the
     /// table name or columns are invalid, or if a table with that name already
     /// exists.
@@ -371,7 +377,9 @@ impl<F: Read + Write + Seek> Package<F> {
             let mut column_names = HashSet::<&str>::new();
             for column in columns.iter() {
                 let name = column.name();
-                // TODO: Validate column name.
+                if !Column::is_valid_name(name) {
+                    invalid_input!("{:?} is not a valid column name");
+                }
                 if column_names.contains(name) {
                     invalid_input!("Cannot create a table with multiple \
                                     columns with the same name ({:?})",
@@ -439,7 +447,9 @@ impl<F: Read + Write + Seek> Package<F> {
     /// Creates (or overwrites) a binary stream in the package.
     pub fn write_stream(&mut self, stream_name: &str)
                         -> io::Result<StreamWriter<F>> {
-        // TODO: Validate stream name.
+        if !streamname::is_valid(stream_name, false) {
+            invalid_input!("{:?} is not a valid stream name", stream_name);
+        }
         let encoded_name = streamname::encode(stream_name, false);
         Ok(StreamWriter::new(self.comp_mut().create_stream(&encoded_name)?))
     }
@@ -533,6 +543,7 @@ impl<F: Read + Write + Seek> Finish<F> for FinishImpl {
 #[cfg(test)]
 mod tests {
     use super::{Package, PackageType};
+    use internal::codepage::CodePage;
     use internal::column::{Column, ColumnType};
     use internal::expr::Expr;
     use internal::query::{Delete, Insert, Select, Update};
@@ -550,6 +561,20 @@ mod tests {
         let package = Package::open(cursor).expect("open");
         assert_eq!(package.package_type(), PackageType::Installer);
         assert_eq!(package.summary_info().author(), Some("Jane Doe"));
+    }
+
+    #[test]
+    fn set_database_codepage() {
+        let cursor = Cursor::new(Vec::new());
+        let mut package = Package::create(PackageType::Installer, cursor)
+            .expect("create");
+        assert_eq!(package.database_codepage(), CodePage::Utf8);
+        package.set_database_codepage(CodePage::MacintoshRoman);
+        assert_eq!(package.database_codepage(), CodePage::MacintoshRoman);
+
+        let cursor = package.into_inner().expect("into_inner");
+        let package = Package::open(cursor).expect("open");
+        assert_eq!(package.database_codepage(), CodePage::MacintoshRoman);
     }
 
     #[test]
@@ -775,19 +800,37 @@ mod tests {
                              .row(vec![Value::Int(5), Value::Int(13)])
                              .row(vec![Value::Int(6), Value::Int(17)]))
             .unwrap();
-
-        let rows = package
-            .select_rows(Select::table("Foobar")
-                             .inner_join(Select::table("Bazfoo"),
-                                         Expr::col("Foobar.Bar")
-                                             .eq(Expr::col("Bazfoo.Foo")))
-                             .columns(&["Foobar.Foo", "Bazfoo.Baz"]))
-            .expect("select_rows");
-        let values: Vec<(i32, i32)> =
-            rows.map(|row| {
-                         (row[0].as_int().unwrap(), row[1].as_int().unwrap())
-                     }).collect();
-        assert_eq!(values, vec![(1, 6), (2, 4), (3, 6)]);
+        {
+            let rows = package
+                .select_rows(Select::table("Foobar")
+                                 .inner_join(Select::table("Bazfoo"),
+                                             Expr::col("Foobar.Bar")
+                                                 .eq(Expr::col("Bazfoo.Foo")))
+                                 .columns(&["Foobar.Foo", "Bazfoo.Baz"]))
+                .expect("select_rows");
+            let values: Vec<(i32, i32)> =
+                rows.map(|row| {
+                             (row[0].as_int().unwrap(),
+                              row[1].as_int().unwrap())
+                         }).collect();
+            assert_eq!(values, vec![(1, 6), (2, 4), (3, 6)]);
+        }
+        {
+            let rows = package
+                .select_rows(Select::table("Bazfoo")
+                                 .left_join(Select::table("Foobar"),
+                                            Expr::col("Foobar.Bar")
+                                                .eq(Expr::col("Bazfoo.Foo")))
+                                 .columns(&["Bazfoo.Baz", "Foobar.Foo"]))
+                .expect("select_rows");
+            let values: Vec<(i32, Option<i32>)> =
+                rows.map(|row| (row[0].as_int().unwrap(), row[1].as_int()))
+                    .collect();
+            assert_eq!(
+                values,
+                vec![(4, Some(2)), (5, None), (6, Some(1)), (6, Some(3))]
+            );
+        }
     }
 
     #[test]
