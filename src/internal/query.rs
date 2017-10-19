@@ -261,6 +261,7 @@ impl fmt::Display for Insert {
 enum Join {
     Table(String),
     Inner(Box<Select>, Box<Select>, Expr),
+    Left(Box<Select>, Box<Select>, Expr),
 }
 
 impl Join {
@@ -303,7 +304,7 @@ impl Join {
                         column.with_name_prefix(table2.name())
                     }))
                     .collect();
-                let table = Table::new("<join>".to_string(),
+                let table = Table::new("<InnerJoin>".to_string(),
                                        columns,
                                        string_pool.long_string_refs());
                 let mut rows = Vec::<Vec<ValueRef>>::new();
@@ -326,6 +327,57 @@ impl Join {
                 }
                 Ok(Rows::new(string_pool, table, rows))
             }
+            Join::Left(select1, select2, condition) => {
+                let (table1, rows1) = select1
+                    .exec(comp, string_pool, tables)?
+                    .into_table_and_values();
+                let (table2, rows2) = select2
+                    .exec(comp, string_pool, tables)?
+                    .into_table_and_values();
+                let columns = table1
+                    .columns()
+                    .iter()
+                    .map(|column| column.with_name_prefix(table1.name()))
+                    .chain(table2.columns().iter().map(|column| {
+                        column.with_name_prefix(table2.name()).but_nullable()
+                    }))
+                    .collect();
+                let table = Table::new("<LeftJoin>".to_string(),
+                                       columns,
+                                       string_pool.long_string_refs());
+                let mut rows = Vec::<Vec<ValueRef>>::new();
+                for value_refs1 in rows1.iter() {
+                    let mut found_any = false;
+                    for value_refs2 in rows2.iter() {
+                        let value_refs: Vec<ValueRef> = value_refs1
+                            .iter()
+                            .chain(value_refs2.iter())
+                            .cloned()
+                            .collect();
+                        let values: Vec<Value> = value_refs
+                            .iter()
+                            .map(|value_ref| value_ref.to_value(string_pool))
+                            .collect();
+                        let row = Row::new(table.clone(), values);
+                        if condition.eval(&row).to_bool() {
+                            rows.push(value_refs);
+                            found_any = true;
+                        }
+                    }
+                    if !found_any {
+                        let value_refs: Vec<ValueRef> = value_refs1
+                            .iter()
+                            .cloned()
+                            .chain(table2
+                                       .columns()
+                                       .iter()
+                                       .map(|_| ValueRef::Null))
+                            .collect();
+                        rows.push(value_refs);
+                    }
+                }
+                Ok(Rows::new(string_pool, table, rows))
+            }
         }
     }
 }
@@ -337,6 +389,14 @@ impl fmt::Display for Join {
             &Join::Inner(ref lhs, ref rhs, ref on) => {
                 lhs.format_for_join(formatter)?;
                 formatter.write_str(" INNER JOIN ")?;
+                rhs.format_for_join(formatter)?;
+                formatter.write_str(" ON ")?;
+                on.fmt(formatter)?;
+                Ok(())
+            }
+            &Join::Left(ref lhs, ref rhs, ref on) => {
+                lhs.format_for_join(formatter)?;
+                formatter.write_str(" LEFT JOIN ")?;
                 rhs.format_for_join(formatter)?;
                 formatter.write_str(" ON ")?;
                 on.fmt(formatter)?;
@@ -374,6 +434,17 @@ impl Select {
             condition: None,
         }
     }
+
+    /// Performs a left join between this and another query.
+    pub fn left_join(self, rhs: Select, on: Expr) -> Select {
+        Select {
+            from: Join::Left(Box::new(self), Box::new(rhs), on),
+            column_names: vec![],
+            condition: None,
+        }
+    }
+
+    // TODO: pub fn right_join
 
     /// Transforms the selected rows to only include the specified columns, in
     /// the order given.
@@ -446,7 +517,7 @@ impl Select {
                 .iter()
                 .map(|&index| table.columns()[index].clone())
                 .collect();
-            table = Table::new("<select>".to_string(),
+            table = Table::new("<Select>".to_string(),
                                columns,
                                table.long_string_refs());
             for value_refs in rows.iter_mut() {

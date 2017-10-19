@@ -59,6 +59,17 @@ pub fn encode(name: &str, is_table: bool) -> String {
     output
 }
 
+/// Determines if a name will work as CFB stream name once encoded.
+pub fn is_valid(name: &str, is_table: bool) -> bool {
+    if name.is_empty() {
+        false
+    } else if !is_table && name.starts_with(TABLE_PREFIX) {
+        false
+    } else {
+        encode(name, is_table).encode_utf16().count() <= 31
+    }
+}
+
 // ========================================================================= //
 
 fn from_b64(value: u32) -> char {
@@ -96,7 +107,7 @@ fn to_b64(ch: char) -> Option<u32> {
 
 #[cfg(test)]
 mod tests {
-    use super::{decode, encode, from_b64, to_b64};
+    use super::{decode, encode, from_b64, is_valid, to_b64};
 
     #[test]
     fn to_from_b64() {
@@ -123,6 +134,21 @@ mod tests {
                    "\u{4840}\u{3f7f}\u{4164}\u{422f}\u{4836}");
         assert_eq!(encode("App.exe", false),
                    "\u{44ca}\u{47b3}\u{46e8}\u{4828}");
+    }
+
+    #[test]
+    fn is_valid_stream_name() {
+        assert!(is_valid("Icon.AppIcon.ico", false));
+        assert!(is_valid("_Columns", true));
+        assert!(is_valid("¿Qué pasa?", false));
+
+        assert!(!is_valid("", false));
+        assert!(!is_valid("", true));
+        assert!(!is_valid("\u{4840}Stream", false));
+        assert!(!is_valid("ThisStringIsWayTooLongToBeAStreamName\
+                           IMeanSeriouslyWhoWouldTryToUseAName\
+                           ThatIsThisLongItWouldBePrettySilly",
+                          false));
     }
 }
 

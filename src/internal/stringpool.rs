@@ -7,6 +7,8 @@ use std::u16;
 
 const LONG_STRING_REFS_BIT: u32 = 0x8000_0000;
 
+const MAX_STRING_REF: i32 = 0xff_ffff;
+
 // ========================================================================= //
 
 /// A reference to a string in the string pool.
@@ -36,6 +38,8 @@ impl StringRef {
                            long_string_refs: bool)
                            -> io::Result<()> {
         let number = if let Some(StringRef(number)) = string_ref {
+            debug_assert!(number > 0);
+            debug_assert!(number <= MAX_STRING_REF);
             number
         } else {
             0
@@ -57,12 +61,14 @@ impl StringRef {
     pub fn number(self) -> i32 {
         let StringRef(number) = self;
         debug_assert!(number > 0);
+        debug_assert!(number <= MAX_STRING_REF);
         number
     }
 
     fn index(self) -> usize {
         let number = self.number();
         debug_assert!(number > 0);
+        debug_assert!(number <= MAX_STRING_REF);
         (number - 1) as usize
     }
 }
@@ -206,12 +212,20 @@ impl StringPool {
                 return StringRef((index + 1) as i32);
             }
         }
+        if self.strings.len() >= u16::MAX as usize && !self.long_string_refs {
+            // TODO: If this happens, we need to rewrite all database tables
+            // from short to long string refs.
+            panic!("Too many strings; rewriting to long string refs is not \
+                    yet supported");
+        }
+        if self.strings.len() >= MAX_STRING_REF as usize {
+            panic!("Too many distinct strings in string pool");
+        }
         self.strings.push((string, 1));
         StringRef(self.strings.len() as i32)
     }
 
     /// Decrements the refcount of a string in the pool.
-    #[allow(dead_code)]
     pub fn decref(&mut self, string_ref: StringRef) {
         let index = string_ref.index();
         if index >= self.strings.len() {

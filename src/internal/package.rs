@@ -25,6 +25,8 @@ const TABLES_TABLE_NAME: &str = "_Tables";
 const STRING_DATA_TABLE_NAME: &str = "_StringData";
 const STRING_POOL_TABLE_NAME: &str = "_StringPool";
 
+const MAX_NUM_TABLE_COLUMNS: usize = 0x7fff;
+
 // ========================================================================= //
 
 fn columns_table(long_string_refs: bool) -> Rc<Table> {
@@ -293,6 +295,7 @@ impl<F: Read + Seek> Package<F> {
     /// Opens an existing binary stream in the package for reading.
     pub fn read_stream(&mut self, stream_name: &str)
                        -> io::Result<StreamReader<F>> {
+        // TODO: Validate stream name.
         let encoded_name = streamname::encode(stream_name, false);
         if !self.comp().is_stream(&encoded_name) {
             not_found!("Stream {:?} does not exist", stream_name);
@@ -350,8 +353,15 @@ impl<F: Read + Write + Seek> Package<F> {
     /// exists.
     pub fn create_table(&mut self, table_name: String, columns: Vec<Column>)
                         -> io::Result<()> {
+        if !Table::is_valid_name(&table_name) {
+            invalid_input!("{:?} is not a valid table name");
+        }
         if columns.is_empty() {
             invalid_input!("Cannot create a table with no columns");
+        }
+        if columns.len() > MAX_NUM_TABLE_COLUMNS {
+            invalid_input!("Cannot create a table with more than {} columns",
+                           MAX_NUM_TABLE_COLUMNS);
         }
         if !columns.iter().any(Column::is_primary_key) {
             invalid_input!("Cannot create a table without at least one \
@@ -361,6 +371,7 @@ impl<F: Read + Write + Seek> Package<F> {
             let mut column_names = HashSet::<&str>::new();
             for column in columns.iter() {
                 let name = column.name();
+                // TODO: Validate column name.
                 if column_names.contains(name) {
                     invalid_input!("Cannot create a table with multiple \
                                     columns with the same name ({:?})",
@@ -428,6 +439,7 @@ impl<F: Read + Write + Seek> Package<F> {
     /// Creates (or overwrites) a binary stream in the package.
     pub fn write_stream(&mut self, stream_name: &str)
                         -> io::Result<StreamWriter<F>> {
+        // TODO: Validate stream name.
         let encoded_name = streamname::encode(stream_name, false);
         Ok(StreamWriter::new(self.comp_mut().create_stream(&encoded_name)?))
     }

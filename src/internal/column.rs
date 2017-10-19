@@ -183,6 +183,11 @@ impl Column {
         }
     }
 
+    pub(crate) fn but_nullable(mut self) -> Column {
+        self.is_nullable = true;
+        self
+    }
+
     /// Creates a new column object with the given name, and with other
     /// attributes determened from the given bitfield (taken from the
     /// `_Columns` table).

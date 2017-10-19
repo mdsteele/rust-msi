@@ -80,9 +80,9 @@ impl Value {
 impl fmt::Display for Value {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match *self {
-            Value::Null => formatter.write_str("NULL"),
+            Value::Null => "NULL".fmt(formatter),
             Value::Int(number) => number.fmt(formatter),
-            Value::Str(ref string) => (string as &fmt::Debug).fmt(formatter),
+            Value::Str(ref string) => format!("{:?}", string).fmt(formatter),
         }
     }
 }
@@ -146,6 +146,11 @@ mod tests {
         assert_eq!(format!("{}", Value::Int(-137)), "-137".to_string());
         assert_eq!(format!("{}", Value::Str("Hello, world!".to_string())),
                    "\"Hello, world!\"".to_string());
+
+        assert_eq!(format!("{:>6}", Value::Null), "  NULL".to_string());
+        assert_eq!(format!("[{:<4}]", Value::Int(42)), "[42  ]".to_string());
+        assert_eq!(format!("foo{:~>8}", Value::Str("bar".to_string())),
+                   "foo~~~\"bar\"".to_string());
     }
 
     #[test]
