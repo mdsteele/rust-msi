@@ -1,15 +1,15 @@
 use cfb;
 use internal::codepage::CodePage;
-use internal::column::Column;
+use internal::column::{Column, ColumnCategory};
 use internal::query::{Delete, Insert, Select, Update};
 use internal::stream::{StreamReader, StreamWriter, Streams};
 use internal::streamname::{self, SUMMARY_INFO_STREAM_NAME};
 use internal::stringpool::{StringPool, StringPoolBuilder};
 use internal::summary::SummaryInfo;
 use internal::table::{Rows, Table};
-use internal::value::Value;
+use internal::value::{Value, ValueRef};
 use std::borrow::Borrow;
-use std::collections::{BTreeMap, HashSet, btree_map};
+use std::collections::{BTreeMap, HashMap, HashSet, btree_map};
 use std::io::{self, Read, Seek, Write};
 use std::rc::Rc;
 use uuid::Uuid;
@@ -22,14 +22,16 @@ const TRANSFORM_PACKAGE_CLSID: &str = "000C1082-0000-0000-C000-000000000046";
 
 const COLUMNS_TABLE_NAME: &str = "_Columns";
 const TABLES_TABLE_NAME: &str = "_Tables";
+const VALIDATION_TABLE_NAME: &str = "_Validation";
+
 const STRING_DATA_TABLE_NAME: &str = "_StringData";
 const STRING_POOL_TABLE_NAME: &str = "_StringPool";
 
-const MAX_NUM_TABLE_COLUMNS: usize = 0x7fff;
+const MAX_NUM_TABLE_COLUMNS: usize = 32;
 
 // ========================================================================= //
 
-fn columns_table(long_string_refs: bool) -> Rc<Table> {
+fn make_columns_table(long_string_refs: bool) -> Rc<Table> {
     Table::new(
         COLUMNS_TABLE_NAME.to_string(),
         vec![
@@ -42,9 +44,34 @@ fn columns_table(long_string_refs: bool) -> Rc<Table> {
     )
 }
 
-fn tables_table(long_string_refs: bool) -> Rc<Table> {
+fn make_tables_table(long_string_refs: bool) -> Rc<Table> {
     Table::new(TABLES_TABLE_NAME.to_string(),
                vec![Column::build("Name").primary_key().string(64)],
+               long_string_refs)
+}
+
+fn make_validation_columns() -> Vec<Column> {
+    let min = -0x7fff_ffff;
+    let max = 0x7fff_ffff;
+    let values: Vec<&str> =
+        ColumnCategory::all().iter().map(ColumnCategory::as_str).collect();
+    vec![
+        Column::build("Table").primary_key().id_string(32),
+        Column::build("Column").primary_key().id_string(32),
+        Column::build("Nullable").enum_values(&["Y", "N"]).string(4),
+        Column::build("MinValue").nullable().range(min, max).int32(),
+        Column::build("MaxValue").nullable().range(min, max).int32(),
+        Column::build("KeyTable").nullable().id_string(255),
+        Column::build("KeyColumn").nullable().range(1, 32).int16(),
+        Column::build("Category").nullable().enum_values(&values).string(32),
+        Column::build("Set").nullable().text_string(255),
+        Column::build("Description").nullable().text_string(255),
+    ]
+}
+
+fn make_validation_table(long_string_refs: bool) -> Rc<Table> {
+    Table::new(VALIDATION_TABLE_NAME.to_string(),
+               make_validation_columns(),
                long_string_refs)
 }
 
@@ -198,31 +225,42 @@ impl<F: Read + Seek> Package<F> {
             builder.build_from_data(stream)?
         };
         let mut all_tables = BTreeMap::<String, Rc<Table>>::new();
-        let table_names: Vec<String> = {
-            let table = tables_table(string_pool.long_string_refs());
+        // Read in _Tables table:
+        let table_names: HashSet<String> = {
+            let table = make_tables_table(string_pool.long_string_refs());
             let stream_name = table.stream_name();
-            let mut names = Vec::<String>::new();
+            let mut names = HashSet::<String>::new();
             if comp.exists(&stream_name) {
                 let stream = comp.open_stream(&stream_name)?;
                 let rows = Rows::new(&string_pool,
                                      table.clone(),
                                      table.read_rows(stream)?);
                 for row in rows {
-                    names.push(row[0].as_str().unwrap().to_string());
+                    let table_name = row[0].as_str().unwrap().to_string();
+                    if names.contains(&table_name) {
+                        invalid_data!("Repeated key in {:?} table: {:?}",
+                                      TABLES_TABLE_NAME,
+                                      table_name);
+                    }
+                    names.insert(table_name);
                 }
+            }
+            if !names.contains(VALIDATION_TABLE_NAME) {
+                invalid_data!("Missing {:?} table", VALIDATION_TABLE_NAME);
             }
             all_tables.insert(table.name().to_string(), table);
             names
         };
+        // Read in _Columns table:
+        let mut columns_map: HashMap<String,
+                                     BTreeMap<i32, (String, i32)>> =
+            table_names
+                .into_iter()
+                .map(|name| (name, BTreeMap::new()))
+                .collect();
         {
-            let table = columns_table(string_pool.long_string_refs());
+            let table = make_columns_table(string_pool.long_string_refs());
             let stream_name = table.stream_name();
-            let mut columns_map: BTreeMap<String,
-                                          BTreeMap<i32, Column>> =
-                table_names
-                    .into_iter()
-                    .map(|name| (name, BTreeMap::new()))
-                    .collect();
             if comp.exists(&stream_name) {
                 let stream = comp.open_stream(&stream_name)?;
                 let rows = Rows::new(&string_pool,
@@ -233,15 +271,13 @@ impl<F: Read + Seek> Package<F> {
                     if let Some(cols) = columns_map.get_mut(table_name) {
                         let col_index = row[1].as_int().unwrap();
                         if cols.contains_key(&col_index) {
-                            invalid_data!("Repeat in _Columns: {:?} column {}",
-                                          table_name,
-                                          col_index);
+                            invalid_data!("Repeated key in {:?} table: {:?}",
+                                          COLUMNS_TABLE_NAME,
+                                          (table_name, col_index));
                         }
                         let col_name = row[2].as_str().unwrap().to_string();
                         let type_bits = row[3].as_int().unwrap();
-                        let column = Column::from_bitfield(col_name,
-                                                           type_bits)?;
-                        cols.insert(col_index, column);
+                        cols.insert(col_index, (col_name, type_bits));
                     } else {
                         invalid_data!("_Columns mentions table {:?}, which \
                                        isn't in _Tables",
@@ -250,26 +286,86 @@ impl<F: Read + Seek> Package<F> {
                 }
             }
             all_tables.insert(table.name().to_string(), table);
-            for (table_name, columns) in columns_map.into_iter() {
-                if columns.is_empty() {
-                    invalid_data!("No columns found for table {:?}",
-                                  table_name);
+        }
+        // Read in _Validation table:
+        let mut validation_map =
+            HashMap::<(String, String), Vec<ValueRef>>::new();
+        {
+            let table = make_validation_table(string_pool.long_string_refs());
+            // TODO: Ensure that columns_map["_Validation"].columns() matches
+            // the hard-coded validation table definition.
+            let stream_name = table.stream_name();
+            if comp.exists(&stream_name) {
+                let stream = comp.open_stream(&stream_name)?;
+                for value_refs in table.read_rows(stream)?.into_iter() {
+                    let table_name = value_refs[0]
+                        .to_value(&string_pool)
+                        .as_str()
+                        .unwrap()
+                        .to_string();
+                    let column_name = value_refs[1]
+                        .to_value(&string_pool)
+                        .as_str()
+                        .unwrap()
+                        .to_string();
+                    let key = (table_name, column_name);
+                    if validation_map.contains_key(&key) {
+                        invalid_data!("Repeated key in {:?} table: {:?}",
+                                      VALIDATION_TABLE_NAME,
+                                      key);
+                    }
+                    validation_map.insert(key, value_refs);
                 }
-                let num_columns = columns.len() as i32;
-                if columns.keys().next() != Some(&1) ||
-                    columns.keys().next_back() != Some(&num_columns)
-                {
-                    invalid_data!("Table {:?} does not have a complete set \
-                                   of columns",
-                                  table_name);
-                }
-                let columns: Vec<Column> =
-                    columns.into_iter().map(|(_, column)| column).collect();
-                let table = Table::new(table_name,
-                                       columns,
-                                       string_pool.long_string_refs());
-                all_tables.insert(table.name().to_string(), table);
             }
+        }
+        // Construct Table objects from column/validation data:
+        for (table_name, column_specs) in columns_map.into_iter() {
+            if column_specs.is_empty() {
+                invalid_data!("No columns found for table {:?}", table_name);
+            }
+            let num_columns = column_specs.len() as i32;
+            if column_specs.keys().next() != Some(&1) ||
+                column_specs.keys().next_back() != Some(&num_columns)
+            {
+                invalid_data!("Table {:?} does not have a complete set \
+                               of columns",
+                              table_name);
+            }
+            let mut columns = Vec::<Column>::with_capacity(column_specs.len());
+            for (_, (column_name, bitfield)) in column_specs.into_iter() {
+                let mut builder = Column::build(&column_name);
+                let key = (table_name.clone(), column_name);
+                if let Some(value_refs) = validation_map.get(&key) {
+                    // TODO: Check Nullable column against bitfield.
+                    let min_value = value_refs[3].to_value(&string_pool);
+                    let max_value = value_refs[4].to_value(&string_pool);
+                    if !min_value.is_null() && !max_value.is_null() {
+                        let min = min_value.as_int().unwrap();
+                        let max = max_value.as_int().unwrap();
+                        builder = builder.range(min, max);
+                    }
+                    // TODO: Use KeyTable and KeyColumn columns.
+                    let category_value = value_refs[7].to_value(&string_pool);
+                    if !category_value.is_null() {
+                        let category = category_value
+                            .as_str()
+                            .unwrap()
+                            .parse::<ColumnCategory>()?;
+                        builder = builder.category(category);
+                    }
+                    let enum_values = value_refs[8].to_value(&string_pool);
+                    if !enum_values.is_null() {
+                        let enum_values: Vec<&str> =
+                            enum_values.as_str().unwrap().split(";").collect();
+                        builder = builder.enum_values(&enum_values);
+                    }
+                }
+                columns.push(builder.with_bitfield(bitfield)?);
+            }
+            let table = Table::new(table_name,
+                                   columns,
+                                   string_pool.long_string_refs());
+            all_tables.insert(table.name().to_string(), table);
         }
         Ok(Package {
                comp: Some(comp),
@@ -316,9 +412,9 @@ impl<F: Read + Write + Seek> Package<F> {
         let string_pool = StringPool::new(summary_info.codepage());
         let tables = {
             let mut tables = BTreeMap::<String, Rc<Table>>::new();
-            let table = tables_table(string_pool.long_string_refs());
+            let table = make_tables_table(string_pool.long_string_refs());
             tables.insert(table.name().to_string(), table);
-            let table = columns_table(string_pool.long_string_refs());
+            let table = make_columns_table(string_pool.long_string_refs());
             tables.insert(table.name().to_string(), table);
             tables
         };
@@ -331,8 +427,9 @@ impl<F: Read + Write + Seek> Package<F> {
             tables: tables,
             finisher: None,
         };
-        package.set_finisher();
-        // TODO: create _Validation table
+        package
+            .create_table(VALIDATION_TABLE_NAME.to_string(),
+                          make_validation_columns())?;
         package.flush()?;
         debug_assert!(!package.is_summary_info_modified);
         debug_assert!(!package.string_pool.is_modified());
@@ -409,11 +506,50 @@ impl<F: Read + Write + Seek> Package<F> {
         )?;
         self.insert_rows(Insert::into(TABLES_TABLE_NAME)
                              .row(vec![Value::Str(table_name.clone())]))?;
+        let validation_rows: Vec<Vec<Value>> = columns
+            .iter()
+            .map(|column| {
+                let (min_value, max_value) =
+                    if let Some((min, max)) = column.value_range() {
+                        (Value::Int(min), Value::Int(max))
+                    } else {
+                        (Value::Null, Value::Null)
+                    };
+                vec![
+                    Value::Str(table_name.clone()),
+                    Value::Str(column.name().to_string()),
+                    Value::Str(if column.is_nullable() {
+                                   "Y".to_string()
+                               } else {
+                                   "N".to_string()
+                               }),
+                    min_value,
+                    max_value,
+                    Value::Null, // TODO: Populate KeyTable column.
+                    Value::Null, // TODO: Populate KeyColumn column.
+                    if let Some(category) = column.category() {
+                        Value::Str(category.to_string())
+                    } else {
+                        Value::Null
+                    },
+                    if column.enum_values().is_empty() {
+                        Value::Null
+                    } else {
+                        Value::Str(column.enum_values().join(";"))
+                    },
+                    Value::Null,
+                ]
+            })
+            .collect();
         let long_string_refs = self.string_pool.long_string_refs();
         let table = Table::new(table_name.clone(), columns, long_string_refs);
         self.tables.insert(table_name, table);
+        self.insert_rows(Insert::into(VALIDATION_TABLE_NAME)
+                             .rows(validation_rows))?;
         Ok(())
     }
+
+    // TODO: pub fn drop_table(&mut self, table_name: &str) -> io::Result<()>
 
     /// Attempts to execute a delete query.  Returns an error without modifying
     /// the database if the query fails (e.g. due to the table not existing).

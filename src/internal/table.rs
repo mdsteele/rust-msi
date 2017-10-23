@@ -1,4 +1,4 @@
-use internal::column::Column;
+use internal::column::{Column, ColumnCategory};
 use internal::streamname;
 use internal::stringpool::StringPool;
 use internal::value::{Value, ValueRef};
@@ -38,26 +38,10 @@ impl Table {
         streamname::encode(&self.name, true)
     }
 
-    /// Determines if the given name is a valid table name.
+    /// Returns true if the given string is a valid table name.
     pub(crate) fn is_valid_name(name: &str) -> bool {
-        if !name.starts_with(|chr| {
-                                 chr >= 'A' && chr <= 'Z' ||
-                                     chr >= 'a' && chr <= 'z' ||
-                                     chr == '_'
-                             })
-        {
-            false
-        } else if name.contains(|chr| {
-                                    !(chr >= 'A' && chr <= 'Z' ||
-                                          chr >= 'a' && chr <= 'z' ||
-                                          chr >= '0' && chr <= '9' ||
-                                          chr == '_')
-                                })
-        {
-            false
-        } else {
+        ColumnCategory::Identifier.validate(name) &&
             streamname::is_valid(name, true)
-        }
     }
 
     pub(crate) fn long_string_refs(&self) -> bool { self.long_string_refs }
@@ -275,9 +259,9 @@ mod tests {
         assert!(Table::is_valid_name("fooBar"));
         assert!(Table::is_valid_name("_Validation"));
         assert!(Table::is_valid_name("Catch22"));
+        assert!(Table::is_valid_name("Foo.Bar"));
 
         assert!(!Table::is_valid_name(""));
-        assert!(!Table::is_valid_name("Foo.Bar"));
         assert!(!Table::is_valid_name("99Bottles"));
         assert!(!Table::is_valid_name("ThisStringIsWayTooLongToBeATableName\
                                        IMeanSeriouslyWhoWouldTryToUseAName\

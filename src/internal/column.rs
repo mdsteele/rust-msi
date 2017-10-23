@@ -3,6 +3,7 @@ use internal::stringpool::StringRef;
 use internal::value::{Value, ValueRef};
 use std::{fmt, i16, i32};
 use std::io::{self, Read, Write};
+use std::str;
 
 // ========================================================================= //
 
@@ -148,6 +149,255 @@ impl fmt::Display for ColumnType {
 
 // ========================================================================= //
 
+/// Indicates the format of a string-typed database column.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum ColumnCategory {
+    /// An unrestricted text string.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// assert!(msi::ColumnCategory::Text.validate("Hello, World!"));
+    /// ```
+    Text,
+    /// A text string containing no lowercase letters.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// assert!(msi::ColumnCategory::UpperCase.validate("HELLO, WORLD!"));
+    /// assert!(!msi::ColumnCategory::UpperCase.validate("Hello, World!"));
+    /// ```
+    UpperCase,
+    /// A text string containing no uppercase letters.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// assert!(msi::ColumnCategory::LowerCase.validate("hello, world!"));
+    /// assert!(!msi::ColumnCategory::LowerCase.validate("Hello, World!"));
+    /// ```
+    LowerCase,
+    /// A string identifier (such as a table or column name).  May only contain
+    /// alphanumerics, underscores, and periods, and must start with a letter
+    /// or underscore.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// assert!(msi::ColumnCategory::Identifier.validate("HelloWorld"));
+    /// assert!(msi::ColumnCategory::Identifier.validate("_99.Bottles"));
+    /// assert!(!msi::ColumnCategory::Identifier.validate("3.14159"));
+    /// ```
+    Identifier,
+    /// A string that is either an identifier (see above), or a reference to an
+    /// environment variable (which consists of a `%` character followed by an
+    /// identifier).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// assert!(msi::ColumnCategory::Property.validate("HelloWorld"));
+    /// assert!(msi::ColumnCategory::Property.validate("%HelloWorld"));
+    /// assert!(!msi::ColumnCategory::Property.validate("Hello%World"));
+    /// ```
+    Property,
+    /// The name of a file or directory.
+    Filename,
+    /// A filename that can contain shell glob wildcards.
+    WildCardFilename,
+    /// A string containing an absolute filepath.
+    Path,
+    /// A string containing a semicolon-separated list of absolute filepaths.
+    Paths,
+    /// A string containing an absolute or relative filepath.
+    AnyPath,
+    /// A string containing a registry path.
+    RegPath,
+    /// A string containing special formatting escapes, such as environment
+    /// variables.
+    Formatted,
+    /// Unknown.
+    KeyFormatted,
+    /// Like `Formatted`, but allows additional escapes.
+    Template,
+    /// A string represeting a boolean predicate.
+    Condition,
+    /// A hyphenated, uppercase GUID string, enclosed in curly braces.
+    Guid,
+    /// A string containing a version number.  The string must consist of at
+    /// most four period-separated numbers, with each number being at most
+    /// 65535.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// assert!(msi::ColumnCategory::Version.validate("1"));
+    /// assert!(msi::ColumnCategory::Version.validate("1.22"));
+    /// assert!(msi::ColumnCategory::Version.validate("1.22.3"));
+    /// assert!(msi::ColumnCategory::Version.validate("1.22.3.444"));
+    /// assert!(!msi::ColumnCategory::Version.validate("1.99999"));
+    /// assert!(!msi::ColumnCategory::Version.validate(".12"));
+    /// assert!(!msi::ColumnCategory::Version.validate("1.2.3.4.5"));
+    /// ```
+    Version,
+    /// A string containing a comma-separated list of deciaml language ID
+    /// numbers.
+    Language,
+    /// A string that refers to a binary data stream.
+    Binary,
+    /// A string that refers to a custom source.
+    CustomSource,
+    /// A string that refers to a cabinet.
+    Cabinet,
+    /// A string that refers to a shortcut.
+    Shortcut,
+    /// A string containing a URL.
+    Url,
+}
+
+impl ColumnCategory {
+    pub(crate) fn all() -> Vec<ColumnCategory> {
+        vec![
+            ColumnCategory::Text,
+            ColumnCategory::UpperCase,
+            ColumnCategory::LowerCase,
+            ColumnCategory::Identifier,
+            ColumnCategory::Property,
+            ColumnCategory::Filename,
+            ColumnCategory::WildCardFilename,
+            ColumnCategory::Path,
+            ColumnCategory::Paths,
+            ColumnCategory::AnyPath,
+            ColumnCategory::RegPath,
+            ColumnCategory::Formatted,
+            ColumnCategory::KeyFormatted,
+            ColumnCategory::Template,
+            ColumnCategory::Condition,
+            ColumnCategory::Guid,
+            ColumnCategory::Version,
+            ColumnCategory::Language,
+            ColumnCategory::Binary,
+            ColumnCategory::CustomSource,
+            ColumnCategory::Cabinet,
+            ColumnCategory::Shortcut,
+            ColumnCategory::Url,
+        ]
+    }
+
+    pub(crate) fn as_str(&self) -> &'static str {
+        match *self {
+            ColumnCategory::AnyPath => "AnyPath",
+            ColumnCategory::Binary => "Binary",
+            ColumnCategory::Cabinet => "Cabinet",
+            ColumnCategory::Condition => "Condition",
+            ColumnCategory::CustomSource => "CustomSource",
+            ColumnCategory::Filename => "Filename",
+            ColumnCategory::Formatted => "Formatted",
+            ColumnCategory::Guid => "Guid",
+            ColumnCategory::Identifier => "Identifier",
+            ColumnCategory::KeyFormatted => "KeyFormatted",
+            ColumnCategory::Language => "Language",
+            ColumnCategory::LowerCase => "LowerCase",
+            ColumnCategory::Path => "Path",
+            ColumnCategory::Paths => "Paths",
+            ColumnCategory::Property => "Property",
+            ColumnCategory::RegPath => "RegPath",
+            ColumnCategory::Shortcut => "Shortcut",
+            ColumnCategory::Template => "Template",
+            ColumnCategory::Text => "Text",
+            ColumnCategory::UpperCase => "UpperCase",
+            ColumnCategory::Url => "URL",
+            ColumnCategory::Version => "Version",
+            ColumnCategory::WildCardFilename => "WildCardFilename",
+        }
+    }
+
+    /// Returns true if the given string is valid to store in a database column
+    /// with this category.
+    pub fn validate(&self, string: &str) -> bool {
+        match *self {
+            ColumnCategory::Text => true,
+            ColumnCategory::UpperCase => {
+                !string.chars().any(|chr| chr >= 'a' && chr <= 'z')
+            }
+            ColumnCategory::LowerCase => {
+                !string.chars().any(|chr| chr >= 'A' && chr <= 'Z')
+            }
+            ColumnCategory::Identifier => {
+                string.starts_with(|chr| {
+                                       chr >= 'A' && chr <= 'Z' ||
+                                           chr >= 'a' && chr <= 'z' ||
+                                           chr == '_'
+                                   }) &&
+                    !string.contains(|chr| {
+                                         !(chr >= 'A' && chr <= 'Z' ||
+                                               chr >= 'a' && chr <= 'z' ||
+                                               chr >= '0' && chr <= '9' ||
+                                               chr == '_' ||
+                                               chr == '.')
+                                     })
+            }
+            ColumnCategory::Property => {
+                let substr = if string.starts_with('%') {
+                    &string[1..]
+                } else {
+                    string
+                };
+                ColumnCategory::Identifier.validate(substr)
+            }
+            ColumnCategory::Version => {
+                let mut parts = string.split('.');
+                parts.clone().count() <= 4 &&
+                    parts.all(|part| part.parse::<u16>().is_ok())
+            }
+            // TODO: Validate other categories.
+            _ => true,
+        }
+    }
+}
+
+impl fmt::Display for ColumnCategory {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        self.as_str().fmt(formatter)
+    }
+}
+
+impl str::FromStr for ColumnCategory {
+    type Err = io::Error;
+
+    fn from_str(string: &str) -> io::Result<ColumnCategory> {
+        match string {
+            "AnyPath" => Ok(ColumnCategory::AnyPath),
+            "Binary" => Ok(ColumnCategory::Binary),
+            "Cabinet" => Ok(ColumnCategory::Cabinet),
+            "Condition" => Ok(ColumnCategory::Condition),
+            "CustomSource" => Ok(ColumnCategory::CustomSource),
+            "Filename" => Ok(ColumnCategory::Filename),
+            "Formatted" => Ok(ColumnCategory::Formatted),
+            "Guid" => Ok(ColumnCategory::Guid),
+            "Identifier" => Ok(ColumnCategory::Identifier),
+            "KeyFormatted" => Ok(ColumnCategory::KeyFormatted),
+            "Language" => Ok(ColumnCategory::Language),
+            "LowerCase" => Ok(ColumnCategory::LowerCase),
+            "Path" => Ok(ColumnCategory::Path),
+            "Paths" => Ok(ColumnCategory::Paths),
+            "Property" => Ok(ColumnCategory::Property),
+            "RegPath" => Ok(ColumnCategory::RegPath),
+            "Shortcut" => Ok(ColumnCategory::Shortcut),
+            "Template" => Ok(ColumnCategory::Template),
+            "Text" => Ok(ColumnCategory::Text),
+            "UpperCase" => Ok(ColumnCategory::UpperCase),
+            "URL" => Ok(ColumnCategory::Url),
+            "Version" => Ok(ColumnCategory::Version),
+            "WildCardFilename" => Ok(ColumnCategory::WildCardFilename),
+            _ => invalid_data!("Invalid category: {:?}", string),
+        }
+    }
+}
+
+// ========================================================================= //
+
 /// A database column.
 #[derive(Clone)]
 pub struct Column {
@@ -156,6 +406,9 @@ pub struct Column {
     is_localizable: bool,
     is_nullable: bool,
     is_primary_key: bool,
+    value_range: Option<(i32, i32)>,
+    category: Option<ColumnCategory>,
+    enum_values: Vec<String>,
 }
 
 impl Column {
@@ -180,26 +433,15 @@ impl Column {
             is_localizable: self.is_localizable,
             is_nullable: self.is_nullable,
             is_primary_key: self.is_primary_key,
+            value_range: self.value_range,
+            category: self.category,
+            enum_values: self.enum_values.clone(),
         }
     }
 
     pub(crate) fn but_nullable(mut self) -> Column {
         self.is_nullable = true;
         self
-    }
-
-    /// Creates a new column object with the given name, and with other
-    /// attributes determened from the given bitfield (taken from the
-    /// `_Columns` table).
-    pub(crate) fn from_bitfield(name: String, type_bits: i32)
-                                -> io::Result<Column> {
-        Ok(Column {
-               name: name,
-               coltype: ColumnType::from_bitfield(type_bits)?,
-               is_localizable: (type_bits & COL_LOCALIZABLE_BIT) != 0,
-               is_nullable: (type_bits & COL_NULLABLE_BIT) != 0,
-               is_primary_key: (type_bits & COL_PRIMARY_KEY_BIT) != 0,
-           })
     }
 
     pub(crate) fn bitfield(&self) -> i32 {
@@ -216,19 +458,9 @@ impl Column {
         bits
     }
 
-    /// Determines if the given name is a valid column name.
+    /// Returns true if the given string is a valid column name.
     pub(crate) fn is_valid_name(name: &str) -> bool {
-        name.starts_with(|chr| {
-                             chr >= 'A' && chr <= 'Z' ||
-                                 chr >= 'a' && chr <= 'z' ||
-                                 chr == '_'
-                         }) &&
-            !name.contains(|chr| {
-                               !(chr >= 'A' && chr <= 'Z' ||
-                                     chr >= 'a' && chr <= 'z' ||
-                                     chr >= '0' && chr <= '9' ||
-                                     chr == '_')
-                           })
+        ColumnCategory::Identifier.validate(name)
     }
 
     /// Returns the name of the column.
@@ -246,11 +478,22 @@ impl Column {
     /// Returns true if this is primary key column.
     pub fn is_primary_key(&self) -> bool { self.is_primary_key }
 
+    pub(crate) fn value_range(&self) -> Option<(i32, i32)> { self.value_range }
+
+    pub(crate) fn category(&self) -> Option<ColumnCategory> { self.category }
+
+    pub(crate) fn enum_values(&self) -> &[String] { &self.enum_values }
+
     /// Returns true if the given value is valid for this column.
     pub fn is_valid_value(&self, value: &Value) -> bool {
         match *value {
             Value::Null => self.is_nullable,
             Value::Int(number) => {
+                if let Some((min, max)) = self.value_range {
+                    if number < min || number > max {
+                        return false;
+                    }
+                }
                 match self.coltype {
                     ColumnType::Int16 => {
                         number > (i16::MIN as i32) &&
@@ -265,6 +508,16 @@ impl Column {
                     ColumnType::Int16 |
                     ColumnType::Int32 => false,
                     ColumnType::Str(max_len) => {
+                        if let Some(category) = self.category {
+                            if !category.validate(&string) {
+                                return false;
+                            }
+                        }
+                        if !self.enum_values.is_empty() &&
+                            !self.enum_values.contains(string)
+                        {
+                            return false;
+                        }
                         max_len == 0 || string.chars().count() <= max_len
                     }
                 }
@@ -281,6 +534,9 @@ pub struct ColumnBuilder {
     is_localizable: bool,
     is_nullable: bool,
     is_primary_key: bool,
+    value_range: Option<(i32, i32)>,
+    category: Option<ColumnCategory>,
+    enum_values: Vec<String>,
 }
 
 impl ColumnBuilder {
@@ -290,6 +546,9 @@ impl ColumnBuilder {
             is_localizable: false,
             is_nullable: false,
             is_primary_key: false,
+            value_range: None,
+            category: None,
+            enum_values: Vec::new(),
         }
     }
 
@@ -311,6 +570,24 @@ impl ColumnBuilder {
         self
     }
 
+    /// Makes the column only permit values in the given range.
+    pub fn range(mut self, min: i32, max: i32) -> ColumnBuilder {
+        self.value_range = Some((min, max));
+        self
+    }
+
+    /// For string columns, makes the column use the specified data format.
+    pub fn category(mut self, category: ColumnCategory) -> ColumnBuilder {
+        self.category = Some(category);
+        self
+    }
+
+    /// Makes the column only permit the given values.
+    pub fn enum_values(mut self, values: &[&str]) -> ColumnBuilder {
+        self.enum_values = values.iter().map(|val| val.to_string()).collect();
+        self
+    }
+
     /// Builds a column that stores a 16-bit integer.
     pub fn int16(self) -> Column { self.with_type(ColumnType::Int16) }
 
@@ -322,6 +599,18 @@ impl ColumnBuilder {
         self.with_type(ColumnType::Str(max_len))
     }
 
+    /// Builds a column that stores an identifier string.  This is equivalent
+    /// to `self.category(ColumnCategory::Identifier).string(max_len)`.
+    pub fn id_string(self, max_len: usize) -> Column {
+        self.category(ColumnCategory::Identifier).string(max_len)
+    }
+
+    /// Builds a column that stores a text string.  This is equivalent to
+    /// `self.category(ColumnCategory::Text).string(max_len)`.
+    pub fn text_string(self, max_len: usize) -> Column {
+        self.category(ColumnCategory::Text).string(max_len)
+    }
+
     fn with_type(self, coltype: ColumnType) -> Column {
         Column {
             name: self.name,
@@ -329,7 +618,23 @@ impl ColumnBuilder {
             is_localizable: self.is_localizable,
             is_nullable: self.is_nullable,
             is_primary_key: self.is_primary_key,
+            value_range: self.value_range,
+            category: self.category,
+            enum_values: self.enum_values,
         }
+    }
+
+    pub(crate) fn with_bitfield(self, type_bits: i32) -> io::Result<Column> {
+        Ok(Column {
+               name: self.name,
+               coltype: ColumnType::from_bitfield(type_bits)?,
+               is_localizable: (type_bits & COL_LOCALIZABLE_BIT) != 0,
+               is_nullable: (type_bits & COL_NULLABLE_BIT) != 0,
+               is_primary_key: (type_bits & COL_PRIMARY_KEY_BIT) != 0,
+               value_range: self.value_range,
+               category: self.category,
+               enum_values: self.enum_values,
+           })
     }
 }
 
@@ -337,19 +642,30 @@ impl ColumnBuilder {
 
 #[cfg(test)]
 mod tests {
-    use super::{Column, ColumnType};
+    use super::{Column, ColumnCategory, ColumnType};
     use internal::codepage::CodePage;
     use internal::stringpool::StringPool;
     use internal::value::{Value, ValueRef};
+
+    #[test]
+    fn category_string_round_trip() {
+        for category in ColumnCategory::all() {
+            assert_eq!(category
+                           .to_string()
+                           .parse::<ColumnCategory>()
+                           .unwrap(),
+                       category);
+        }
+    }
 
     #[test]
     fn valid_column_name() {
         assert!(Column::is_valid_name("fooBar"));
         assert!(Column::is_valid_name("_Whatever"));
         assert!(Column::is_valid_name("Catch22"));
+        assert!(Column::is_valid_name("Foo.Bar"));
 
         assert!(!Column::is_valid_name(""));
-        assert!(!Column::is_valid_name("Foo.Bar"));
         assert!(!Column::is_valid_name("99Bottles"));
     }
 
@@ -474,7 +790,14 @@ mod tests {
         assert!(!column.is_valid_value(&Value::Int(-0x8000_0000)));
         assert!(!column.is_valid_value(&Value::Str("1234".to_string())));
 
-        let column = Column::build("Bar").string(8);
+        let column = Column::build("Bar").range(1, 32).int32();
+        assert!(!column.is_valid_value(&Value::Int(0)));
+        assert!(column.is_valid_value(&Value::Int(1)));
+        assert!(column.is_valid_value(&Value::Int(7)));
+        assert!(column.is_valid_value(&Value::Int(32)));
+        assert!(!column.is_valid_value(&Value::Int(33)));
+
+        let column = Column::build("Baz").string(8);
         assert!(!column.is_valid_value(&Value::Null));
         assert!(!column.is_valid_value(&Value::Int(0)));
         assert!(column.is_valid_value(&Value::Str("".to_string())));
@@ -485,6 +808,16 @@ mod tests {
         let column = Column::build("Quux").string(0);
         assert!(column.is_valid_value(&Value::Str("".to_string())));
         assert!(column.is_valid_value(&Value::Str("123456789".to_string())));
+
+        let column = Column::build("Foo").id_string(0);
+        assert!(column.is_valid_value(&Value::Str("FooBar".to_string())));
+        assert!(!column.is_valid_value(&Value::Str("".to_string())));
+        assert!(!column.is_valid_value(&Value::Str("1234".to_string())));
+
+        let column = Column::build("Bar").enum_values(&["Y", "N"]).string(1);
+        assert!(column.is_valid_value(&Value::Str("Y".to_string())));
+        assert!(column.is_valid_value(&Value::Str("N".to_string())));
+        assert!(!column.is_valid_value(&Value::Str("X".to_string())));
     }
 }
 
