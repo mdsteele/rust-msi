@@ -80,6 +80,7 @@ impl Delete {
                 }
                 None => true,
             };
+            // TODO: Handle deleting rows referred to by foreign keys.
             if should_delete {
                 for value_ref in value_refs.iter() {
                     value_ref.remove(string_pool);
@@ -163,6 +164,7 @@ impl Insert {
                                    value,
                                    column.name());
                 }
+                // TODO: Validate foreign keys.
             }
         }
         // Read in the rows from the table.
@@ -632,6 +634,7 @@ impl Update {
                                value,
                                column_name);
             }
+            // TODO: Validate foreign keys.
         }
         // Validate the condition.
         if let Some(ref expr) = self.condition {

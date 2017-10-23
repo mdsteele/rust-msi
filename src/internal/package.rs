@@ -336,7 +336,10 @@ impl<F: Read + Seek> Package<F> {
                 let mut builder = Column::build(&column_name);
                 let key = (table_name.clone(), column_name);
                 if let Some(value_refs) = validation_map.get(&key) {
-                    // TODO: Check Nullable column against bitfield.
+                    let is_nullable = value_refs[2].to_value(&string_pool);
+                    if is_nullable.as_str().unwrap() == "Y" {
+                        builder = builder.nullable();
+                    }
                     let min_value = value_refs[3].to_value(&string_pool);
                     let max_value = value_refs[4].to_value(&string_pool);
                     if !min_value.is_null() && !max_value.is_null() {
@@ -344,7 +347,13 @@ impl<F: Read + Seek> Package<F> {
                         let max = max_value.as_int().unwrap();
                         builder = builder.range(min, max);
                     }
-                    // TODO: Use KeyTable and KeyColumn columns.
+                    let key_table = value_refs[5].to_value(&string_pool);
+                    let key_column = value_refs[6].to_value(&string_pool);
+                    if !key_table.is_null() && !key_column.is_null() {
+                        builder =
+                            builder.foreign_key(key_table.as_str().unwrap(),
+                                                key_column.as_int().unwrap());
+                    }
                     let category_value = value_refs[7].to_value(&string_pool);
                     if !category_value.is_null() {
                         let category = category_value
@@ -515,6 +524,12 @@ impl<F: Read + Write + Seek> Package<F> {
                     } else {
                         (Value::Null, Value::Null)
                     };
+                let (key_table, key_column) =
+                    if let Some((table, column)) = column.foreign_key() {
+                        (Value::Str(table.to_string()), Value::Int(column))
+                    } else {
+                        (Value::Null, Value::Null)
+                    };
                 vec![
                     Value::Str(table_name.clone()),
                     Value::Str(column.name().to_string()),
@@ -525,8 +540,8 @@ impl<F: Read + Write + Seek> Package<F> {
                                }),
                     min_value,
                     max_value,
-                    Value::Null, // TODO: Populate KeyTable column.
-                    Value::Null, // TODO: Populate KeyColumn column.
+                    key_table,
+                    key_column,
                     if let Some(category) = column.category() {
                         Value::Str(category.to_string())
                     } else {
@@ -718,10 +733,11 @@ mod tests {
         let cursor = Cursor::new(Vec::new());
         let mut package = Package::create(PackageType::Installer, cursor)
             .expect("create");
-        let columns = vec![
-            Column::build("Number").primary_key().int16(),
-            Column::build("Word").nullable().string(50),
-        ];
+        let columns =
+            vec![
+                Column::build("Number").primary_key().range(0, 100).int16(),
+                Column::build("Word").nullable().string(50),
+            ];
         package
             .create_table("Numbers".to_string(), columns)
             .expect("create_table");
@@ -739,6 +755,7 @@ mod tests {
         assert_eq!(column.coltype(), ColumnType::Int16);
         assert!(column.is_primary_key());
         assert!(!column.is_nullable());
+        assert_eq!(column.value_range(), Some((0, 100)));
 
         assert!(table.has_column("Word"));
         let column = table.get_column("Word").unwrap();

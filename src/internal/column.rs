@@ -407,6 +407,7 @@ pub struct Column {
     is_nullable: bool,
     is_primary_key: bool,
     value_range: Option<(i32, i32)>,
+    foreign_key: Option<(String, i32)>,
     category: Option<ColumnCategory>,
     enum_values: Vec<String>,
 }
@@ -434,6 +435,7 @@ impl Column {
             is_nullable: self.is_nullable,
             is_primary_key: self.is_primary_key,
             value_range: self.value_range,
+            foreign_key: self.foreign_key.clone(),
             category: self.category,
             enum_values: self.enum_values.clone(),
         }
@@ -479,6 +481,12 @@ impl Column {
     pub fn is_primary_key(&self) -> bool { self.is_primary_key }
 
     pub(crate) fn value_range(&self) -> Option<(i32, i32)> { self.value_range }
+
+    pub(crate) fn foreign_key(&self) -> Option<(&str, i32)> {
+        self.foreign_key
+            .as_ref()
+            .map(|&(ref name, index)| (name.as_str(), index))
+    }
 
     pub(crate) fn category(&self) -> Option<ColumnCategory> { self.category }
 
@@ -535,6 +543,7 @@ pub struct ColumnBuilder {
     is_nullable: bool,
     is_primary_key: bool,
     value_range: Option<(i32, i32)>,
+    foreign_key: Option<(String, i32)>,
     category: Option<ColumnCategory>,
     enum_values: Vec<String>,
 }
@@ -547,6 +556,7 @@ impl ColumnBuilder {
             is_nullable: false,
             is_primary_key: false,
             value_range: None,
+            foreign_key: None,
             category: None,
             enum_values: Vec::new(),
         }
@@ -573,6 +583,13 @@ impl ColumnBuilder {
     /// Makes the column only permit values in the given range.
     pub fn range(mut self, min: i32, max: i32) -> ColumnBuilder {
         self.value_range = Some((min, max));
+        self
+    }
+
+    /// Makes the column refer to a key column in another table.
+    pub fn foreign_key(mut self, table_name: &str, column_index: i32)
+                       -> ColumnBuilder {
+        self.foreign_key = Some((table_name.to_string(), column_index));
         self
     }
 
@@ -619,19 +636,27 @@ impl ColumnBuilder {
             is_nullable: self.is_nullable,
             is_primary_key: self.is_primary_key,
             value_range: self.value_range,
+            foreign_key: self.foreign_key,
             category: self.category,
             enum_values: self.enum_values,
         }
     }
 
     pub(crate) fn with_bitfield(self, type_bits: i32) -> io::Result<Column> {
+        let is_nullable = (type_bits & COL_NULLABLE_BIT) != 0;
+        if is_nullable != self.is_nullable {
+            invalid_data!("Column {:?} nullable bit conflicts with \
+                           nullable setting",
+                          self.name);
+        }
         Ok(Column {
                name: self.name,
                coltype: ColumnType::from_bitfield(type_bits)?,
                is_localizable: (type_bits & COL_LOCALIZABLE_BIT) != 0,
-               is_nullable: (type_bits & COL_NULLABLE_BIT) != 0,
+               is_nullable: self.is_nullable,
                is_primary_key: (type_bits & COL_PRIMARY_KEY_BIT) != 0,
                value_range: self.value_range,
+               foreign_key: self.foreign_key,
                category: self.category,
                enum_values: self.enum_values,
            })
