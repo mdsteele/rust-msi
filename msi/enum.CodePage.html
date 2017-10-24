@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `CodePage` enum in crate `msi`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, CodePage">
+
+    <title>msi::CodePage - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../normalize.css">
+    <link rel="stylesheet" type="text/css" href="../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc enum">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'>Enum CodePage</p><div class="block items"><ul><li><a href="#variants">Variants</a></li><li><a href="#methods">Methods</a></li><li><a href="#implementations">Trait Implementations</a></li></ul></div><p class='location'><a href='index.html'>msi</a></p><script>window.sidebarCurrent = {name: 'CodePage', ty: 'enum', relpath: ''};</script><script defer src="sidebar-items.js"></script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content">
+<h1 class='fqn'><span class='in-band'>Enum <a href='index.html'>msi</a>::<wbr><a class="enum" href=''>CodePage</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a class='srclink' href='../src/msi/internal/codepage.rs.html#14-58' title='goto source code'>[src]</a></span></h1>
+<pre class='rust enum'>pub enum CodePage {
+    Windows1250,
+    Windows1251,
+    Windows1252,
+    Windows1253,
+    Windows1254,
+    Windows1255,
+    Windows1256,
+    Windows1257,
+    Windows1258,
+    MacintoshRoman,
+    MacintoshCyrillic,
+    UsAscii,
+    Iso88591,
+    Iso88592,
+    Iso88593,
+    Iso88594,
+    Iso88595,
+    Iso88596,
+    Iso88597,
+    Iso88598,
+    Utf8,
+}</pre><div class='docblock'><p>A Windows code page.</p>
+
+<p>Code pages are a legacy Windows mechanism for representing character
+encodings, but are still used within the MSI file format.</p>
+
+<p>Not all Windows code pages are supported by this library yet.  See
+<a href="https://en.wikipedia.org/wiki/Windows_code_page">Wikipedia</a> for a complete
+list of valid code pages.</p>
+</div><h2 id='variants' class='variants'>Variants</h2>
+<span id='variant.Windows1250' class='variant'><span id='Windows1250.v' class='invisible'><code>Windows1250</code></span></span><div class='docblock'><p><a href="https://en.wikipedia.org/wiki/Windows-1250">Windows-1250 (Latin 2)</a></p>
+</div><span id='variant.Windows1251' class='variant'><span id='Windows1251.v' class='invisible'><code>Windows1251</code></span></span><div class='docblock'><p><a href="https://en.wikipedia.org/wiki/Windows-1251">Windows-1251 (Cyrillic)</a></p>
+</div><span id='variant.Windows1252' class='variant'><span id='Windows1252.v' class='invisible'><code>Windows1252</code></span></span><div class='docblock'><p><a href="https://en.wikipedia.org/wiki/Windows-1252">Windows-1252 (Latin 1)</a></p>
+</div><span id='variant.Windows1253' class='variant'><span id='Windows1253.v' class='invisible'><code>Windows1253</code></span></span><div class='docblock'><p><a href="https://en.wikipedia.org/wiki/Windows-1253">Windows-1253 (Greek)</a></p>
+</div><span id='variant.Windows1254' class='variant'><span id='Windows1254.v' class='invisible'><code>Windows1254</code></span></span><div class='docblock'><p><a href="https://en.wikipedia.org/wiki/Windows-1254">Windows-1254 (Turkish)</a></p>
+</div><span id='variant.Windows1255' class='variant'><span id='Windows1255.v' class='invisible'><code>Windows1255</code></span></span><div class='docblock'><p><a href="https://en.wikipedia.org/wiki/Windows-1255">Windows-1255 (Hebrew)</a></p>
+</div><span id='variant.Windows1256' class='variant'><span id='Windows1256.v' class='invisible'><code>Windows1256</code></span></span><div class='docblock'><p><a href="https://en.wikipedia.org/wiki/Windows-1256">Windows-1256 (Arabic)</a></p>
+</div><span id='variant.Windows1257' class='variant'><span id='Windows1257.v' class='invisible'><code>Windows1257</code></span></span><div class='docblock'><p><a href="https://en.wikipedia.org/wiki/Windows-1257">Windows-1257 (Baltic)</a></p>
+</div><span id='variant.Windows1258' class='variant'><span id='Windows1258.v' class='invisible'><code>Windows1258</code></span></span><div class='docblock'><p><a href="https://en.wikipedia.org/wiki/Windows-1258">Windows-1258 (Vietnamese)</a></p>
+</div><span id='variant.MacintoshRoman' class='variant'><span id='MacintoshRoman.v' class='invisible'><code>MacintoshRoman</code></span></span><div class='docblock'><p><a href="https://en.wikipedia.org/wiki/Mac_OS_Roman">Mac OS Roman</a></p>
+</div><span id='variant.MacintoshCyrillic' class='variant'><span id='MacintoshCyrillic.v' class='invisible'><code>MacintoshCyrillic</code></span></span><div class='docblock'><p><a href="https://en.wikipedia.org/wiki/Macintosh_Cyrillic_encoding">Macintosh
+Cyrillic</a></p>
+</div><span id='variant.UsAscii' class='variant'><span id='UsAscii.v' class='invisible'><code>UsAscii</code></span></span><div class='docblock'><p><a href="https://en.wikipedia.org/wiki/ASCII">US-ASCII</a></p>
+</div><span id='variant.Iso88591' class='variant'><span id='Iso88591.v' class='invisible'><code>Iso88591</code></span></span><div class='docblock'><p><a href="https://en.wikipedia.org/wiki/ISO-8859-1">ISO-8859-1 (Latin 1)</a></p>
+</div><span id='variant.Iso88592' class='variant'><span id='Iso88592.v' class='invisible'><code>Iso88592</code></span></span><div class='docblock'><p><a href="https://en.wikipedia.org/wiki/ISO-8859-2">ISO-8859-2 (Latin 2)</a></p>
+</div><span id='variant.Iso88593' class='variant'><span id='Iso88593.v' class='invisible'><code>Iso88593</code></span></span><div class='docblock'><p><a href="https://en.wikipedia.org/wiki/ISO-8859-3">ISO-8859-3 (South European)</a></p>
+</div><span id='variant.Iso88594' class='variant'><span id='Iso88594.v' class='invisible'><code>Iso88594</code></span></span><div class='docblock'><p><a href="https://en.wikipedia.org/wiki/ISO-8859-4">ISO-8859-4 (North European)</a></p>
+</div><span id='variant.Iso88595' class='variant'><span id='Iso88595.v' class='invisible'><code>Iso88595</code></span></span><div class='docblock'><p><a href="https://en.wikipedia.org/wiki/ISO-8859-5">ISO-8859-5 (Cyrillic)</a></p>
+</div><span id='variant.Iso88596' class='variant'><span id='Iso88596.v' class='invisible'><code>Iso88596</code></span></span><div class='docblock'><p><a href="https://en.wikipedia.org/wiki/ISO-8859-6">ISO-8859-6 (Arabic)</a></p>
+</div><span id='variant.Iso88597' class='variant'><span id='Iso88597.v' class='invisible'><code>Iso88597</code></span></span><div class='docblock'><p><a href="https://en.wikipedia.org/wiki/ISO-8859-7">ISO-8859-7 (Greek)</a></p>
+</div><span id='variant.Iso88598' class='variant'><span id='Iso88598.v' class='invisible'><code>Iso88598</code></span></span><div class='docblock'><p><a href="https://en.wikipedia.org/wiki/ISO-8859-8">ISO-8859-8 (Hebrew)</a></p>
+</div><span id='variant.Utf8' class='variant'><span id='Utf8.v' class='invisible'><code>Utf8</code></span></span><div class='docblock'><p><a href="https://en.wikipedia.org/wiki/UTF-8">UTF-8</a></p>
+</div><h2 id='methods'>Methods</h2><h3 class='impl'><span class='in-band'><code>impl <a class="enum" href="../msi/enum.CodePage.html" title="enum msi::CodePage">CodePage</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/codepage.rs.html#60-184' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.from_id' class="method"><span id='from_id.v' class='invisible'><code>fn <a href='#method.from_id' class='fnname'>from_id</a>(id: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.i32.html">i32</a>) -&gt; <a class="enum" href="https://doc.rust-lang.org/nightly/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="enum" href="../msi/enum.CodePage.html" title="enum msi::CodePage">CodePage</a>&gt;</code></span></h4>
+<div class='docblock'><p>Returns the code page (if any) with the given ID number.</p>
+</div><h4 id='method.id' class="method"><span id='id.v' class='invisible'><code>fn <a href='#method.id' class='fnname'>id</a>(&amp;self) -&gt; <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.i32.html">i32</a></code></span></h4>
+<div class='docblock'><p>Returns the ID number used within Windows to represent this code page.</p>
+</div><h4 id='method.name' class="method"><span id='name.v' class='invisible'><code>fn <a href='#method.name' class='fnname'>name</a>(&amp;self) -&gt; &amp;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.str.html">str</a></code></span></h4>
+<div class='docblock'><p>Returns a human-readable name for this code page.</p>
+</div><h4 id='method.decode' class="method"><span id='decode.v' class='invisible'><code>fn <a href='#method.decode' class='fnname'>decode</a>(&amp;self, bytes: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.slice.html">&amp;[</a><a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.u8.html">u8</a><a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.slice.html">]</a>) -&gt; <a class="struct" href="https://doc.rust-lang.org/nightly/alloc/string/struct.String.html" title="struct alloc::string::String">String</a></code></span></h4>
+<div class='docblock'><p>Decodes a byte array into a string, using this code page.  Invalid
+characters will be replaced with a Unicode replacement character
+(U+FFFD).</p>
+</div><h4 id='method.encode' class="method"><span id='encode.v' class='invisible'><code>fn <a href='#method.encode' class='fnname'>encode</a>(&amp;self, string: &amp;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.str.html">str</a>) -&gt; <a class="struct" href="https://doc.rust-lang.org/nightly/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.u8.html">u8</a>&gt;</code></span></h4>
+<div class='docblock'><p>Encodes a string into a byte array, using this code page.  For
+non-Unicode code pages, any characters that cannot be represented will
+be replaced with a code-page-specific replacement character (typically
+<code>&#39;?&#39;</code>).</p>
+</div></div><h2 id='implementations'>Trait Implementations</h2><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html" title="trait core::clone::Clone">Clone</a> for <a class="enum" href="../msi/enum.CodePage.html" title="enum msi::CodePage">CodePage</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/codepage.rs.html#13' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.clone' class="method"><span id='clone.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#tymethod.clone' class='fnname'>clone</a>(&amp;self) -&gt; <a class="enum" href="../msi/enum.CodePage.html" title="enum msi::CodePage">CodePage</a></code></span></h4>
+<div class='docblock'><p>Returns a copy of the value. <a href="https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#tymethod.clone">Read more</a></p>
+</div><h4 id='method.clone_from' class="method"><span id='clone_from.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone_from' class='fnname'>clone_from</a>(&amp;mut self, source: &amp;Self)</code><div class='since' title='Stable since Rust version 1.0.0'>1.0.0</div></span></h4>
+<div class='docblock'><p>Performs copy-assignment from <code>source</code>. <a href="https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone_from">Read more</a></p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/marker/trait.Copy.html" title="trait core::marker::Copy">Copy</a> for <a class="enum" href="../msi/enum.CodePage.html" title="enum msi::CodePage">CodePage</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/codepage.rs.html#13' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'></div><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html" title="trait core::fmt::Debug">Debug</a> for <a class="enum" href="../msi/enum.CodePage.html" title="enum msi::CodePage">CodePage</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/codepage.rs.html#13' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.fmt' class="method"><span id='fmt.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html#tymethod.fmt' class='fnname'>fmt</a>(&amp;self, __arg_0: &amp;mut <a class="struct" href="https://doc.rust-lang.org/nightly/core/fmt/struct.Formatter.html" title="struct core::fmt::Formatter">Formatter</a>) -&gt; <a class="type" href="https://doc.rust-lang.org/nightly/core/fmt/type.Result.html" title="type core::fmt::Result">Result</a></code></span></h4>
+<div class='docblock'><p>Formats the value using the given formatter.</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/cmp/trait.Eq.html" title="trait core::cmp::Eq">Eq</a> for <a class="enum" href="../msi/enum.CodePage.html" title="enum msi::CodePage">CodePage</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/codepage.rs.html#13' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'></div><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html" title="trait core::cmp::PartialEq">PartialEq</a> for <a class="enum" href="../msi/enum.CodePage.html" title="enum msi::CodePage">CodePage</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/codepage.rs.html#13' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.eq' class="method"><span id='eq.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html#tymethod.eq' class='fnname'>eq</a>(&amp;self, __arg_0: &amp;<a class="enum" href="../msi/enum.CodePage.html" title="enum msi::CodePage">CodePage</a>) -&gt; <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.bool.html">bool</a></code></span></h4>
+<div class='docblock'><p>This method tests for <code>self</code> and <code>other</code> values to be equal, and is used by <code>==</code>. <a href="https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html#tymethod.eq">Read more</a></p>
+</div><h4 id='method.ne' class="method"><span id='ne.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html#method.ne' class='fnname'>ne</a>(&amp;self, other: &amp;Rhs) -&gt; <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.bool.html">bool</a></code><div class='since' title='Stable since Rust version 1.0.0'>1.0.0</div></span></h4>
+<div class='docblock'><p>This method tests for <code>!=</code>.</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/default/trait.Default.html" title="trait core::default::Default">Default</a> for <a class="enum" href="../msi/enum.CodePage.html" title="enum msi::CodePage">CodePage</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/codepage.rs.html#186-188' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.default' class="method"><span id='default.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/default/trait.Default.html#tymethod.default' class='fnname'>default</a>() -&gt; <a class="enum" href="../msi/enum.CodePage.html" title="enum msi::CodePage">CodePage</a></code></span></h4>
+<div class='docblock'><p>Returns the &quot;default value&quot; for a type. <a href="https://doc.rust-lang.org/nightly/core/default/trait.Default.html#tymethod.default">Read more</a></p>
+</div></div></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../";
+        window.currentCrate = "msi";
+    </script>
+    <script src="../main.js"></script>
+    <script defer src="../search-index.js"></script>
+</body>
+</html>

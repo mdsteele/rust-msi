@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `SummaryInfo` struct in crate `msi`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, SummaryInfo">
+
+    <title>msi::SummaryInfo - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../normalize.css">
+    <link rel="stylesheet" type="text/css" href="../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc struct">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'>Struct SummaryInfo</p><div class="block items"><ul><li><a href="#methods">Methods</a></li></ul></div><p class='location'><a href='index.html'>msi</a></p><script>window.sidebarCurrent = {name: 'SummaryInfo', ty: 'struct', relpath: ''};</script><script defer src="sidebar-items.js"></script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content">
+<h1 class='fqn'><span class='in-band'>Struct <a href='index.html'>msi</a>::<wbr><a class="struct" href=''>SummaryInfo</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a class='srclink' href='../src/msi/internal/summary.rs.html#32-34' title='goto source code'>[src]</a></span></h1>
+<pre class='rust struct'>pub struct SummaryInfo { /* fields omitted */ }</pre><div class='docblock'><p>Summary information (e.g. title, author) about an MSI package.</p>
+</div><h2 id='methods'>Methods</h2><h3 class='impl'><span class='in-band'><code>impl <a class="struct" href="../msi/struct.SummaryInfo.html" title="struct msi::SummaryInfo">SummaryInfo</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/summary.rs.html#36-181' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.author' class="method"><span id='author.v' class='invisible'><code>fn <a href='#method.author' class='fnname'>author</a>(&amp;self) -&gt; <a class="enum" href="https://doc.rust-lang.org/nightly/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;&amp;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.str.html">str</a>&gt;</code></span></h4>
+<div class='docblock'><p>Gets the &quot;author&quot; property, if one is set.  This indicates the name of
+the person or company that created the package.</p>
+</div><h4 id='method.set_author' class="method"><span id='set_author.v' class='invisible'><code>fn <a href='#method.set_author' class='fnname'>set_author</a>(&amp;mut self, author: <a class="struct" href="https://doc.rust-lang.org/nightly/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>)</code></span></h4>
+<div class='docblock'><p>Sets the &quot;author&quot; property.</p>
+</div><h4 id='method.codepage' class="method"><span id='codepage.v' class='invisible'><code>fn <a href='#method.codepage' class='fnname'>codepage</a>(&amp;self) -&gt; <a class="enum" href="../msi/enum.CodePage.html" title="enum msi::CodePage">CodePage</a></code></span></h4>
+<div class='docblock'><p>Gets the code page used for serializing this summary info.</p>
+</div><h4 id='method.set_codepage' class="method"><span id='set_codepage.v' class='invisible'><code>fn <a href='#method.set_codepage' class='fnname'>set_codepage</a>(&amp;mut self, codepage: <a class="enum" href="../msi/enum.CodePage.html" title="enum msi::CodePage">CodePage</a>)</code></span></h4>
+<div class='docblock'><p>Sets the code page used for serializing this summary info.</p>
+</div><h4 id='method.comments' class="method"><span id='comments.v' class='invisible'><code>fn <a href='#method.comments' class='fnname'>comments</a>(&amp;self) -&gt; <a class="enum" href="https://doc.rust-lang.org/nightly/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;&amp;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.str.html">str</a>&gt;</code></span></h4>
+<div class='docblock'><p>Gets the &quot;comments&quot; property, if one is set.  This typically gives a
+brief description of the application/software that will be installed by
+the package.</p>
+</div><h4 id='method.set_comments' class="method"><span id='set_comments.v' class='invisible'><code>fn <a href='#method.set_comments' class='fnname'>set_comments</a>(&amp;mut self, comments: <a class="struct" href="https://doc.rust-lang.org/nightly/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>)</code></span></h4>
+<div class='docblock'><p>Sets the &quot;comments&quot; property.</p>
+</div><h4 id='method.creating_application' class="method"><span id='creating_application.v' class='invisible'><code>fn <a href='#method.creating_application' class='fnname'>creating_application</a>(&amp;self) -&gt; <a class="enum" href="https://doc.rust-lang.org/nightly/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;&amp;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.str.html">str</a>&gt;</code></span></h4>
+<div class='docblock'><p>Gets the &quot;creating application&quot; property, if one is set.  This
+indicates the name of the software application/tool that was used to
+create the package.</p>
+</div><h4 id='method.set_creating_application' class="method"><span id='set_creating_application.v' class='invisible'><code>fn <a href='#method.set_creating_application' class='fnname'>set_creating_application</a>(&amp;mut self, app_name: <a class="struct" href="https://doc.rust-lang.org/nightly/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>)</code></span></h4>
+<div class='docblock'><p>Sets the &quot;creating application&quot; property.</p>
+</div><h4 id='method.creation_time' class="method"><span id='creation_time.v' class='invisible'><code>fn <a href='#method.creation_time' class='fnname'>creation_time</a>(&amp;self) -&gt; <a class="enum" href="https://doc.rust-lang.org/nightly/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="struct" href="https://doc.rust-lang.org/nightly/std/time/struct.SystemTime.html" title="struct std::time::SystemTime">SystemTime</a>&gt;</code></span></h4>
+<div class='docblock'><p>Gets the &quot;creation time&quot; property, if one is set.  This indicates the
+date/time when the package was created.</p>
+</div><h4 id='method.set_creation_time' class="method"><span id='set_creation_time.v' class='invisible'><code>fn <a href='#method.set_creation_time' class='fnname'>set_creation_time</a>(&amp;mut self, timestamp: <a class="struct" href="https://doc.rust-lang.org/nightly/std/time/struct.SystemTime.html" title="struct std::time::SystemTime">SystemTime</a>)</code></span></h4>
+<div class='docblock'><p>Sets the &quot;creation time&quot; property.</p>
+</div><h4 id='method.set_creation_time_to_now' class="method"><span id='set_creation_time_to_now.v' class='invisible'><code>fn <a href='#method.set_creation_time_to_now' class='fnname'>set_creation_time_to_now</a>(&amp;mut self)</code></span></h4>
+<div class='docblock'><p>Sets the &quot;creation time&quot; property to the current time.</p>
+</div><h4 id='method.subject' class="method"><span id='subject.v' class='invisible'><code>fn <a href='#method.subject' class='fnname'>subject</a>(&amp;self) -&gt; <a class="enum" href="https://doc.rust-lang.org/nightly/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;&amp;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.str.html">str</a>&gt;</code></span></h4>
+<div class='docblock'><p>Gets the &quot;subject&quot; property, if one is set.  This typically indicates
+the name of the application/software that will be installed by the
+package.</p>
+</div><h4 id='method.set_subject' class="method"><span id='set_subject.v' class='invisible'><code>fn <a href='#method.set_subject' class='fnname'>set_subject</a>(&amp;mut self, subject: <a class="struct" href="https://doc.rust-lang.org/nightly/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>)</code></span></h4>
+<div class='docblock'><p>Sets the &quot;subject&quot; property.</p>
+</div><h4 id='method.title' class="method"><span id='title.v' class='invisible'><code>fn <a href='#method.title' class='fnname'>title</a>(&amp;self) -&gt; <a class="enum" href="https://doc.rust-lang.org/nightly/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;&amp;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.str.html">str</a>&gt;</code></span></h4>
+<div class='docblock'><p>Gets the &quot;title&quot; property, if one is set.  This indicates the type of
+the installer package (e.g. &quot;Installation Database&quot; or &quot;Patch&quot;).</p>
+</div><h4 id='method.set_title' class="method"><span id='set_title.v' class='invisible'><code>fn <a href='#method.set_title' class='fnname'>set_title</a>(&amp;mut self, title: <a class="struct" href="https://doc.rust-lang.org/nightly/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>)</code></span></h4>
+<div class='docblock'><p>Sets the &quot;title&quot; property.</p>
+</div><h4 id='method.uuid' class="method"><span id='uuid.v' class='invisible'><code>fn <a href='#method.uuid' class='fnname'>uuid</a>(&amp;self) -&gt; <a class="enum" href="https://doc.rust-lang.org/nightly/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="struct" href="https://doc.rust-lang.org/uuid/uuid/struct.Uuid.html" title="struct uuid::Uuid">Uuid</a>&gt;</code></span></h4>
+<div class='docblock'><p>Gets the &quot;UUID&quot; property, if one is set.</p>
+</div><h4 id='method.set_uuid' class="method"><span id='set_uuid.v' class='invisible'><code>fn <a href='#method.set_uuid' class='fnname'>set_uuid</a>(&amp;mut self, uuid: <a class="struct" href="https://doc.rust-lang.org/uuid/uuid/struct.Uuid.html" title="struct uuid::Uuid">Uuid</a>)</code></span></h4>
+<div class='docblock'><p>Sets the &quot;UUID&quot; property.</p>
+</div></div></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../";
+        window.currentCrate = "msi";
+    </script>
+    <script src="../main.js"></script>
+    <script defer src="../search-index.js"></script>
+</body>
+</html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `ColumnBuilder` struct in crate `msi`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, ColumnBuilder">
+
+    <title>msi::ColumnBuilder - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../normalize.css">
+    <link rel="stylesheet" type="text/css" href="../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc struct">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'>Struct ColumnBuilder</p><div class="block items"><ul><li><a href="#methods">Methods</a></li></ul></div><p class='location'><a href='index.html'>msi</a></p><script>window.sidebarCurrent = {name: 'ColumnBuilder', ty: 'struct', relpath: ''};</script><script defer src="sidebar-items.js"></script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content">
+<h1 class='fqn'><span class='in-band'>Struct <a href='index.html'>msi</a>::<wbr><a class="struct" href=''>ColumnBuilder</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a class='srclink' href='../src/msi/internal/column.rs.html#601-610' title='goto source code'>[src]</a></span></h1>
+<pre class='rust struct'>pub struct ColumnBuilder { /* fields omitted */ }</pre><div class='docblock'><p>A factory for configuring a new database column.</p>
+</div><h2 id='methods'>Methods</h2><h3 class='impl'><span class='in-band'><code>impl <a class="struct" href="../msi/struct.ColumnBuilder.html" title="struct msi::ColumnBuilder">ColumnBuilder</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/column.rs.html#612-727' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.localizable' class="method"><span id='localizable.v' class='invisible'><code>fn <a href='#method.localizable' class='fnname'>localizable</a>(self) -&gt; <a class="struct" href="../msi/struct.ColumnBuilder.html" title="struct msi::ColumnBuilder">ColumnBuilder</a></code></span></h4>
+<div class='docblock'><p>Makes the column be localizable.</p>
+</div><h4 id='method.nullable' class="method"><span id='nullable.v' class='invisible'><code>fn <a href='#method.nullable' class='fnname'>nullable</a>(self) -&gt; <a class="struct" href="../msi/struct.ColumnBuilder.html" title="struct msi::ColumnBuilder">ColumnBuilder</a></code></span></h4>
+<div class='docblock'><p>Makes the column allow null values.</p>
+</div><h4 id='method.primary_key' class="method"><span id='primary_key.v' class='invisible'><code>fn <a href='#method.primary_key' class='fnname'>primary_key</a>(self) -&gt; <a class="struct" href="../msi/struct.ColumnBuilder.html" title="struct msi::ColumnBuilder">ColumnBuilder</a></code></span></h4>
+<div class='docblock'><p>Makes the column be a primary key column.</p>
+</div><h4 id='method.range' class="method"><span id='range.v' class='invisible'><code>fn <a href='#method.range' class='fnname'>range</a>(self, min: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.i32.html">i32</a>, max: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.i32.html">i32</a>) -&gt; <a class="struct" href="../msi/struct.ColumnBuilder.html" title="struct msi::ColumnBuilder">ColumnBuilder</a></code></span></h4>
+<div class='docblock'><p>Makes the column only permit values in the given range.</p>
+</div><h4 id='method.foreign_key' class="method"><span id='foreign_key.v' class='invisible'><code>fn <a href='#method.foreign_key' class='fnname'>foreign_key</a>(self, table_name: &amp;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.str.html">str</a>, column_index: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.i32.html">i32</a>) -&gt; <a class="struct" href="../msi/struct.ColumnBuilder.html" title="struct msi::ColumnBuilder">ColumnBuilder</a></code></span></h4>
+<div class='docblock'><p>Makes the column refer to a key column in another table.</p>
+</div><h4 id='method.category' class="method"><span id='category.v' class='invisible'><code>fn <a href='#method.category' class='fnname'>category</a>(self, category: <a class="enum" href="../msi/enum.ColumnCategory.html" title="enum msi::ColumnCategory">ColumnCategory</a>) -&gt; <a class="struct" href="../msi/struct.ColumnBuilder.html" title="struct msi::ColumnBuilder">ColumnBuilder</a></code></span></h4>
+<div class='docblock'><p>For string columns, makes the column use the specified data format.</p>
+</div><h4 id='method.enum_values' class="method"><span id='enum_values.v' class='invisible'><code>fn <a href='#method.enum_values' class='fnname'>enum_values</a>(self, values: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.slice.html">&amp;[</a>&amp;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.str.html">str</a><a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.slice.html">]</a>) -&gt; <a class="struct" href="../msi/struct.ColumnBuilder.html" title="struct msi::ColumnBuilder">ColumnBuilder</a></code></span></h4>
+<div class='docblock'><p>Makes the column only permit the given values.</p>
+</div><h4 id='method.int16' class="method"><span id='int16.v' class='invisible'><code>fn <a href='#method.int16' class='fnname'>int16</a>(self) -&gt; <a class="struct" href="../msi/struct.Column.html" title="struct msi::Column">Column</a></code></span></h4>
+<div class='docblock'><p>Builds a column that stores a 16-bit integer.</p>
+</div><h4 id='method.int32' class="method"><span id='int32.v' class='invisible'><code>fn <a href='#method.int32' class='fnname'>int32</a>(self) -&gt; <a class="struct" href="../msi/struct.Column.html" title="struct msi::Column">Column</a></code></span></h4>
+<div class='docblock'><p>Builds a column that stores a 32-bit integer.</p>
+</div><h4 id='method.string' class="method"><span id='string.v' class='invisible'><code>fn <a href='#method.string' class='fnname'>string</a>(self, max_len: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.usize.html">usize</a>) -&gt; <a class="struct" href="../msi/struct.Column.html" title="struct msi::Column">Column</a></code></span></h4>
+<div class='docblock'><p>Builds a column that stores a string.</p>
+</div><h4 id='method.id_string' class="method"><span id='id_string.v' class='invisible'><code>fn <a href='#method.id_string' class='fnname'>id_string</a>(self, max_len: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.usize.html">usize</a>) -&gt; <a class="struct" href="../msi/struct.Column.html" title="struct msi::Column">Column</a></code></span></h4>
+<div class='docblock'><p>Builds a column that stores an identifier string.  This is equivalent
+to <code>self.category(ColumnCategory::Identifier).string(max_len)</code>.</p>
+</div><h4 id='method.text_string' class="method"><span id='text_string.v' class='invisible'><code>fn <a href='#method.text_string' class='fnname'>text_string</a>(self, max_len: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.usize.html">usize</a>) -&gt; <a class="struct" href="../msi/struct.Column.html" title="struct msi::Column">Column</a></code></span></h4>
+<div class='docblock'><p>Builds a column that stores a text string.  This is equivalent to
+<code>self.category(ColumnCategory::Text).string(max_len)</code>.</p>
+</div><h4 id='method.binary' class="method"><span id='binary.v' class='invisible'><code>fn <a href='#method.binary' class='fnname'>binary</a>(self) -&gt; <a class="struct" href="../msi/struct.Column.html" title="struct msi::Column">Column</a></code></span></h4>
+<div class='docblock'><p>Builds a column that refers to a binary data stream.  This sets the
+category to <code>ColumnCategory::Binary</code> in addition to setting the column
+type.</p>
+</div></div></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../";
+        window.currentCrate = "msi";
+    </script>
+    <script src="../main.js"></script>
+    <script defer src="../search-index.js"></script>
+</body>
+</html>

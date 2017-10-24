@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `ColumnCategory` enum in crate `msi`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, ColumnCategory">
+
+    <title>msi::ColumnCategory - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../normalize.css">
+    <link rel="stylesheet" type="text/css" href="../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc enum">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'>Enum ColumnCategory</p><div class="block items"><ul><li><a href="#variants">Variants</a></li><li><a href="#methods">Methods</a></li><li><a href="#implementations">Trait Implementations</a></li></ul></div><p class='location'><a href='index.html'>msi</a></p><script>window.sidebarCurrent = {name: 'ColumnCategory', ty: 'enum', relpath: ''};</script><script defer src="sidebar-items.js"></script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content">
+<h1 class='fqn'><span class='in-band'>Enum <a href='index.html'>msi</a>::<wbr><a class="enum" href=''>ColumnCategory</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a class='srclink' href='../src/msi/internal/column.rs.html#160-285' title='goto source code'>[src]</a></span></h1>
+<pre class='rust enum'>pub enum ColumnCategory {
+    Text,
+    UpperCase,
+    LowerCase,
+    Integer,
+    DoubleInteger,
+    Identifier,
+    Property,
+    Filename,
+    WildCardFilename,
+    Path,
+    Paths,
+    AnyPath,
+    DefaultDir,
+    RegPath,
+    Formatted,
+    KeyFormatted,
+    Template,
+    Condition,
+    Guid,
+    Version,
+    Language,
+    Binary,
+    CustomSource,
+    Cabinet,
+    Shortcut,
+    Url,
+}</pre><div class='docblock'><p>Indicates the format of a string-typed database column.</p>
+</div><h2 id='variants' class='variants'>Variants</h2>
+<span id='variant.Text' class='variant'><span id='Text.v' class='invisible'><code>Text</code></span></span><div class='docblock'><p>An unrestricted text string.</p>
+
+<h1 id='examples' class='section-header'><a href='#examples'>Examples</a></h1>
+<pre class="rust rust-example-rendered">
+<span class="macro">assert</span><span class="macro">!</span>(<span class="ident">msi</span>::<span class="ident">ColumnCategory</span>::<span class="ident">Text</span>.<span class="ident">validate</span>(<span class="string">&quot;Hello, World!&quot;</span>));</pre>
+</div><span id='variant.UpperCase' class='variant'><span id='UpperCase.v' class='invisible'><code>UpperCase</code></span></span><div class='docblock'><p>A text string containing no lowercase letters.</p>
+
+<h1 id='examples-1' class='section-header'><a href='#examples-1'>Examples</a></h1>
+<pre class="rust rust-example-rendered">
+<span class="macro">assert</span><span class="macro">!</span>(<span class="ident">msi</span>::<span class="ident">ColumnCategory</span>::<span class="ident">UpperCase</span>.<span class="ident">validate</span>(<span class="string">&quot;HELLO, WORLD!&quot;</span>));
+<span class="macro">assert</span><span class="macro">!</span>(<span class="op">!</span><span class="ident">msi</span>::<span class="ident">ColumnCategory</span>::<span class="ident">UpperCase</span>.<span class="ident">validate</span>(<span class="string">&quot;Hello, World!&quot;</span>));</pre>
+</div><span id='variant.LowerCase' class='variant'><span id='LowerCase.v' class='invisible'><code>LowerCase</code></span></span><div class='docblock'><p>A text string containing no uppercase letters.</p>
+
+<h1 id='examples-2' class='section-header'><a href='#examples-2'>Examples</a></h1>
+<pre class="rust rust-example-rendered">
+<span class="macro">assert</span><span class="macro">!</span>(<span class="ident">msi</span>::<span class="ident">ColumnCategory</span>::<span class="ident">LowerCase</span>.<span class="ident">validate</span>(<span class="string">&quot;hello, world!&quot;</span>));
+<span class="macro">assert</span><span class="macro">!</span>(<span class="op">!</span><span class="ident">msi</span>::<span class="ident">ColumnCategory</span>::<span class="ident">LowerCase</span>.<span class="ident">validate</span>(<span class="string">&quot;Hello, World!&quot;</span>));</pre>
+</div><span id='variant.Integer' class='variant'><span id='Integer.v' class='invisible'><code>Integer</code></span></span><div class='docblock'><p>A signed 16-bit integer.</p>
+
+<h1 id='examples-3' class='section-header'><a href='#examples-3'>Examples</a></h1>
+<pre class="rust rust-example-rendered">
+<span class="macro">assert</span><span class="macro">!</span>(<span class="ident">msi</span>::<span class="ident">ColumnCategory</span>::<span class="ident">Integer</span>.<span class="ident">validate</span>(<span class="string">&quot;32767&quot;</span>));
+<span class="macro">assert</span><span class="macro">!</span>(<span class="ident">msi</span>::<span class="ident">ColumnCategory</span>::<span class="ident">Integer</span>.<span class="ident">validate</span>(<span class="string">&quot;-47&quot;</span>));
+<span class="macro">assert</span><span class="macro">!</span>(<span class="op">!</span><span class="ident">msi</span>::<span class="ident">ColumnCategory</span>::<span class="ident">Integer</span>.<span class="ident">validate</span>(<span class="string">&quot;40000&quot;</span>));</pre>
+</div><span id='variant.DoubleInteger' class='variant'><span id='DoubleInteger.v' class='invisible'><code>DoubleInteger</code></span></span><div class='docblock'><p>A signed 32-bit integer.</p>
+
+<h1 id='examples-4' class='section-header'><a href='#examples-4'>Examples</a></h1>
+<pre class="rust rust-example-rendered">
+<span class="macro">assert</span><span class="macro">!</span>(<span class="ident">msi</span>::<span class="ident">ColumnCategory</span>::<span class="ident">DoubleInteger</span>.<span class="ident">validate</span>(<span class="string">&quot;2147483647&quot;</span>));
+<span class="macro">assert</span><span class="macro">!</span>(<span class="ident">msi</span>::<span class="ident">ColumnCategory</span>::<span class="ident">DoubleInteger</span>.<span class="ident">validate</span>(<span class="string">&quot;-99999&quot;</span>));
+<span class="macro">assert</span><span class="macro">!</span>(<span class="op">!</span><span class="ident">msi</span>::<span class="ident">ColumnCategory</span>::<span class="ident">DoubleInteger</span>.<span class="ident">validate</span>(<span class="string">&quot;3000000000&quot;</span>));</pre>
+</div><span id='variant.Identifier' class='variant'><span id='Identifier.v' class='invisible'><code>Identifier</code></span></span><div class='docblock'><p>A string identifier (such as a table or column name).  May only contain
+alphanumerics, underscores, and periods, and must start with a letter
+or underscore.</p>
+
+<h1 id='examples-5' class='section-header'><a href='#examples-5'>Examples</a></h1>
+<pre class="rust rust-example-rendered">
+<span class="macro">assert</span><span class="macro">!</span>(<span class="ident">msi</span>::<span class="ident">ColumnCategory</span>::<span class="ident">Identifier</span>.<span class="ident">validate</span>(<span class="string">&quot;HelloWorld&quot;</span>));
+<span class="macro">assert</span><span class="macro">!</span>(<span class="ident">msi</span>::<span class="ident">ColumnCategory</span>::<span class="ident">Identifier</span>.<span class="ident">validate</span>(<span class="string">&quot;_99.Bottles&quot;</span>));
+<span class="macro">assert</span><span class="macro">!</span>(<span class="op">!</span><span class="ident">msi</span>::<span class="ident">ColumnCategory</span>::<span class="ident">Identifier</span>.<span class="ident">validate</span>(<span class="string">&quot;3.14159&quot;</span>));</pre>
+</div><span id='variant.Property' class='variant'><span id='Property.v' class='invisible'><code>Property</code></span></span><div class='docblock'><p>A string that is either an identifier (see above), or a reference to an
+environment variable (which consists of a <code>%</code> character followed by an
+identifier).</p>
+
+<h1 id='examples-6' class='section-header'><a href='#examples-6'>Examples</a></h1>
+<pre class="rust rust-example-rendered">
+<span class="macro">assert</span><span class="macro">!</span>(<span class="ident">msi</span>::<span class="ident">ColumnCategory</span>::<span class="ident">Property</span>.<span class="ident">validate</span>(<span class="string">&quot;HelloWorld&quot;</span>));
+<span class="macro">assert</span><span class="macro">!</span>(<span class="ident">msi</span>::<span class="ident">ColumnCategory</span>::<span class="ident">Property</span>.<span class="ident">validate</span>(<span class="string">&quot;%HelloWorld&quot;</span>));
+<span class="macro">assert</span><span class="macro">!</span>(<span class="op">!</span><span class="ident">msi</span>::<span class="ident">ColumnCategory</span>::<span class="ident">Property</span>.<span class="ident">validate</span>(<span class="string">&quot;Hello%World&quot;</span>));</pre>
+</div><span id='variant.Filename' class='variant'><span id='Filename.v' class='invisible'><code>Filename</code></span></span><div class='docblock'><p>The name of a file or directory.</p>
+</div><span id='variant.WildCardFilename' class='variant'><span id='WildCardFilename.v' class='invisible'><code>WildCardFilename</code></span></span><div class='docblock'><p>A filename that can contain shell glob wildcards.</p>
+</div><span id='variant.Path' class='variant'><span id='Path.v' class='invisible'><code>Path</code></span></span><div class='docblock'><p>A string containing an absolute filepath.</p>
+</div><span id='variant.Paths' class='variant'><span id='Paths.v' class='invisible'><code>Paths</code></span></span><div class='docblock'><p>A string containing a semicolon-separated list of absolute filepaths.</p>
+</div><span id='variant.AnyPath' class='variant'><span id='AnyPath.v' class='invisible'><code>AnyPath</code></span></span><div class='docblock'><p>A string containing an absolute or relative filepath.</p>
+</div><span id='variant.DefaultDir' class='variant'><span id='DefaultDir.v' class='invisible'><code>DefaultDir</code></span></span><div class='docblock'><p>A string containing either a filename or an identifier.</p>
+</div><span id='variant.RegPath' class='variant'><span id='RegPath.v' class='invisible'><code>RegPath</code></span></span><div class='docblock'><p>A string containing a registry path.</p>
+</div><span id='variant.Formatted' class='variant'><span id='Formatted.v' class='invisible'><code>Formatted</code></span></span><div class='docblock'><p>A string containing special formatting escapes, such as environment
+variables.</p>
+</div><span id='variant.KeyFormatted' class='variant'><span id='KeyFormatted.v' class='invisible'><code>KeyFormatted</code></span></span><div class='docblock'><p>Unknown.</p>
+</div><span id='variant.Template' class='variant'><span id='Template.v' class='invisible'><code>Template</code></span></span><div class='docblock'><p>Like <code>Formatted</code>, but allows additional escapes.</p>
+</div><span id='variant.Condition' class='variant'><span id='Condition.v' class='invisible'><code>Condition</code></span></span><div class='docblock'><p>A string represeting a boolean predicate.</p>
+</div><span id='variant.Guid' class='variant'><span id='Guid.v' class='invisible'><code>Guid</code></span></span><div class='docblock'><p>A hyphenated, uppercase GUID string, enclosed in curly braces.</p>
+</div><span id='variant.Version' class='variant'><span id='Version.v' class='invisible'><code>Version</code></span></span><div class='docblock'><p>A string containing a version number.  The string must consist of at
+most four period-separated numbers, with each number being at most
+65535.</p>
+
+<h1 id='examples-7' class='section-header'><a href='#examples-7'>Examples</a></h1>
+<pre class="rust rust-example-rendered">
+<span class="macro">assert</span><span class="macro">!</span>(<span class="ident">msi</span>::<span class="ident">ColumnCategory</span>::<span class="ident">Version</span>.<span class="ident">validate</span>(<span class="string">&quot;1&quot;</span>));
+<span class="macro">assert</span><span class="macro">!</span>(<span class="ident">msi</span>::<span class="ident">ColumnCategory</span>::<span class="ident">Version</span>.<span class="ident">validate</span>(<span class="string">&quot;1.22&quot;</span>));
+<span class="macro">assert</span><span class="macro">!</span>(<span class="ident">msi</span>::<span class="ident">ColumnCategory</span>::<span class="ident">Version</span>.<span class="ident">validate</span>(<span class="string">&quot;1.22.3&quot;</span>));
+<span class="macro">assert</span><span class="macro">!</span>(<span class="ident">msi</span>::<span class="ident">ColumnCategory</span>::<span class="ident">Version</span>.<span class="ident">validate</span>(<span class="string">&quot;1.22.3.444&quot;</span>));
+<span class="macro">assert</span><span class="macro">!</span>(<span class="op">!</span><span class="ident">msi</span>::<span class="ident">ColumnCategory</span>::<span class="ident">Version</span>.<span class="ident">validate</span>(<span class="string">&quot;1.99999&quot;</span>));
+<span class="macro">assert</span><span class="macro">!</span>(<span class="op">!</span><span class="ident">msi</span>::<span class="ident">ColumnCategory</span>::<span class="ident">Version</span>.<span class="ident">validate</span>(<span class="string">&quot;.12&quot;</span>));
+<span class="macro">assert</span><span class="macro">!</span>(<span class="op">!</span><span class="ident">msi</span>::<span class="ident">ColumnCategory</span>::<span class="ident">Version</span>.<span class="ident">validate</span>(<span class="string">&quot;1.2.3.4.5&quot;</span>));</pre>
+</div><span id='variant.Language' class='variant'><span id='Language.v' class='invisible'><code>Language</code></span></span><div class='docblock'><p>A string containing a comma-separated list of deciaml language ID
+numbers.</p>
+</div><span id='variant.Binary' class='variant'><span id='Binary.v' class='invisible'><code>Binary</code></span></span><div class='docblock'><p>A string that refers to a binary data stream.</p>
+</div><span id='variant.CustomSource' class='variant'><span id='CustomSource.v' class='invisible'><code>CustomSource</code></span></span><div class='docblock'><p>A string that refers to a custom source.</p>
+</div><span id='variant.Cabinet' class='variant'><span id='Cabinet.v' class='invisible'><code>Cabinet</code></span></span><div class='docblock'><p>A string that refers to a cabinet.</p>
+</div><span id='variant.Shortcut' class='variant'><span id='Shortcut.v' class='invisible'><code>Shortcut</code></span></span><div class='docblock'><p>A string that refers to a shortcut.</p>
+</div><span id='variant.Url' class='variant'><span id='Url.v' class='invisible'><code>Url</code></span></span><div class='docblock'><p>A string containing a URL.</p>
+</div><h2 id='methods'>Methods</h2><h3 class='impl'><span class='in-band'><code>impl <a class="enum" href="../msi/enum.ColumnCategory.html" title="enum msi::ColumnCategory">ColumnCategory</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/column.rs.html#287-394' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.validate' class="method"><span id='validate.v' class='invisible'><code>fn <a href='#method.validate' class='fnname'>validate</a>(&amp;self, string: &amp;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.str.html">str</a>) -&gt; <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.bool.html">bool</a></code></span></h4>
+<div class='docblock'><p>Returns true if the given string is valid to store in a database column
+with this category.</p>
+</div></div><h2 id='implementations'>Trait Implementations</h2><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html" title="trait core::clone::Clone">Clone</a> for <a class="enum" href="../msi/enum.ColumnCategory.html" title="enum msi::ColumnCategory">ColumnCategory</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/column.rs.html#159' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.clone' class="method"><span id='clone.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#tymethod.clone' class='fnname'>clone</a>(&amp;self) -&gt; <a class="enum" href="../msi/enum.ColumnCategory.html" title="enum msi::ColumnCategory">ColumnCategory</a></code></span></h4>
+<div class='docblock'><p>Returns a copy of the value. <a href="https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#tymethod.clone">Read more</a></p>
+</div><h4 id='method.clone_from' class="method"><span id='clone_from.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone_from' class='fnname'>clone_from</a>(&amp;mut self, source: &amp;Self)</code><div class='since' title='Stable since Rust version 1.0.0'>1.0.0</div></span></h4>
+<div class='docblock'><p>Performs copy-assignment from <code>source</code>. <a href="https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone_from">Read more</a></p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/marker/trait.Copy.html" title="trait core::marker::Copy">Copy</a> for <a class="enum" href="../msi/enum.ColumnCategory.html" title="enum msi::ColumnCategory">ColumnCategory</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/column.rs.html#159' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'></div><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html" title="trait core::fmt::Debug">Debug</a> for <a class="enum" href="../msi/enum.ColumnCategory.html" title="enum msi::ColumnCategory">ColumnCategory</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/column.rs.html#159' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.fmt' class="method"><span id='fmt.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html#tymethod.fmt' class='fnname'>fmt</a>(&amp;self, __arg_0: &amp;mut <a class="struct" href="https://doc.rust-lang.org/nightly/core/fmt/struct.Formatter.html" title="struct core::fmt::Formatter">Formatter</a>) -&gt; <a class="type" href="https://doc.rust-lang.org/nightly/core/fmt/type.Result.html" title="type core::fmt::Result">Result</a></code></span></h4>
+<div class='docblock'><p>Formats the value using the given formatter.</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/cmp/trait.Eq.html" title="trait core::cmp::Eq">Eq</a> for <a class="enum" href="../msi/enum.ColumnCategory.html" title="enum msi::ColumnCategory">ColumnCategory</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/column.rs.html#159' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'></div><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/hash/trait.Hash.html" title="trait core::hash::Hash">Hash</a> for <a class="enum" href="../msi/enum.ColumnCategory.html" title="enum msi::ColumnCategory">ColumnCategory</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/column.rs.html#159' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.hash' class="method"><span id='hash.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/hash/trait.Hash.html#tymethod.hash' class='fnname'>hash</a>&lt;__H:&nbsp;<a class="trait" href="https://doc.rust-lang.org/nightly/core/hash/trait.Hasher.html" title="trait core::hash::Hasher">Hasher</a>&gt;(&amp;self, __arg_0: &amp;mut __H)</code></span></h4>
+<div class='docblock'><p>Feeds this value into the given [<code>Hasher</code>]. <a href="https://doc.rust-lang.org/nightly/core/hash/trait.Hash.html#tymethod.hash">Read more</a></p>
+</div><h4 id='method.hash_slice' class="method"><span id='hash_slice.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/hash/trait.Hash.html#method.hash_slice' class='fnname'>hash_slice</a>&lt;H&gt;(data: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.slice.html">&amp;[Self]</a>, state: &amp;mut H) <span class="where fmt-newline">where<br>&nbsp;&nbsp;&nbsp;&nbsp;H: <a class="trait" href="https://doc.rust-lang.org/nightly/core/hash/trait.Hasher.html" title="trait core::hash::Hasher">Hasher</a>,&nbsp;</span></code><div class='since' title='Stable since Rust version 1.3.0'>1.3.0</div></span></h4>
+<div class='docblock'><p>Feeds a slice of this type into the given [<code>Hasher</code>]. <a href="https://doc.rust-lang.org/nightly/core/hash/trait.Hash.html#method.hash_slice">Read more</a></p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html" title="trait core::cmp::PartialEq">PartialEq</a> for <a class="enum" href="../msi/enum.ColumnCategory.html" title="enum msi::ColumnCategory">ColumnCategory</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/column.rs.html#159' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.eq' class="method"><span id='eq.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html#tymethod.eq' class='fnname'>eq</a>(&amp;self, __arg_0: &amp;<a class="enum" href="../msi/enum.ColumnCategory.html" title="enum msi::ColumnCategory">ColumnCategory</a>) -&gt; <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.bool.html">bool</a></code></span></h4>
+<div class='docblock'><p>This method tests for <code>self</code> and <code>other</code> values to be equal, and is used by <code>==</code>. <a href="https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html#tymethod.eq">Read more</a></p>
+</div><h4 id='method.ne' class="method"><span id='ne.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html#method.ne' class='fnname'>ne</a>(&amp;self, other: &amp;Rhs) -&gt; <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.bool.html">bool</a></code><div class='since' title='Stable since Rust version 1.0.0'>1.0.0</div></span></h4>
+<div class='docblock'><p>This method tests for <code>!=</code>.</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/fmt/trait.Display.html" title="trait core::fmt::Display">Display</a> for <a class="enum" href="../msi/enum.ColumnCategory.html" title="enum msi::ColumnCategory">ColumnCategory</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/column.rs.html#396-400' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.fmt-1' class="method"><span id='fmt.v-1' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/fmt/trait.Display.html#tymethod.fmt' class='fnname'>fmt</a>(&amp;self, formatter: &amp;mut <a class="struct" href="https://doc.rust-lang.org/nightly/core/fmt/struct.Formatter.html" title="struct core::fmt::Formatter">Formatter</a>) -&gt; <a class="enum" href="https://doc.rust-lang.org/nightly/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.tuple.html">()</a>, <a class="struct" href="https://doc.rust-lang.org/nightly/core/fmt/struct.Error.html" title="struct core::fmt::Error">Error</a>&gt;</code></span></h4>
+<div class='docblock'><p>Formats the value using the given formatter. <a href="https://doc.rust-lang.org/nightly/core/fmt/trait.Display.html#tymethod.fmt">Read more</a></p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/str/trait.FromStr.html" title="trait core::str::FromStr">FromStr</a> for <a class="enum" href="../msi/enum.ColumnCategory.html" title="enum msi::ColumnCategory">ColumnCategory</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/column.rs.html#402-438' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='associatedtype.Err' class="type"><span id='Err.t' class='invisible'><code>type <a href='https://doc.rust-lang.org/nightly/core/str/trait.FromStr.html#associatedtype.Err' class="type">Err</a> = <a class="struct" href="https://doc.rust-lang.org/nightly/std/io/error/struct.Error.html" title="struct std::io::error::Error">Error</a></code></span></h4>
+<div class='docblock'><p>The associated error which can be returned from parsing.</p>
+</div><h4 id='method.from_str' class="method"><span id='from_str.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/str/trait.FromStr.html#tymethod.from_str' class='fnname'>from_str</a>(string: &amp;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.str.html">str</a>) -&gt; <a class="type" href="https://doc.rust-lang.org/nightly/std/io/error/type.Result.html" title="type std::io::error::Result">Result</a>&lt;<a class="enum" href="../msi/enum.ColumnCategory.html" title="enum msi::ColumnCategory">ColumnCategory</a>&gt;</code></span></h4>
+<div class='docblock'><p>Parses a string <code>s</code> to return a value of this type. <a href="https://doc.rust-lang.org/nightly/core/str/trait.FromStr.html#tymethod.from_str">Read more</a></p>
+</div></div></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../";
+        window.currentCrate = "msi";
+    </script>
+    <script src="../main.js"></script>
+    <script defer src="../search-index.js"></script>
+</body>
+</html>

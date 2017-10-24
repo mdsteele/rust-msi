@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `Package` struct in crate `msi`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, Package">
+
+    <title>msi::Package - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../normalize.css">
+    <link rel="stylesheet" type="text/css" href="../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc struct">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'>Struct Package</p><div class="block items"><ul><li><a href="#methods">Methods</a></li><li><a href="#implementations">Trait Implementations</a></li></ul></div><p class='location'><a href='index.html'>msi</a></p><script>window.sidebarCurrent = {name: 'Package', ty: 'struct', relpath: ''};</script><script defer src="sidebar-items.js"></script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content">
+<h1 class='fqn'><span class='in-band'>Struct <a href='index.html'>msi</a>::<wbr><a class="struct" href=''>Package</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a class='srclink' href='../src/msi/internal/package.rs.html#133-146' title='goto source code'>[src]</a></span></h1>
+<pre class='rust struct'>pub struct Package&lt;F&gt; { /* fields omitted */ }</pre><div class='docblock'><p>An MSI package file, backed by an underlying reader/writer (such as a
+<a href="https://doc.rust-lang.org/std/fs/struct.File.html"><code>File</code></a> or
+<a href="https://doc.rust-lang.org/std/io/struct.Cursor.html"><code>Cursor</code></a>).</p>
+</div><h2 id='methods'>Methods</h2><h3 class='impl'><span class='in-band'><code>impl&lt;F&gt; <a class="struct" href="../msi/struct.Package.html" title="struct msi::Package">Package</a>&lt;F&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/package.rs.html#148-196' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.package_type' class="method"><span id='package_type.v' class='invisible'><code>fn <a href='#method.package_type' class='fnname'>package_type</a>(&amp;self) -&gt; <a class="enum" href="../msi/enum.PackageType.html" title="enum msi::PackageType">PackageType</a></code></span></h4>
+<div class='docblock'><p>Returns what type of package this is.</p>
+</div><h4 id='method.summary_info' class="method"><span id='summary_info.v' class='invisible'><code>fn <a href='#method.summary_info' class='fnname'>summary_info</a>(&amp;self) -&gt; &amp;<a class="struct" href="../msi/struct.SummaryInfo.html" title="struct msi::SummaryInfo">SummaryInfo</a></code></span></h4>
+<div class='docblock'><p>Returns summary information for this package.</p>
+</div><h4 id='method.database_codepage' class="method"><span id='database_codepage.v' class='invisible'><code>fn <a href='#method.database_codepage' class='fnname'>database_codepage</a>(&amp;self) -&gt; <a class="enum" href="../msi/enum.CodePage.html" title="enum msi::CodePage">CodePage</a></code></span></h4>
+<div class='docblock'><p>Returns the code page used for serializing strings in the database.</p>
+</div><h4 id='method.has_table' class="method"><span id='has_table.v' class='invisible'><code>fn <a href='#method.has_table' class='fnname'>has_table</a>(&amp;self, table_name: &amp;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.str.html">str</a>) -&gt; <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.bool.html">bool</a></code></span></h4>
+<div class='docblock'><p>Returns true if the database has a table with the given name.</p>
+</div><h4 id='method.get_table' class="method"><span id='get_table.v' class='invisible'><code>fn <a href='#method.get_table' class='fnname'>get_table</a>(&amp;self, table_name: &amp;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.str.html">str</a>) -&gt; <a class="enum" href="https://doc.rust-lang.org/nightly/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;&amp;<a class="struct" href="../msi/struct.Table.html" title="struct msi::Table">Table</a>&gt;</code></span></h4>
+<div class='docblock'><p>Returns the database table with the given name (if any).</p>
+</div><h4 id='method.tables' class="method"><span id='tables.v' class='invisible'><code>fn <a href='#method.tables' class='fnname'>tables</a>(&amp;self) -&gt; <a class="struct" href="../msi/struct.Tables.html" title="struct msi::Tables">Tables</a></code></span></h4>
+<div class='docblock'><p>Returns an iterator over the database tables in this package.</p>
+</div><h4 id='method.has_stream' class="method"><span id='has_stream.v' class='invisible'><code>fn <a href='#method.has_stream' class='fnname'>has_stream</a>(&amp;self, stream_name: &amp;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.str.html">str</a>) -&gt; <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.bool.html">bool</a></code></span></h4>
+<div class='docblock'><p>Returns true if the database has an embedded binary stream with the
+given name.</p>
+</div><h4 id='method.streams' class="method"><span id='streams.v' class='invisible'><code>fn <a href='#method.streams' class='fnname'>streams</a>(&amp;self) -&gt; <a class="struct" href="../msi/struct.Streams.html" title="struct msi::Streams">Streams</a></code></span></h4>
+<div class='docblock'><p>Returns an iterator over the embedded binary streams in this package.</p>
+</div><h4 id='method.into_inner' class="method"><span id='into_inner.v' class='invisible'><code>fn <a href='#method.into_inner' class='fnname'>into_inner</a>(self) -&gt; <a class="type" href="https://doc.rust-lang.org/nightly/std/io/error/type.Result.html" title="type std::io::error::Result">Result</a>&lt;F&gt;</code></span></h4>
+<div class='docblock'><p>Consumes the <code>Package</code> object, returning the underlying reader/writer.</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl&lt;F:&nbsp;<a class="trait" href="https://doc.rust-lang.org/nightly/std/io/trait.Read.html" title="trait std::io::Read">Read</a> + <a class="trait" href="https://doc.rust-lang.org/nightly/std/io/trait.Seek.html" title="trait std::io::Seek">Seek</a>&gt; <a class="struct" href="../msi/struct.Package.html" title="struct msi::Package">Package</a>&lt;F&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/package.rs.html#198-410' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.open' class="method"><span id='open.v' class='invisible'><code>fn <a href='#method.open' class='fnname'>open</a>(inner: F) -&gt; <a class="type" href="https://doc.rust-lang.org/nightly/std/io/error/type.Result.html" title="type std::io::error::Result">Result</a>&lt;<a class="struct" href="../msi/struct.Package.html" title="struct msi::Package">Package</a>&lt;F&gt;&gt;</code></span></h4>
+<div class='docblock'><p>Opens an existing MSI file, using the underlying reader.  If the
+underlying reader also supports the <code>Write</code> trait, then the <code>Package</code>
+object will be writable as well.</p>
+</div><h4 id='method.select_rows' class="method"><span id='select_rows.v' class='invisible'><code>fn <a href='#method.select_rows' class='fnname'>select_rows</a>(&amp;mut self, query: <a class="struct" href="../msi/struct.Select.html" title="struct msi::Select">Select</a>) -&gt; <a class="type" href="https://doc.rust-lang.org/nightly/std/io/error/type.Result.html" title="type std::io::error::Result">Result</a>&lt;<a class="struct" href="../msi/struct.Rows.html" title="struct msi::Rows">Rows</a>&gt;</code></span></h4>
+<div class='docblock'><p>Attempts to execute a select query.  Returns an error if the query
+fails (e.g. due to the column names being incorrect or the table(s) not
+existing).</p>
+</div><h4 id='method.read_stream' class="method"><span id='read_stream.v' class='invisible'><code>fn <a href='#method.read_stream' class='fnname'>read_stream</a>(&amp;mut self, stream_name: &amp;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.str.html">str</a>) -&gt; <a class="type" href="https://doc.rust-lang.org/nightly/std/io/error/type.Result.html" title="type std::io::error::Result">Result</a>&lt;<a class="struct" href="../msi/struct.StreamReader.html" title="struct msi::StreamReader">StreamReader</a>&lt;F&gt;&gt;</code></span></h4>
+<div class='docblock'><p>Opens an existing binary stream in the package for reading.</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl&lt;F:&nbsp;<a class="trait" href="https://doc.rust-lang.org/nightly/std/io/trait.Read.html" title="trait std::io::Read">Read</a> + <a class="trait" href="https://doc.rust-lang.org/nightly/std/io/trait.Write.html" title="trait std::io::Write">Write</a> + <a class="trait" href="https://doc.rust-lang.org/nightly/std/io/trait.Seek.html" title="trait std::io::Seek">Seek</a>&gt; <a class="struct" href="../msi/struct.Package.html" title="struct msi::Package">Package</a>&lt;F&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/package.rs.html#412-622' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.create' class="method"><span id='create.v' class='invisible'><code>fn <a href='#method.create' class='fnname'>create</a>(package_type: <a class="enum" href="../msi/enum.PackageType.html" title="enum msi::PackageType">PackageType</a>, inner: F) -&gt; <a class="type" href="https://doc.rust-lang.org/nightly/std/io/error/type.Result.html" title="type std::io::error::Result">Result</a>&lt;<a class="struct" href="../msi/struct.Package.html" title="struct msi::Package">Package</a>&lt;F&gt;&gt;</code></span></h4>
+<div class='docblock'><p>Creates a new, empty package of the given type, using the underlying
+reader/writer.  The reader/writer should be initially empty.</p>
+</div><h4 id='method.summary_info_mut' class="method"><span id='summary_info_mut.v' class='invisible'><code>fn <a href='#method.summary_info_mut' class='fnname'>summary_info_mut</a>(&amp;mut self) -&gt; &amp;mut <a class="struct" href="../msi/struct.SummaryInfo.html" title="struct msi::SummaryInfo">SummaryInfo</a></code></span></h4>
+<div class='docblock'><p>Returns a mutable reference to the summary information for this
+package.  Call <code>flush()</code> or drop the <code>Package</code> object to persist any
+changes made to the underlying writer.</p>
+</div><h4 id='method.set_database_codepage' class="method"><span id='set_database_codepage.v' class='invisible'><code>fn <a href='#method.set_database_codepage' class='fnname'>set_database_codepage</a>(&amp;mut self, codepage: <a class="enum" href="../msi/enum.CodePage.html" title="enum msi::CodePage">CodePage</a>)</code></span></h4>
+<div class='docblock'><p>Sets the code page used for serializing strings in the database.</p>
+</div><h4 id='method.create_table' class="method"><span id='create_table.v' class='invisible'><code>fn <a href='#method.create_table' class='fnname'>create_table</a>(<br>&nbsp;&nbsp;&nbsp;&nbsp;&amp;mut self, <br>&nbsp;&nbsp;&nbsp;&nbsp;table_name: <a class="struct" href="https://doc.rust-lang.org/nightly/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <br>&nbsp;&nbsp;&nbsp;&nbsp;columns: <a class="struct" href="https://doc.rust-lang.org/nightly/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="struct" href="../msi/struct.Column.html" title="struct msi::Column">Column</a>&gt;<br>) -&gt; <a class="type" href="https://doc.rust-lang.org/nightly/std/io/error/type.Result.html" title="type std::io::error::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.tuple.html">()</a>&gt;</code></span></h4>
+<div class='docblock'><p>Creates a new database table.  Returns an error without modifying the
+table name or columns are invalid, or if a table with that name already
+exists.</p>
+</div><h4 id='method.delete_rows' class="method"><span id='delete_rows.v' class='invisible'><code>fn <a href='#method.delete_rows' class='fnname'>delete_rows</a>(&amp;mut self, query: <a class="struct" href="../msi/struct.Delete.html" title="struct msi::Delete">Delete</a>) -&gt; <a class="type" href="https://doc.rust-lang.org/nightly/std/io/error/type.Result.html" title="type std::io::error::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.tuple.html">()</a>&gt;</code></span></h4>
+<div class='docblock'><p>Attempts to execute a delete query.  Returns an error without modifying
+the database if the query fails (e.g. due to the table not existing).</p>
+</div><h4 id='method.insert_rows' class="method"><span id='insert_rows.v' class='invisible'><code>fn <a href='#method.insert_rows' class='fnname'>insert_rows</a>(&amp;mut self, query: <a class="struct" href="../msi/struct.Insert.html" title="struct msi::Insert">Insert</a>) -&gt; <a class="type" href="https://doc.rust-lang.org/nightly/std/io/error/type.Result.html" title="type std::io::error::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.tuple.html">()</a>&gt;</code></span></h4>
+<div class='docblock'><p>Attempts to execute an insert query.  Returns an error without
+modifying the database if the query fails (e.g. due to values being
+invalid, or keys not being unique, or the table not existing).</p>
+</div><h4 id='method.update_rows' class="method"><span id='update_rows.v' class='invisible'><code>fn <a href='#method.update_rows' class='fnname'>update_rows</a>(&amp;mut self, query: <a class="struct" href="../msi/struct.Update.html" title="struct msi::Update">Update</a>) -&gt; <a class="type" href="https://doc.rust-lang.org/nightly/std/io/error/type.Result.html" title="type std::io::error::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.tuple.html">()</a>&gt;</code></span></h4>
+<div class='docblock'><p>Attempts to execute an update query.  Returns an error without
+modifying the database if the query fails (e.g. due to values being
+invalid, or column names being incorrect, or the table not existing).</p>
+</div><h4 id='method.write_stream' class="method"><span id='write_stream.v' class='invisible'><code>fn <a href='#method.write_stream' class='fnname'>write_stream</a>(&amp;mut self, stream_name: &amp;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.str.html">str</a>) -&gt; <a class="type" href="https://doc.rust-lang.org/nightly/std/io/error/type.Result.html" title="type std::io::error::Result">Result</a>&lt;<a class="struct" href="../msi/struct.StreamWriter.html" title="struct msi::StreamWriter">StreamWriter</a>&lt;F&gt;&gt;</code></span></h4>
+<div class='docblock'><p>Creates (or overwrites) a binary stream in the package.</p>
+</div><h4 id='method.flush' class="method"><span id='flush.v' class='invisible'><code>fn <a href='#method.flush' class='fnname'>flush</a>(&amp;mut self) -&gt; <a class="type" href="https://doc.rust-lang.org/nightly/std/io/error/type.Result.html" title="type std::io::error::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.tuple.html">()</a>&gt;</code></span></h4>
+<div class='docblock'><p>Flushes any buffered changes to the underlying writer.</p>
+</div></div><h2 id='implementations'>Trait Implementations</h2><h3 class='impl'><span class='in-band'><code>impl&lt;F&gt; <a class="trait" href="https://doc.rust-lang.org/nightly/core/ops/drop/trait.Drop.html" title="trait core::ops::drop::Drop">Drop</a> for <a class="struct" href="../msi/struct.Package.html" title="struct msi::Package">Package</a>&lt;F&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/package.rs.html#624-630' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.drop' class="method"><span id='drop.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/ops/drop/trait.Drop.html#tymethod.drop' class='fnname'>drop</a>(&amp;mut self)</code></span></h4>
+<div class='docblock'><p>A method called when the value goes out of scope. <a href="https://doc.rust-lang.org/nightly/core/ops/drop/trait.Drop.html#tymethod.drop">Read more</a></p>
+</div></div></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../";
+        window.currentCrate = "msi";
+    </script>
+    <script src="../main.js"></script>
+    <script defer src="../search-index.js"></script>
+</body>
+</html>

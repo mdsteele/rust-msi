@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `Expr` struct in crate `msi`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, Expr">
+
+    <title>msi::Expr - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../normalize.css">
+    <link rel="stylesheet" type="text/css" href="../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc struct">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'>Struct Expr</p><div class="block items"><ul><li><a href="#methods">Methods</a></li><li><a href="#implementations">Trait Implementations</a></li></ul></div><p class='location'><a href='index.html'>msi</a></p><script>window.sidebarCurrent = {name: 'Expr', ty: 'struct', relpath: ''};</script><script defer src="sidebar-items.js"></script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content">
+<h1 class='fqn'><span class='in-band'>Struct <a href='index.html'>msi</a>::<wbr><a class="struct" href=''>Expr</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a class='srclink' href='../src/msi/internal/expr.rs.html#10-12' title='goto source code'>[src]</a></span></h1>
+<pre class='rust struct'>pub struct Expr { /* fields omitted */ }</pre><div class='docblock'><p>An expression on database rows that can be used in queries.</p>
+</div><h2 id='methods'>Methods</h2><h3 class='impl'><span class='in-band'><code>impl <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/expr.rs.html#14-125' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.col' class="method"><span id='col.v' class='invisible'><code>fn <a href='#method.col' class='fnname'>col</a>(column_name: &amp;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.str.html">str</a>) -&gt; <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>Returns an expression that evaluates to the value of the specified
+column.</p>
+</div><h4 id='method.null' class="method"><span id='null.v' class='invisible'><code>fn <a href='#method.null' class='fnname'>null</a>() -&gt; <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>Returns an expression that evaluates to a null value.</p>
+</div><h4 id='method.boolean' class="method"><span id='boolean.v' class='invisible'><code>fn <a href='#method.boolean' class='fnname'>boolean</a>(boolean: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.bool.html">bool</a>) -&gt; <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>Returns an expression that evaluates to the given boolean value.</p>
+</div><h4 id='method.integer' class="method"><span id='integer.v' class='invisible'><code>fn <a href='#method.integer' class='fnname'>integer</a>(integer: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.i32.html">i32</a>) -&gt; <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>Returns an expression that evaluates to the given integer value.</p>
+</div><h4 id='method.string' class="method"><span id='string.v' class='invisible'><code>fn <a href='#method.string' class='fnname'>string</a>(string: &amp;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.str.html">str</a>) -&gt; <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>Returns an expression that evaluates to the given string value.</p>
+</div><h4 id='method.eq' class="method"><span id='eq.v' class='invisible'><code>fn <a href='#method.eq' class='fnname'>eq</a>(self, rhs: <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a>) -&gt; <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>Returns an expression that evaluates to true if the two subexpressions
+evaluate to equal values.</p>
+</div><h4 id='method.ne' class="method"><span id='ne.v' class='invisible'><code>fn <a href='#method.ne' class='fnname'>ne</a>(self, rhs: <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a>) -&gt; <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>Returns an expression that evaluates to true if the two subexpressions
+evaluate to unequal values.</p>
+</div><h4 id='method.lt' class="method"><span id='lt.v' class='invisible'><code>fn <a href='#method.lt' class='fnname'>lt</a>(self, rhs: <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a>) -&gt; <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>Returns an expression that evaluates to true if the left-hand
+subexpression evaluates to a strictly lesser value than the right-hand
+subexpression.</p>
+</div><h4 id='method.le' class="method"><span id='le.v' class='invisible'><code>fn <a href='#method.le' class='fnname'>le</a>(self, rhs: <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a>) -&gt; <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>Returns an expression that evaluates to true if the left-hand
+subexpression evaluates to a lesser-or-equal value than the right-hand
+subexpression.</p>
+</div><h4 id='method.gt' class="method"><span id='gt.v' class='invisible'><code>fn <a href='#method.gt' class='fnname'>gt</a>(self, rhs: <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a>) -&gt; <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>Returns an expression that evaluates to true if the left-hand
+subexpression evaluates to a strictly greater value than the right-hand
+subexpression.</p>
+</div><h4 id='method.ge' class="method"><span id='ge.v' class='invisible'><code>fn <a href='#method.ge' class='fnname'>ge</a>(self, rhs: <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a>) -&gt; <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>Returns an expression that evaluates to true if the left-hand
+subexpression evaluates to a greater-or-equal value than the right-hand
+subexpression.</p>
+</div><h4 id='method.bitinv' class="method"><span id='bitinv.v' class='invisible'><code>fn <a href='#method.bitinv' class='fnname'>bitinv</a>(self) -&gt; <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>Returns an expression that computes the bitwise inverse of the
+subexpression.  If the subexpression evaluates to a non-number, the
+result will be a null value.</p>
+
+<p>This method exists instead of the <code>std::ops::Not</code> trait to distinguish
+it from the (logical) <code>not()</code> method.</p>
+</div><h4 id='method.and' class="method"><span id='and.v' class='invisible'><code>fn <a href='#method.and' class='fnname'>and</a>(self, rhs: <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a>) -&gt; <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>Returns an expression that evaluates to true if both subexpressions
+evaluate to true.</p>
+</div><h4 id='method.or' class="method"><span id='or.v' class='invisible'><code>fn <a href='#method.or' class='fnname'>or</a>(self, rhs: <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a>) -&gt; <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>Returns an expression that evaluates to true if either subexpression
+evaluates to true.</p>
+</div><h4 id='method.not' class="method"><span id='not.v' class='invisible'><code>fn <a href='#method.not' class='fnname'>not</a>(self) -&gt; <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>Returns an expression that evaluates to true if the subexpression
+evaluates to false.</p>
+
+<p>This method exists instead of the <code>std::ops::Not</code> trait to distinguish
+it from the (bitwise) <code>bitinv()</code> method.</p>
+</div><h4 id='method.eval' class="method"><span id='eval.v' class='invisible'><code>fn <a href='#method.eval' class='fnname'>eval</a>(&amp;self, row: &amp;<a class="struct" href="../msi/struct.Row.html" title="struct msi::Row">Row</a>) -&gt; <a class="enum" href="../msi/enum.Value.html" title="enum msi::Value">Value</a></code></span></h4>
+<div class='docblock'><p>Evaluates the expression against the given row.  Any errors in the
+expression (such as dividing a number by zero, or applying a bitwise
+operator to a string) will result in a null value.</p>
+</div><h4 id='method.column_names' class="method"><span id='column_names.v' class='invisible'><code>fn <a href='#method.column_names' class='fnname'>column_names</a>(&amp;self) -&gt; <a class="struct" href="https://doc.rust-lang.org/nightly/std/collections/hash/set/struct.HashSet.html" title="struct std::collections::hash::set::HashSet">HashSet</a>&lt;&amp;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.str.html">str</a>&gt;</code></span></h4>
+<div class='docblock'><p>Returns the set of all column names referenced by this expression.</p>
+</div></div><h2 id='implementations'>Trait Implementations</h2><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/ops/arith/trait.Neg.html" title="trait core::ops::arith::Neg">Neg</a> for <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/expr.rs.html#130-134' title='goto source code'>[src]</a></span></h3>
+<div class='docblock'><p>Produces an expression that evaluates to the negative of the subexpression.
+If the subexpression evaluates to a non-number, the result will be a null
+value.</p>
+</div><div class='impl-items'><h4 id='associatedtype.Output' class="type"><span id='Output.t' class='invisible'><code>type <a href='https://doc.rust-lang.org/nightly/core/ops/arith/trait.Neg.html#associatedtype.Output' class="type">Output</a> = <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>The resulting type after applying the <code>-</code> operator</p>
+</div><h4 id='method.neg' class="method"><span id='neg.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/ops/arith/trait.Neg.html#tymethod.neg' class='fnname'>neg</a>(self) -&gt; <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>The method for the unary <code>-</code> operator</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/ops/arith/trait.Add.html" title="trait core::ops::arith::Add">Add</a> for <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/expr.rs.html#140-146' title='goto source code'>[src]</a></span></h3>
+<div class='docblock'><p>Produces an expression that evaluates to the sum of the two subexpressions
+(if they are integers) or concatenation (if they are strings).  If the two
+subexpressions evaluate to different types, or if either evaluates to a
+null value, the result will be a null value.</p>
+</div><div class='impl-items'><h4 id='associatedtype.Output-1' class="type"><span id='Output.t-1' class='invisible'><code>type <a href='https://doc.rust-lang.org/nightly/core/ops/arith/trait.Add.html#associatedtype.Output' class="type">Output</a> = <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>The resulting type after applying the <code>+</code> operator</p>
+</div><h4 id='method.add' class="method"><span id='add.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/ops/arith/trait.Add.html#tymethod.add' class='fnname'>add</a>(self, rhs: <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a>) -&gt; <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>The method for the <code>+</code> operator</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/ops/arith/trait.Sub.html" title="trait core::ops::arith::Sub">Sub</a> for <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/expr.rs.html#151-157' title='goto source code'>[src]</a></span></h3>
+<div class='docblock'><p>Produces an expression that evaluates to the difference of the two
+subexpressions.  If either subexpression evaluates to a non-number, the
+result will be a null value.</p>
+</div><div class='impl-items'><h4 id='associatedtype.Output-2' class="type"><span id='Output.t-2' class='invisible'><code>type <a href='https://doc.rust-lang.org/nightly/core/ops/arith/trait.Sub.html#associatedtype.Output' class="type">Output</a> = <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>The resulting type after applying the <code>-</code> operator</p>
+</div><h4 id='method.sub' class="method"><span id='sub.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/ops/arith/trait.Sub.html#tymethod.sub' class='fnname'>sub</a>(self, rhs: <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a>) -&gt; <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>The method for the <code>-</code> operator</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/ops/arith/trait.Mul.html" title="trait core::ops::arith::Mul">Mul</a> for <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/expr.rs.html#162-168' title='goto source code'>[src]</a></span></h3>
+<div class='docblock'><p>Produces an expression that evaluates to the product of the two
+subexpressions.  If either subexpression evaluates to a non-number, the
+result will be a null value.</p>
+</div><div class='impl-items'><h4 id='associatedtype.Output-3' class="type"><span id='Output.t-3' class='invisible'><code>type <a href='https://doc.rust-lang.org/nightly/core/ops/arith/trait.Mul.html#associatedtype.Output' class="type">Output</a> = <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>The resulting type after applying the <code>*</code> operator</p>
+</div><h4 id='method.mul' class="method"><span id='mul.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/ops/arith/trait.Mul.html#tymethod.mul' class='fnname'>mul</a>(self, rhs: <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a>) -&gt; <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>The method for the <code>*</code> operator</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/ops/arith/trait.Div.html" title="trait core::ops::arith::Div">Div</a> for <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/expr.rs.html#173-179' title='goto source code'>[src]</a></span></h3>
+<div class='docblock'><p>Produces an expression that evaluates to the integer quotient of the two
+subexpressions.  If either subexpression evaluates to a non-number, or if
+the divisor evalulates to zero, the result will be a null value.</p>
+</div><div class='impl-items'><h4 id='associatedtype.Output-4' class="type"><span id='Output.t-4' class='invisible'><code>type <a href='https://doc.rust-lang.org/nightly/core/ops/arith/trait.Div.html#associatedtype.Output' class="type">Output</a> = <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>The resulting type after applying the <code>/</code> operator</p>
+</div><h4 id='method.div' class="method"><span id='div.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/ops/arith/trait.Div.html#tymethod.div' class='fnname'>div</a>(self, rhs: <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a>) -&gt; <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>The method for the <code>/</code> operator</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/ops/bit/trait.BitAnd.html" title="trait core::ops::bit::BitAnd">BitAnd</a> for <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/expr.rs.html#184-190' title='goto source code'>[src]</a></span></h3>
+<div class='docblock'><p>Produces an expression that evaluates to the bitwise-and of the two
+subexpressions.  If either subexpression evaluates to a non-number, the
+result will be a null value.</p>
+</div><div class='impl-items'><h4 id='associatedtype.Output-5' class="type"><span id='Output.t-5' class='invisible'><code>type <a href='https://doc.rust-lang.org/nightly/core/ops/bit/trait.BitAnd.html#associatedtype.Output' class="type">Output</a> = <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>The resulting type after applying the <code>&amp;</code> operator</p>
+</div><h4 id='method.bitand' class="method"><span id='bitand.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/ops/bit/trait.BitAnd.html#tymethod.bitand' class='fnname'>bitand</a>(self, rhs: <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a>) -&gt; <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>The method for the <code>&amp;</code> operator</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/ops/bit/trait.BitOr.html" title="trait core::ops::bit::BitOr">BitOr</a> for <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/expr.rs.html#195-201' title='goto source code'>[src]</a></span></h3>
+<div class='docblock'><p>Produces an expression that evaluates to the bitwise-or of the two
+subexpressions.  If either subexpression evaluates to a non-number, the
+result will be a null value.</p>
+</div><div class='impl-items'><h4 id='associatedtype.Output-6' class="type"><span id='Output.t-6' class='invisible'><code>type <a href='https://doc.rust-lang.org/nightly/core/ops/bit/trait.BitOr.html#associatedtype.Output' class="type">Output</a> = <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>The resulting type after applying the <code>|</code> operator</p>
+</div><h4 id='method.bitor' class="method"><span id='bitor.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/ops/bit/trait.BitOr.html#tymethod.bitor' class='fnname'>bitor</a>(self, rhs: <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a>) -&gt; <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>The method for the <code>|</code> operator</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/ops/bit/trait.BitXor.html" title="trait core::ops::bit::BitXor">BitXor</a> for <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/expr.rs.html#206-212' title='goto source code'>[src]</a></span></h3>
+<div class='docblock'><p>Produces an expression that evaluates to the bitwise-xor of the two
+subexpressions.  If either subexpression evaluates to a non-number, the
+result will be a null value.</p>
+</div><div class='impl-items'><h4 id='associatedtype.Output-7' class="type"><span id='Output.t-7' class='invisible'><code>type <a href='https://doc.rust-lang.org/nightly/core/ops/bit/trait.BitXor.html#associatedtype.Output' class="type">Output</a> = <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>The resulting type after applying the <code>^</code> operator</p>
+</div><h4 id='method.bitxor' class="method"><span id='bitxor.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/ops/bit/trait.BitXor.html#tymethod.bitxor' class='fnname'>bitxor</a>(self, rhs: <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a>) -&gt; <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>The method for the <code>^</code> operator</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/ops/bit/trait.Shl.html" title="trait core::ops::bit::Shl">Shl</a>&lt;<a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a>&gt; for <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/expr.rs.html#218-224' title='goto source code'>[src]</a></span></h3>
+<div class='docblock'><p>Produces an expression that evaluates to the value of the left-hand
+subexpression bit-shifted left by the value of the right-hand
+subexpression.  If either subexpression evaluates to a non-number, the
+result will be a null value.</p>
+</div><div class='impl-items'><h4 id='associatedtype.Output-8' class="type"><span id='Output.t-8' class='invisible'><code>type <a href='https://doc.rust-lang.org/nightly/core/ops/bit/trait.Shl.html#associatedtype.Output' class="type">Output</a> = <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>The resulting type after applying the <code>&lt;&lt;</code> operator</p>
+</div><h4 id='method.shl' class="method"><span id='shl.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/ops/bit/trait.Shl.html#tymethod.shl' class='fnname'>shl</a>(self, rhs: <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a>) -&gt; <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>The method for the <code>&lt;&lt;</code> operator</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/ops/bit/trait.Shr.html" title="trait core::ops::bit::Shr">Shr</a>&lt;<a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a>&gt; for <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/expr.rs.html#230-236' title='goto source code'>[src]</a></span></h3>
+<div class='docblock'><p>Produces an expression that evaluates to the value of the left-hand
+subexpression bit-shifted right by the value of the right-hand
+subexpression.  If either subexpression evaluates to a non-number, the
+result will be a null value.</p>
+</div><div class='impl-items'><h4 id='associatedtype.Output-9' class="type"><span id='Output.t-9' class='invisible'><code>type <a href='https://doc.rust-lang.org/nightly/core/ops/bit/trait.Shr.html#associatedtype.Output' class="type">Output</a> = <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>The resulting type after applying the <code>&gt;&gt;</code> operator</p>
+</div><h4 id='method.shr' class="method"><span id='shr.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/ops/bit/trait.Shr.html#tymethod.shr' class='fnname'>shr</a>(self, rhs: <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a>) -&gt; <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span></h4>
+<div class='docblock'><p>The method for the <code>&gt;&gt;</code> operator</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/fmt/trait.Display.html" title="trait core::fmt::Display">Display</a> for <a class="struct" href="../msi/struct.Expr.html" title="struct msi::Expr">Expr</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/msi/internal/expr.rs.html#238-242' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.fmt' class="method"><span id='fmt.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/fmt/trait.Display.html#tymethod.fmt' class='fnname'>fmt</a>(&amp;self, formatter: &amp;mut <a class="struct" href="https://doc.rust-lang.org/nightly/core/fmt/struct.Formatter.html" title="struct core::fmt::Formatter">Formatter</a>) -&gt; <a class="enum" href="https://doc.rust-lang.org/nightly/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.tuple.html">()</a>, <a class="struct" href="https://doc.rust-lang.org/nightly/core/fmt/struct.Error.html" title="struct core::fmt::Error">Error</a>&gt;</code></span></h4>
+<div class='docblock'><p>Formats the value using the given formatter. <a href="https://doc.rust-lang.org/nightly/core/fmt/trait.Display.html#tymethod.fmt">Read more</a></p>
+</div></div></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../";
+        window.currentCrate = "msi";
+    </script>
+    <script src="../main.js"></script>
+    <script defer src="../search-index.js"></script>
+</body>
+</html>

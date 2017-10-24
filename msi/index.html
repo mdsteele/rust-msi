@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `msi` crate.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, msi">
+
+    <title>msi - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../normalize.css">
+    <link rel="stylesheet" type="text/css" href="../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc mod">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'>Crate msi</p><div class="block items"><ul><li><a href="#structs">Structs</a></li><li><a href="#enums">Enums</a></li><li><a href="#functions">Functions</a></li></ul></div><p class='location'></p><script>window.sidebarCurrent = {name: 'msi', ty: 'mod', relpath: '../'};</script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content">
+<h1 class='fqn'><span class='in-band'>Crate <a class="mod" href=''>msi</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a class='srclink' href='../src/msi/lib.rs.html#1-43' title='goto source code'>[src]</a></span></h1>
+<div class='docblock'><p>A library for reading/writing <a href="https://en.wikipedia.org/wiki/Windows_Installer">Windows
+Installer</a> (MSI) files.</p>
+
+<p>A Windows Installer file, or <em>MSI file</em>, represents a Windows software
+package and a declarative description of how it should be installed.
+An MSI file consists of a relational database stored within a <a href="https://en.wikipedia.org/wiki/Compound_File_Binary_Format">Compound
+File Binary</a>
+file.</p>
+</div><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Column.html"
+                                  title='struct msi::Column'>Column</a></td>
+                           <td class='docblock-short'>
+                                <p>A database column.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.ColumnBuilder.html"
+                                  title='struct msi::ColumnBuilder'>ColumnBuilder</a></td>
+                           <td class='docblock-short'>
+                                <p>A factory for configuring a new database column.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Delete.html"
+                                  title='struct msi::Delete'>Delete</a></td>
+                           <td class='docblock-short'>
+                                <p>A database query to delete existing rows.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Expr.html"
+                                  title='struct msi::Expr'>Expr</a></td>
+                           <td class='docblock-short'>
+                                <p>An expression on database rows that can be used in queries.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Insert.html"
+                                  title='struct msi::Insert'>Insert</a></td>
+                           <td class='docblock-short'>
+                                <p>A database query to insert new rows.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Package.html"
+                                  title='struct msi::Package'>Package</a></td>
+                           <td class='docblock-short'>
+                                <p>An MSI package file, backed by an underlying reader/writer (such as a
+<a href="https://doc.rust-lang.org/std/fs/struct.File.html"><code>File</code></a> or
+<a href="https://doc.rust-lang.org/std/io/struct.Cursor.html"><code>Cursor</code></a>).</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Row.html"
+                                  title='struct msi::Row'>Row</a></td>
+                           <td class='docblock-short'>
+                                <p>One row from a database table.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Rows.html"
+                                  title='struct msi::Rows'>Rows</a></td>
+                           <td class='docblock-short'>
+                                <p>An iterator over the rows in a database table.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Select.html"
+                                  title='struct msi::Select'>Select</a></td>
+                           <td class='docblock-short'>
+                                <p>A database query to select rows.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.StreamReader.html"
+                                  title='struct msi::StreamReader'>StreamReader</a></td>
+                           <td class='docblock-short'>
+                                <p>An IO reader for an embedded binary stream in a package.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.StreamWriter.html"
+                                  title='struct msi::StreamWriter'>StreamWriter</a></td>
+                           <td class='docblock-short'>
+                                <p>An IO writer for an embedded binary stream in a package.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Streams.html"
+                                  title='struct msi::Streams'>Streams</a></td>
+                           <td class='docblock-short'>
+                                <p>An iterator over the names of the binary streams in a package.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.SummaryInfo.html"
+                                  title='struct msi::SummaryInfo'>SummaryInfo</a></td>
+                           <td class='docblock-short'>
+                                <p>Summary information (e.g. title, author) about an MSI package.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Table.html"
+                                  title='struct msi::Table'>Table</a></td>
+                           <td class='docblock-short'>
+                                <p>A database table.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Tables.html"
+                                  title='struct msi::Tables'>Tables</a></td>
+                           <td class='docblock-short'>
+                                <p>An iterator over the database tables in a package.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Update.html"
+                                  title='struct msi::Update'>Update</a></td>
+                           <td class='docblock-short'>
+                                <p>A database query to update existing rows.</p>
+                           </td>
+                       </tr></table><h2 id='enums' class='section-header'><a href="#enums">Enums</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.CodePage.html"
+                                  title='enum msi::CodePage'>CodePage</a></td>
+                           <td class='docblock-short'>
+                                <p>A Windows code page.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.ColumnCategory.html"
+                                  title='enum msi::ColumnCategory'>ColumnCategory</a></td>
+                           <td class='docblock-short'>
+                                <p>Indicates the format of a string-typed database column.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.ColumnType.html"
+                                  title='enum msi::ColumnType'>ColumnType</a></td>
+                           <td class='docblock-short'>
+                                <p>A database column data type.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.PackageType.html"
+                                  title='enum msi::PackageType'>PackageType</a></td>
+                           <td class='docblock-short'>
+                                <p>The type of MSI package (e.g. installer or patch).</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.Value.html"
+                                  title='enum msi::Value'>Value</a></td>
+                           <td class='docblock-short'>
+                                <p>A value from one cell in a database table row.</p>
+                           </td>
+                       </tr></table><h2 id='functions' class='section-header'><a href="#functions">Functions</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.open.html"
+                                  title='fn msi::open'>open</a></td>
+                           <td class='docblock-short'>
+                                <p>Opens an existing MSI file at the given path in read-only mode.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.open_rw.html"
+                                  title='fn msi::open_rw'>open_rw</a></td>
+                           <td class='docblock-short'>
+                                <p>Opens an existing MSI file at the given path in read-write mode.</p>
+                           </td>
+                       </tr></table></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../";
+        window.currentCrate = "msi";
+    </script>
+    <script src="../main.js"></script>
+    <script defer src="../search-index.js"></script>
+</body>
+</html>
