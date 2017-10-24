@@ -547,10 +547,10 @@ impl<F: Read + Write + Seek> Package<F> {
                     } else {
                         Value::Null
                     },
-                    if column.enum_values().is_empty() {
-                        Value::Null
+                    if let Some(values) = column.enum_values() {
+                        Value::Str(values.join(";"))
                     } else {
-                        Value::Str(column.enum_values().join(";"))
+                        Value::Null
                     },
                     Value::Null,
                 ]

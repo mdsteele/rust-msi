@@ -160,7 +160,7 @@ impl Insert {
             }
             for (column, value) in table.columns().iter().zip(values.iter()) {
                 if !column.is_valid_value(value) {
-                    invalid_input!("{:?} is not a valid value for column {:?}",
+                    invalid_input!("{} is not a valid value for column {:?}",
                                    value,
                                    column.name());
                 }
@@ -630,7 +630,7 @@ impl Update {
             }
             let column = table.get_column(column_name).unwrap();
             if !column.is_valid_value(value) {
-                invalid_input!("{:?} is not a valid value for column {:?}",
+                invalid_input!("{} is not a valid value for column {:?}",
                                value,
                                column_name);
             }

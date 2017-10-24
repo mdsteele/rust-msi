@@ -7,11 +7,17 @@ use std::str;
 
 // ========================================================================= //
 
+// Constants for the _Columns table's Type column bitfield:
 const COL_FIELD_SIZE_MASK: i32 = 0xff;
 const COL_LOCALIZABLE_BIT: i32 = 0x200;
 const COL_STRING_BIT: i32 = 0x800;
 const COL_NULLABLE_BIT: i32 = 0x1000;
 const COL_PRIMARY_KEY_BIT: i32 = 0x2000;
+// I haven't yet been able to find any clear documentation on what these two
+// bits in the column type bitfield do, so both the constant names and the way
+// this library handles them are laregly speculative right now:
+const COL_VALID_BIT: i32 = 0x100;
+const COL_NONBINARY_BIT: i32 = 0x400;
 
 // ========================================================================= //
 
@@ -178,6 +184,26 @@ pub enum ColumnCategory {
     /// assert!(!msi::ColumnCategory::LowerCase.validate("Hello, World!"));
     /// ```
     LowerCase,
+    /// A signed 16-bit integer.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// assert!(msi::ColumnCategory::Integer.validate("32767"));
+    /// assert!(msi::ColumnCategory::Integer.validate("-47"));
+    /// assert!(!msi::ColumnCategory::Integer.validate("40000"));
+    /// ```
+    Integer,
+    /// A signed 32-bit integer.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// assert!(msi::ColumnCategory::DoubleInteger.validate("2147483647"));
+    /// assert!(msi::ColumnCategory::DoubleInteger.validate("-99999"));
+    /// assert!(!msi::ColumnCategory::DoubleInteger.validate("3000000000"));
+    /// ```
+    DoubleInteger,
     /// A string identifier (such as a table or column name).  May only contain
     /// alphanumerics, underscores, and periods, and must start with a letter
     /// or underscore.
@@ -212,6 +238,8 @@ pub enum ColumnCategory {
     Paths,
     /// A string containing an absolute or relative filepath.
     AnyPath,
+    /// A string containing either a filename or an identifier.
+    DefaultDir,
     /// A string containing a registry path.
     RegPath,
     /// A string containing special formatting escapes, such as environment
@@ -262,6 +290,8 @@ impl ColumnCategory {
             ColumnCategory::Text,
             ColumnCategory::UpperCase,
             ColumnCategory::LowerCase,
+            ColumnCategory::Integer,
+            ColumnCategory::DoubleInteger,
             ColumnCategory::Identifier,
             ColumnCategory::Property,
             ColumnCategory::Filename,
@@ -269,6 +299,7 @@ impl ColumnCategory {
             ColumnCategory::Path,
             ColumnCategory::Paths,
             ColumnCategory::AnyPath,
+            ColumnCategory::DefaultDir,
             ColumnCategory::RegPath,
             ColumnCategory::Formatted,
             ColumnCategory::KeyFormatted,
@@ -292,10 +323,13 @@ impl ColumnCategory {
             ColumnCategory::Cabinet => "Cabinet",
             ColumnCategory::Condition => "Condition",
             ColumnCategory::CustomSource => "CustomSource",
+            ColumnCategory::DefaultDir => "DefaultDir",
+            ColumnCategory::DoubleInteger => "DoubleInteger",
             ColumnCategory::Filename => "Filename",
             ColumnCategory::Formatted => "Formatted",
-            ColumnCategory::Guid => "Guid",
+            ColumnCategory::Guid => "GUID",
             ColumnCategory::Identifier => "Identifier",
+            ColumnCategory::Integer => "Integer",
             ColumnCategory::KeyFormatted => "KeyFormatted",
             ColumnCategory::Language => "Language",
             ColumnCategory::LowerCase => "LowerCase",
@@ -324,6 +358,8 @@ impl ColumnCategory {
             ColumnCategory::LowerCase => {
                 !string.chars().any(|chr| chr >= 'A' && chr <= 'Z')
             }
+            ColumnCategory::Integer => string.parse::<i16>().is_ok(),
+            ColumnCategory::DoubleInteger => string.parse::<i32>().is_ok(),
             ColumnCategory::Identifier => {
                 string.starts_with(|chr| {
                                        chr >= 'A' && chr <= 'Z' ||
@@ -373,10 +409,14 @@ impl str::FromStr for ColumnCategory {
             "Cabinet" => Ok(ColumnCategory::Cabinet),
             "Condition" => Ok(ColumnCategory::Condition),
             "CustomSource" => Ok(ColumnCategory::CustomSource),
+            "DefaultDir" => Ok(ColumnCategory::DefaultDir),
+            "DoubleInteger" => Ok(ColumnCategory::DoubleInteger),
             "Filename" => Ok(ColumnCategory::Filename),
             "Formatted" => Ok(ColumnCategory::Formatted),
+            "GUID" => Ok(ColumnCategory::Guid),
             "Guid" => Ok(ColumnCategory::Guid),
             "Identifier" => Ok(ColumnCategory::Identifier),
+            "Integer" => Ok(ColumnCategory::Integer),
             "KeyFormatted" => Ok(ColumnCategory::KeyFormatted),
             "Language" => Ok(ColumnCategory::Language),
             "LowerCase" => Ok(ColumnCategory::LowerCase),
@@ -389,6 +429,7 @@ impl str::FromStr for ColumnCategory {
             "Text" => Ok(ColumnCategory::Text),
             "UpperCase" => Ok(ColumnCategory::UpperCase),
             "URL" => Ok(ColumnCategory::Url),
+            "Url" => Ok(ColumnCategory::Url),
             "Version" => Ok(ColumnCategory::Version),
             "WildCardFilename" => Ok(ColumnCategory::WildCardFilename),
             _ => invalid_data!("Invalid category: {:?}", string),
@@ -447,12 +488,23 @@ impl Column {
     }
 
     pub(crate) fn bitfield(&self) -> i32 {
-        let mut bits = self.coltype.bitfield();
+        let mut bits = self.coltype.bitfield() | COL_VALID_BIT;
         if self.is_localizable {
             bits |= COL_LOCALIZABLE_BIT;
         }
         if self.is_nullable {
             bits |= COL_NULLABLE_BIT;
+        }
+        let nonbinary = match self.coltype {
+            ColumnType::Int16 => true,
+            ColumnType::Int32 => false,
+            ColumnType::Str(0) => {
+                self.category != Some(ColumnCategory::Binary)
+            }
+            ColumnType::Str(_) => true,
+        };
+        if nonbinary {
+            bits |= COL_NONBINARY_BIT;
         }
         if self.is_primary_key {
             bits |= COL_PRIMARY_KEY_BIT;
@@ -480,7 +532,8 @@ impl Column {
     /// Returns true if this is primary key column.
     pub fn is_primary_key(&self) -> bool { self.is_primary_key }
 
-    pub(crate) fn value_range(&self) -> Option<(i32, i32)> { self.value_range }
+    /// Returns the (min, max) integer value range for this column, if any.
+    pub fn value_range(&self) -> Option<(i32, i32)> { self.value_range }
 
     pub(crate) fn foreign_key(&self) -> Option<(&str, i32)> {
         self.foreign_key
@@ -488,9 +541,17 @@ impl Column {
             .map(|&(ref name, index)| (name.as_str(), index))
     }
 
-    pub(crate) fn category(&self) -> Option<ColumnCategory> { self.category }
+    /// Returns the string value category for this column, if any.
+    pub fn category(&self) -> Option<ColumnCategory> { self.category }
 
-    pub(crate) fn enum_values(&self) -> &[String] { &self.enum_values }
+    /// Returns the list of valid enum values for this column, if any.
+    pub fn enum_values(&self) -> Option<&[String]> {
+        if self.enum_values.is_empty() {
+            None
+        } else {
+            Some(&self.enum_values)
+        }
+    }
 
     /// Returns true if the given value is valid for this column.
     pub fn is_valid_value(&self, value: &Value) -> bool {
@@ -628,6 +689,13 @@ impl ColumnBuilder {
         self.category(ColumnCategory::Text).string(max_len)
     }
 
+    /// Builds a column that refers to a binary data stream.  This sets the
+    /// category to `ColumnCategory::Binary` in addition to setting the column
+    /// type.
+    pub fn binary(self) -> Column {
+        self.category(ColumnCategory::Binary).string(0)
+    }
+
     fn with_type(self, coltype: ColumnType) -> Column {
         Column {
             name: self.name,
@@ -644,16 +712,11 @@ impl ColumnBuilder {
 
     pub(crate) fn with_bitfield(self, type_bits: i32) -> io::Result<Column> {
         let is_nullable = (type_bits & COL_NULLABLE_BIT) != 0;
-        if is_nullable != self.is_nullable {
-            invalid_data!("Column {:?} nullable bit conflicts with \
-                           nullable setting",
-                          self.name);
-        }
         Ok(Column {
                name: self.name,
                coltype: ColumnType::from_bitfield(type_bits)?,
                is_localizable: (type_bits & COL_LOCALIZABLE_BIT) != 0,
-               is_nullable: self.is_nullable,
+               is_nullable: is_nullable || self.is_nullable,
                is_primary_key: (type_bits & COL_PRIMARY_KEY_BIT) != 0,
                value_range: self.value_range,
                foreign_key: self.foreign_key,
