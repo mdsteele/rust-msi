@@ -1,7 +1,9 @@
 # rust-msi
 
-A Rust library for reading/writing [Windows
+A pure Rust library for reading/writing [Windows
 Installer](https://en.wikipedia.org/wiki/Windows_Installer) (MSI) files.
+
+Documentation: https://mdsteele.github.io/rust-msi/
 
 ## License
 
