@@ -1,6 +1,7 @@
 use cfb;
 use internal::codepage::CodePage;
 use internal::column::{Column, ColumnCategory};
+use internal::expr::Expr;
 use internal::query::{Delete, Insert, Select, Update};
 use internal::stream::{StreamReader, StreamWriter, Streams};
 use internal::streamname::{self, SUMMARY_INFO_STREAM_NAME};
@@ -73,6 +74,11 @@ fn make_validation_table(long_string_refs: bool) -> Rc<Table> {
     Table::new(VALIDATION_TABLE_NAME.to_string(),
                make_validation_columns(),
                long_string_refs)
+}
+
+fn is_reserved_table_name(table_name: &str) -> bool {
+    table_name == COLUMNS_TABLE_NAME || table_name == TABLES_TABLE_NAME ||
+        table_name == VALIDATION_TABLE_NAME
 }
 
 // ========================================================================= //
@@ -500,8 +506,8 @@ impl<F: Read + Write + Seek> Package<F> {
     }
 
     /// Creates a new database table.  Returns an error without modifying the
-    /// table name or columns are invalid, or if a table with that name already
-    /// exists.
+    /// database if the table name or columns are invalid, or if a table with
+    /// that name already exists.
     pub fn create_table(&mut self, table_name: String, columns: Vec<Column>)
                         -> io::Result<()> {
         if !Table::is_valid_name(&table_name) {
@@ -603,7 +609,34 @@ impl<F: Read + Write + Seek> Package<F> {
         Ok(())
     }
 
-    // TODO: pub fn drop_table(&mut self, table_name: &str) -> io::Result<()>
+    /// Removes an existing database table.  Returns an error without modifying
+    /// the database if the table name is invalid, or if no such table exists.
+    pub fn drop_table(&mut self, table_name: &str) -> io::Result<()> {
+        if is_reserved_table_name(table_name) {
+            invalid_input!("Cannot drop special {:?} table", table_name);
+        }
+        if !Table::is_valid_name(table_name) {
+            invalid_input!("{:?} is not a valid table name", table_name);
+        }
+        if !self.tables.contains_key(table_name) {
+            not_found!("Table {:?} does not exist", table_name);
+        }
+        let stream_name = self.tables.get(table_name).unwrap().stream_name();
+        if self.comp().exists(&stream_name) {
+            self.comp_mut().remove_stream(&stream_name)?;
+        }
+        self.delete_rows(Delete::from(VALIDATION_TABLE_NAME)
+                             .with(Expr::col("Table")
+                                       .eq(Expr::string(table_name))))?;
+        self.delete_rows(Delete::from(COLUMNS_TABLE_NAME)
+                             .with(Expr::col("Table")
+                                       .eq(Expr::string(table_name))))?;
+        self.delete_rows(Delete::from(TABLES_TABLE_NAME)
+                             .with(Expr::col("Name")
+                                       .eq(Expr::string(table_name))))?;
+        self.tables.remove(table_name);
+        Ok(())
+    }
 
     /// Attempts to execute a delete query.  Returns an error without modifying
     /// the database if the query fails (e.g. due to the table not existing).
