@@ -689,6 +689,12 @@ impl ColumnBuilder {
         self.category(ColumnCategory::Text).string(max_len)
     }
 
+    /// Builds a column that stores a formatted string.  This is equivalent to
+    /// `self.category(ColumnCategory::Formatted).string(max_len)`.
+    pub fn formatted_string(self, max_len: usize) -> Column {
+        self.category(ColumnCategory::Formatted).string(max_len)
+    }
+
     /// Builds a column that refers to a binary data stream.  This sets the
     /// category to `ColumnCategory::Binary` in addition to setting the column
     /// type.

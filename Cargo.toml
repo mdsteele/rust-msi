@@ -10,11 +10,11 @@ readme = "README.md"
 
 [dependencies]
 byteorder = "1"
-cfb = "0.3"
+cfb = "0.3.1"
 encoding = "0.2"
-ordermap = "0.2"
+ordermap = "0.3"
 uuid = "0.5"
 
 [dev-dependencies]
 chrono = "0.4"
-clap = "2.26"
+clap = "2.27"

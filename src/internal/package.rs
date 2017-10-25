@@ -130,6 +130,45 @@ impl PackageType {
 /// An MSI package file, backed by an underlying reader/writer (such as a
 /// [`File`](https://doc.rust-lang.org/std/fs/struct.File.html) or
 /// [`Cursor`](https://doc.rust-lang.org/std/io/struct.Cursor.html)).
+///
+/// # Examples
+///
+/// ```
+/// use msi::{Column, Expr, Insert, Package, PackageType, Select, Value};
+/// use std::io::Cursor;
+///
+/// // Create an in-memory package using a Cursor:
+/// let cursor = Cursor::new(Vec::new());
+/// let mut package = Package::create(PackageType::Installer, cursor).unwrap();
+/// // Set some summary information:
+/// package.summary_info_mut().set_author("Jane Doe".to_string());
+/// // Add a table to the package:
+/// let columns = vec![
+///     Column::build("Property").primary_key().id_string(72),
+///     Column::build("Value").nullable().formatted_string(64),
+/// ];
+/// package.create_table("CheckBox".to_string(), columns).unwrap();
+/// // Add a row to the new table:
+/// let query = Insert::into("CheckBox").row(vec![
+///     Value::Str("MoreMagic".to_string()),
+///     Value::Str("Whether magic should be maximized".to_string()),
+/// ]);
+/// package.insert_rows(query).unwrap();
+/// // Close the package and get the cursor back out.
+/// let cursor = package.into_inner().unwrap();
+///
+/// // Now, re-open the package and make sure our data is still there.
+/// let mut package = Package::open(cursor).unwrap();
+/// assert_eq!(package.summary_info().author(), Some("Jane Doe"));
+/// let query = Select::table("CheckBox")
+///     .with(Expr::col("Property").eq(Expr::string("MoreMagic")));
+/// let mut rows = package.select_rows(query).unwrap();
+/// assert_eq!(rows.len(), 1);
+/// let row = rows.next().unwrap();
+/// assert_eq!(row["Property"], Value::Str("MoreMagic".to_string()));
+/// assert_eq!(row["Value"],
+///            Value::Str("Whether magic should be maximized".to_string()));
+/// ```
 pub struct Package<F> {
     // The comp field is always `Some`, unless we are about to destroy the
     // `Package` object.  The only reason for it to be an `Option` is to make
@@ -466,7 +505,7 @@ impl<F: Read + Write + Seek> Package<F> {
     pub fn create_table(&mut self, table_name: String, columns: Vec<Column>)
                         -> io::Result<()> {
         if !Table::is_valid_name(&table_name) {
-            invalid_input!("{:?} is not a valid table name");
+            invalid_input!("{:?} is not a valid table name", table_name);
         }
         if columns.is_empty() {
             invalid_input!("Cannot create a table with no columns");
@@ -484,7 +523,7 @@ impl<F: Read + Write + Seek> Package<F> {
             for column in columns.iter() {
                 let name = column.name();
                 if !Column::is_valid_name(name) {
-                    invalid_input!("{:?} is not a valid column name");
+                    invalid_input!("{:?} is not a valid column name", name);
                 }
                 if column_names.contains(name) {
                     invalid_input!("Cannot create a table with multiple \
@@ -495,7 +534,7 @@ impl<F: Read + Write + Seek> Package<F> {
             }
         }
         if self.tables.contains_key(&table_name) {
-            already_exists!("Database table {:?} already exists", table_name);
+            already_exists!("Table {:?} already exists", table_name);
         }
         self.insert_rows(
             Insert::into(COLUMNS_TABLE_NAME).rows(
@@ -605,6 +644,18 @@ impl<F: Read + Write + Seek> Package<F> {
         Ok(StreamWriter::new(self.comp_mut().create_stream(&encoded_name)?))
     }
 
+    /// Removes an existing binary stream from the package.
+    pub fn remove_stream(&mut self, stream_name: &str) -> io::Result<()> {
+        if !streamname::is_valid(stream_name, false) {
+            invalid_input!("{:?} is not a valid stream name", stream_name);
+        }
+        let encoded_name = streamname::encode(stream_name, false);
+        if !self.comp().is_stream(&encoded_name) {
+            not_found!("Stream {:?} does not exist", stream_name);
+        }
+        self.comp_mut().remove_stream(&encoded_name)
+    }
+
     /// Flushes any buffered changes to the underlying writer.
     pub fn flush(&mut self) -> io::Result<()> {
         if let Some(finisher) = self.finisher.take() {
@@ -695,11 +746,11 @@ impl<F: Read + Write + Seek> Finish<F> for FinishImpl {
 mod tests {
     use super::{Package, PackageType};
     use internal::codepage::CodePage;
-    use internal::column::{Column, ColumnType};
+    use internal::column::Column;
     use internal::expr::Expr;
-    use internal::query::{Delete, Insert, Select, Update};
+    use internal::query::{Insert, Select, Update};
     use internal::value::Value;
-    use std::io::{Cursor, Read, Write};
+    use std::io::Cursor;
 
     #[test]
     fn set_summary_information() {
@@ -726,43 +777,6 @@ mod tests {
         let cursor = package.into_inner().expect("into_inner");
         let package = Package::open(cursor).expect("open");
         assert_eq!(package.database_codepage(), CodePage::MacintoshRoman);
-    }
-
-    #[test]
-    fn create_table() {
-        let cursor = Cursor::new(Vec::new());
-        let mut package = Package::create(PackageType::Installer, cursor)
-            .expect("create");
-        let columns =
-            vec![
-                Column::build("Number").primary_key().range(0, 100).int16(),
-                Column::build("Word").nullable().string(50),
-            ];
-        package
-            .create_table("Numbers".to_string(), columns)
-            .expect("create_table");
-        assert!(package.has_table("Numbers"));
-
-        let cursor = package.into_inner().expect("into_inner");
-        let package = Package::open(cursor).expect("open");
-        assert!(package.has_table("Numbers"));
-        let table = package.get_table("Numbers").unwrap();
-        assert_eq!(table.name(), "Numbers");
-
-        assert!(table.has_column("Number"));
-        let column = table.get_column("Number").unwrap();
-        assert_eq!(column.name(), "Number");
-        assert_eq!(column.coltype(), ColumnType::Int16);
-        assert!(column.is_primary_key());
-        assert!(!column.is_nullable());
-        assert_eq!(column.value_range(), Some((0, 100)));
-
-        assert!(table.has_column("Word"));
-        let column = table.get_column("Word").unwrap();
-        assert_eq!(column.name(), "Word");
-        assert_eq!(column.coltype(), ColumnType::Str(50));
-        assert!(!column.is_primary_key());
-        assert!(column.is_nullable());
     }
 
     #[test]
@@ -806,39 +820,6 @@ mod tests {
                 (4, "Four".to_string()),
             ]
         );
-    }
-
-    #[test]
-    fn delete_rows() {
-        let cursor = Cursor::new(Vec::new());
-        let mut package = Package::create(PackageType::Installer, cursor)
-            .expect("create");
-        let columns = vec![
-            Column::build("Key").primary_key().int16(),
-            Column::build("Value").nullable().int32(),
-        ];
-        package
-            .create_table("Mapping".to_string(), columns)
-            .expect("create_table");
-        package
-            .insert_rows(Insert::into("Mapping")
-                             .row(vec![Value::Int(1), Value::Int(17)])
-                             .row(vec![Value::Int(2), Value::Int(42)])
-                             .row(vec![Value::Int(3), Value::Int(17)]))
-            .expect("insert_rows");
-        package
-            .delete_rows(Delete::from("Mapping")
-                             .with(Expr::col("Value").eq(Expr::integer(17))))
-            .unwrap();
-
-        let cursor = package.into_inner().expect("into_inner");
-        let mut package = Package::open(cursor).expect("open");
-        let rows = package.select_rows(Select::table("Mapping")).unwrap();
-        let values: Vec<(i32, i32)> =
-            rows.map(|row| {
-                         (row[0].as_int().unwrap(), row[1].as_int().unwrap())
-                     }).collect();
-        assert_eq!(values, vec![(2, 42)]);
     }
 
     #[test]
@@ -984,30 +965,6 @@ mod tests {
                 vec![(4, Some(2)), (5, None), (6, Some(1)), (6, Some(3))]
             );
         }
-    }
-
-    #[test]
-    fn write_stream() {
-        let cursor = Cursor::new(Vec::new());
-        let mut package = Package::create(PackageType::Installer, cursor)
-            .expect("create");
-        package
-            .write_stream("Hello")
-            .unwrap()
-            .write_all(b"Hello, world!")
-            .unwrap();
-        assert!(package.has_stream("Hello"));
-        assert_eq!(package.streams().collect::<Vec<String>>(),
-                   vec!["Hello".to_string()]);
-
-        let cursor = package.into_inner().expect("into_inner");
-        let mut package = Package::open(cursor).expect("open");
-        assert!(package.has_stream("Hello"));
-        assert_eq!(package.streams().collect::<Vec<String>>(),
-                   vec!["Hello".to_string()]);
-        let mut data = Vec::<u8>::new();
-        package.read_stream("Hello").unwrap().read_to_end(&mut data).unwrap();
-        assert_eq!(data.as_slice(), b"Hello, world!");
     }
 }
 
