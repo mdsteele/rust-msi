@@ -786,19 +786,6 @@ mod tests {
     use std::io::Cursor;
 
     #[test]
-    fn set_summary_information() {
-        let cursor = Cursor::new(Vec::new());
-        let mut package = Package::create(PackageType::Installer, cursor)
-            .expect("create");
-        package.summary_info_mut().set_author("Jane Doe".to_string());
-
-        let cursor = package.into_inner().expect("into_inner");
-        let package = Package::open(cursor).expect("open");
-        assert_eq!(package.package_type(), PackageType::Installer);
-        assert_eq!(package.summary_info().author(), Some("Jane Doe"));
-    }
-
-    #[test]
     fn set_database_codepage() {
         let cursor = Cursor::new(Vec::new());
         let mut package = Package::create(PackageType::Installer, cursor)
