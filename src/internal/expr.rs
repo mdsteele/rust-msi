@@ -41,7 +41,7 @@ impl Expr {
 
     /// Returns an expression that evaluates to the given string value.
     pub fn string(string: &str) -> Expr {
-        Expr { ast: Ast::Literal(Value::Str(string.to_string())) }
+        Expr { ast: Ast::Literal(Value::from(string)) }
     }
 
     /// Returns an expression that evaluates to true if the two subexpressions
@@ -558,9 +558,9 @@ mod tests {
         ];
         let table = Table::new("Example".to_string(), columns, false);
         let values = vec![
-            Value::Str("foo".to_string()),
+            Value::from("foo"),
             Value::Int(42),
-            Value::Str("bar".to_string()),
+            Value::from("bar"),
             Value::Null,
             Value::Int(-17),
         ];
@@ -590,7 +590,7 @@ mod tests {
         assert_eq!((Expr::col("Str1") + Expr::string(":") +
                        Expr::col("Str2"))
                        .eval(&row),
-                   Value::Str("foo:bar".to_string()));
+                   Value::from("foo:bar"));
     }
 
     #[test]

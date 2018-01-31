@@ -55,13 +55,11 @@ fn string_column_category() {
         let column = table.get_column("Property").unwrap();
         assert_eq!(column.category(), Some(ColumnCategory::Property));
     }
-    let query = Insert::into("Properties")
-        .row(vec![Value::Str("$99".to_string())]);
+    let query = Insert::into("Properties").row(vec![Value::from("$99")]);
     assert_error!(package.insert_rows(query),
                   ErrorKind::InvalidInput,
                   "\"$99\" is not a valid value for column \"Property\"");
-    let query = Insert::into("Properties")
-        .row(vec![Value::Str("%Foo".to_string())]);
+    let query = Insert::into("Properties").row(vec![Value::from("%Foo")]);
     package.insert_rows(query).unwrap();
 }
 
@@ -97,11 +95,11 @@ fn string_column_enum_values() {
             )
         );
     }
-    let query = Insert::into("Days").row(vec![Value::Str("Sit".to_string())]);
+    let query = Insert::into("Days").row(vec![Value::from("Sit")]);
     assert_error!(package.insert_rows(query),
                   ErrorKind::InvalidInput,
                   "\"Sit\" is not a valid value for column \"Day\"");
-    let query = Insert::into("Days").row(vec![Value::Str("Sat".to_string())]);
+    let query = Insert::into("Days").row(vec![Value::from("Sat")]);
     package.insert_rows(query).unwrap();
 }
 

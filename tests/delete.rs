@@ -49,9 +49,9 @@ fn delete_one_row() {
     package.create_table("Foobar".to_string(), columns).unwrap();
 
     let query = Insert::into("Foobar")
-        .row(vec![Value::Int(1), Value::Str("One".to_string())])
-        .row(vec![Value::Int(2), Value::Str("Two".to_string())])
-        .row(vec![Value::Int(3), Value::Str("Three".to_string())]);
+        .row(vec![Value::Int(1), Value::from("One")])
+        .row(vec![Value::Int(2), Value::from("Two")])
+        .row(vec![Value::Int(3), Value::from("Three")]);
     package.insert_rows(query).unwrap();
 
     let query = Delete::from("Foobar")
@@ -106,9 +106,9 @@ fn delete_all_rows() {
     package.create_table("Foobar".to_string(), columns).unwrap();
 
     let query = Insert::into("Foobar")
-        .row(vec![Value::Int(1), Value::Str("One".to_string())])
-        .row(vec![Value::Int(2), Value::Str("Two".to_string())])
-        .row(vec![Value::Int(3), Value::Str("Three".to_string())]);
+        .row(vec![Value::Int(1), Value::from("One")])
+        .row(vec![Value::Int(2), Value::from("Two")])
+        .row(vec![Value::Int(3), Value::from("Three")]);
     package.insert_rows(query).unwrap();
 
     package.delete_rows(Delete::from("Foobar")).unwrap();

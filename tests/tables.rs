@@ -216,9 +216,9 @@ fn drop_table_with_rows() {
     package.create_table(table_name.to_string(), columns.clone()).unwrap();
     assert!(package.has_table(table_name));
     let query = Insert::into(table_name)
-        .row(vec![Value::Int(4), Value::Str("Four".to_string())])
-        .row(vec![Value::Int(7), Value::Str("Seven".to_string())])
-        .row(vec![Value::Int(10), Value::Str("Ten".to_string())]);
+        .row(vec![Value::Int(4), Value::from("Four")])
+        .row(vec![Value::Int(7), Value::from("Seven")])
+        .row(vec![Value::Int(10), Value::from("Ten")]);
     package.insert_rows(query).unwrap();
     let query = Select::table(table_name);
     assert_eq!(package.select_rows(query).unwrap().len(), 3);

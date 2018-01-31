@@ -733,7 +733,7 @@ mod tests {
         assert_eq!(format!("{}", query), "INSERT INTO Foobar".to_string());
 
         let query = Insert::into("Foobar")
-            .row(vec![Value::Str("Foo".to_string()), Value::Null]);
+            .row(vec![Value::from("Foo"), Value::Null]);
         assert_eq!(format!("{}", query),
                    "INSERT INTO Foobar VALUES (\"Foo\", NULL)".to_string());
 
@@ -791,7 +791,7 @@ mod tests {
         let query = Update::table("Foobar")
             .set("Foo", Value::Int(17))
             .set("Bar", Value::Null)
-            .set("Baz", Value::Str("quux".to_string()))
+            .set("Baz", Value::from("quux"))
             .with(Expr::col("Foo").lt(Expr::integer(17)));
         assert_eq!(format!("{}", query),
                    "UPDATE Foobar SET Foo = 17, Bar = NULL, Baz = \"quux\" \
