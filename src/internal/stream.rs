@@ -1,6 +1,6 @@
 use cfb;
 use internal::streamname::{self, SUMMARY_INFO_STREAM_NAME};
-use std::io::{self, Read, Seek, Write};
+use std::io::{self, Read, Seek, SeekFrom, Write};
 
 // ========================================================================= //
 
@@ -18,6 +18,12 @@ impl<'a, F> StreamReader<'a, F> {
 impl<'a, F: Read + Seek> Read for StreamReader<'a, F> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         self.stream.read(buf)
+    }
+}
+
+impl<'a, F: Read + Seek> Seek for StreamReader<'a, F> {
+    fn seek(&mut self, from: SeekFrom) -> io::Result<u64> {
+        self.stream.seek(from)
     }
 }
 
@@ -40,6 +46,12 @@ impl<'a, F: Read + Seek + Write> Write for StreamWriter<'a, F> {
     }
 
     fn flush(&mut self) -> io::Result<()> { self.stream.flush() }
+}
+
+impl<'a, F: Read + Seek + Write> Seek for StreamWriter<'a, F> {
+    fn seek(&mut self, from: SeekFrom) -> io::Result<u64> {
+        self.stream.seek(from)
+    }
 }
 
 // ========================================================================= //
