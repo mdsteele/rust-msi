@@ -29,7 +29,7 @@ fn nonexistent_column() {
         Column::build("Foo").primary_key().int32(),
         Column::build("Bar").nullable().string(6),
     ];
-    package.create_table("Foobar".to_string(), columns).unwrap();
+    package.create_table("Foobar", columns).unwrap();
     let query = Delete::from("Foobar")
         .with((Expr::col("Bar").ne(Expr::null()))
                   .and(Expr::col("Baz").eq(Expr::integer(1))));
@@ -46,7 +46,7 @@ fn delete_one_row() {
         Column::build("Foo").primary_key().int32(),
         Column::build("Bar").nullable().string(6),
     ];
-    package.create_table("Foobar".to_string(), columns).unwrap();
+    package.create_table("Foobar", columns).unwrap();
 
     let query = Insert::into("Foobar")
         .row(vec![Value::Int(1), Value::from("One")])
@@ -74,7 +74,7 @@ fn delete_multiple_rows() {
         Column::build("Key").primary_key().int16(),
         Column::build("Value").nullable().int32(),
     ];
-    package.create_table("Mapping".to_string(), columns).unwrap();
+    package.create_table("Mapping", columns).unwrap();
 
     let query = Insert::into("Mapping")
         .row(vec![Value::Int(1), Value::Int(17)])
@@ -103,7 +103,7 @@ fn delete_all_rows() {
         Column::build("Foo").primary_key().int32(),
         Column::build("Bar").nullable().string(6),
     ];
-    package.create_table("Foobar".to_string(), columns).unwrap();
+    package.create_table("Foobar", columns).unwrap();
 
     let query = Insert::into("Foobar")
         .row(vec![Value::Int(1), Value::from("One")])

@@ -18,9 +18,9 @@ pub struct Delete {
 
 impl Delete {
     /// Starts building a query that will delete rows from the specified table.
-    pub fn from(table_name: &str) -> Delete {
+    pub fn from<S: Into<String>>(table_name: S) -> Delete {
         Delete {
-            table_name: table_name.to_string(),
+            table_name: table_name.into(),
             condition: None,
         }
     }
@@ -119,9 +119,9 @@ pub struct Insert {
 
 impl Insert {
     /// Starts building a query that will insert rows into the specified table.
-    pub fn into(table_name: &str) -> Insert {
+    pub fn into<S: Into<String>>(table_name: S) -> Insert {
         Insert {
-            table_name: table_name.to_string(),
+            table_name: table_name.into(),
             new_rows: Vec::new(),
         }
     }
@@ -419,9 +419,9 @@ pub struct Select {
 
 impl Select {
     /// Starts building a query that will select rows from the specified table.
-    pub fn table(table_name: &str) -> Select {
+    pub fn table<S: Into<String>>(table_name: S) -> Select {
         Select {
-            from: Join::Table(table_name.to_string()),
+            from: Join::Table(table_name.into()),
             column_names: vec![],
             condition: None,
         }
@@ -583,9 +583,9 @@ pub struct Update {
 
 impl Update {
     /// Starts building a query that will update rows in the specified table.
-    pub fn table(table_name: &str) -> Update {
+    pub fn table<S: Into<String>>(table_name: S) -> Update {
         Update {
-            table_name: table_name.to_string(),
+            table_name: table_name.into(),
             updates: Vec::new(),
             condition: None,
         }

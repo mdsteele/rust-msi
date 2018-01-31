@@ -22,8 +22,8 @@ impl Expr {
 
     /// Returns an expression that evaluates to the value of the specified
     /// column.
-    pub fn col(column_name: &str) -> Expr {
-        Expr { ast: Ast::Column(column_name.to_string()) }
+    pub fn col<S: Into<String>>(column_name: S) -> Expr {
+        Expr { ast: Ast::Column(column_name.into()) }
     }
 
     /// Returns an expression that evaluates to a null value.
@@ -40,8 +40,8 @@ impl Expr {
     }
 
     /// Returns an expression that evaluates to the given string value.
-    pub fn string(string: &str) -> Expr {
-        Expr { ast: Ast::Literal(Value::from(string)) }
+    pub fn string<S: Into<String>>(string: S) -> Expr {
+        Expr { ast: Ast::Literal(Value::Str(string.into())) }
     }
 
     /// Returns an expression that evaluates to true if the two subexpressions

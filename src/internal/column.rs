@@ -464,8 +464,8 @@ impl Column {
     /// assert!(column.is_nullable());
     /// assert_eq!(column.coltype(), msi::ColumnType::Int16);
     /// ```
-    pub fn build(name: &str) -> ColumnBuilder {
-        ColumnBuilder::new(name.to_string())
+    pub fn build<S: Into<String>>(name: S) -> ColumnBuilder {
+        ColumnBuilder::new(name.into())
     }
 
     pub(crate) fn with_name_prefix(&self, prefix: &str) -> Column {

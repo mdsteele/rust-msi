@@ -153,11 +153,11 @@ impl PackageType {
 ///     Column::build("Property").primary_key().id_string(72),
 ///     Column::build("Value").nullable().formatted_string(64),
 /// ];
-/// package.create_table("CheckBox".to_string(), columns).unwrap();
+/// package.create_table("CheckBox", columns).unwrap();
 /// // Add a row to the new table:
 /// let query = Insert::into("CheckBox").row(vec![
-///     Value::Str("MoreMagic".to_string()),
-///     Value::Str("Whether magic should be maximized".to_string()),
+///     Value::from("MoreMagic"),
+///     Value::from("Whether magic should be maximized"),
 /// ]);
 /// package.insert_rows(query).unwrap();
 /// // Close the package and get the cursor back out.
@@ -378,7 +378,7 @@ impl<F: Read + Seek> Package<F> {
             }
             let mut columns = Vec::<Column>::with_capacity(column_specs.len());
             for (_, (column_name, bitfield)) in column_specs.into_iter() {
-                let mut builder = Column::build(&column_name);
+                let mut builder = Column::build(column_name.as_str());
                 let key = (table_name.clone(), column_name);
                 if let Some(value_refs) = validation_map.get(&key) {
                     let is_nullable = value_refs[2].to_value(&string_pool);
@@ -482,8 +482,7 @@ impl<F: Read + Write + Seek> Package<F> {
             finisher: None,
         };
         package
-            .create_table(VALIDATION_TABLE_NAME.to_string(),
-                          make_validation_columns())?;
+            .create_table(VALIDATION_TABLE_NAME, make_validation_columns())?;
         package.flush()?;
         debug_assert!(!package.is_summary_info_modified);
         debug_assert!(!package.string_pool.is_modified());
@@ -508,8 +507,15 @@ impl<F: Read + Write + Seek> Package<F> {
     /// Creates a new database table.  Returns an error without modifying the
     /// database if the table name or columns are invalid, or if a table with
     /// that name already exists.
-    pub fn create_table(&mut self, table_name: String, columns: Vec<Column>)
-                        -> io::Result<()> {
+    pub fn create_table<S: Into<String>>(&mut self, table_name: S,
+                                         columns: Vec<Column>)
+                                         -> io::Result<()> {
+        self.create_table_with_name(table_name.into(), columns)
+    }
+
+    fn create_table_with_name(&mut self, table_name: String,
+                              columns: Vec<Column>)
+                              -> io::Result<()> {
         if !Table::is_valid_name(&table_name) {
             invalid_input!("{:?} is not a valid table name", table_name);
         }
@@ -808,9 +814,7 @@ mod tests {
             Column::build("Number").primary_key().int16(),
             Column::build("Word").nullable().string(50),
         ];
-        package
-            .create_table("Numbers".to_string(), columns)
-            .expect("create_table");
+        package.create_table("Numbers", columns).expect("create_table");
         package
             .insert_rows(
                 Insert::into("Numbers")
@@ -851,9 +855,7 @@ mod tests {
             Column::build("Key").primary_key().int16(),
             Column::build("Value").nullable().int32(),
         ];
-        package
-            .create_table("Mapping".to_string(), columns)
-            .expect("create_table");
+        package.create_table("Mapping", columns).expect("create_table");
         package
             .insert_rows(Insert::into("Mapping")
                              .row(vec![Value::Int(1), Value::Int(17)])
@@ -886,9 +888,7 @@ mod tests {
             Column::build("Bar").string(16),
             Column::build("Baz").nullable().int32(),
         ];
-        package
-            .create_table("Quux".to_string(), columns)
-            .expect("create_table");
+        package.create_table("Quux", columns).expect("create_table");
         package
             .insert_rows(
                 Insert::into("Quux")
@@ -936,7 +936,7 @@ mod tests {
             Column::build("Foo").primary_key().int16(),
             Column::build("Bar").int16(),
         ];
-        package.create_table("Foobar".to_string(), columns).unwrap();
+        package.create_table("Foobar", columns).unwrap();
         package
             .insert_rows(Insert::into("Foobar")
                              .row(vec![Value::Int(1), Value::Int(17)])
@@ -947,7 +947,7 @@ mod tests {
             Column::build("Baz").primary_key().int16(),
             Column::build("Foo").int16(),
         ];
-        package.create_table("Bazfoo".to_string(), columns).unwrap();
+        package.create_table("Bazfoo", columns).unwrap();
         package
             .insert_rows(Insert::into("Bazfoo")
                              .row(vec![Value::Int(4), Value::Int(42)])

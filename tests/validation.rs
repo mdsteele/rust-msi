@@ -15,7 +15,7 @@ fn int_column_value_range() {
     let mut package = Package::create(PackageType::Installer, cursor).unwrap();
     let columns =
         vec![Column::build("Number").primary_key().range(0, 100).int16()];
-    package.create_table("Numbers".to_string(), columns).unwrap();
+    package.create_table("Numbers", columns).unwrap();
 
     let cursor = package.into_inner().unwrap();
     let mut package = Package::open(cursor).unwrap();
@@ -46,7 +46,7 @@ fn string_column_category() {
             .category(ColumnCategory::Property)
             .string(32),
     ];
-    package.create_table("Properties".to_string(), columns).unwrap();
+    package.create_table("Properties", columns).unwrap();
 
     let cursor = package.into_inner().unwrap();
     let mut package = Package::open(cursor).unwrap();
@@ -73,7 +73,7 @@ fn string_column_enum_values() {
             .enum_values(&["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"])
             .string(3),
     ];
-    package.create_table("Days".to_string(), columns).unwrap();
+    package.create_table("Days", columns).unwrap();
 
     let cursor = package.into_inner().unwrap();
     let mut package = Package::open(cursor).unwrap();
