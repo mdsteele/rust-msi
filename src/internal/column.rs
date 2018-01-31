@@ -4,6 +4,7 @@ use internal::value::{Value, ValueRef};
 use std::{fmt, i16, i32};
 use std::io::{self, Read, Write};
 use std::str;
+use uuid::Uuid;
 
 // ========================================================================= //
 
@@ -252,6 +253,21 @@ pub enum ColumnCategory {
     /// A string represeting a boolean predicate.
     Condition,
     /// A hyphenated, uppercase GUID string, enclosed in curly braces.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// assert!(msi::ColumnCategory::Guid.validate(
+    ///     "{34AB5C53-9B30-4E14-AEF0-2C1C7BA826C0}"));
+    /// assert!(!msi::ColumnCategory::Guid.validate(
+    ///     "{34AB5C539B304E14AEF02C1C7BA826C0}")); // Must be hyphenated
+    /// assert!(!msi::ColumnCategory::Guid.validate(
+    ///     "{34ab5c53-9b30-4e14-aef0-2c1c7ba826c0}")); // Must be uppercase
+    /// assert!(!msi::ColumnCategory::Guid.validate(
+    ///     "34AB5C53-9B30-4E14-AEF0-2C1C7BA826C0")); // Must have braces
+    /// assert!(!msi::ColumnCategory::Guid.validate(
+    ///     "{HELLOWO-RLDH-ELLO-WORL-DHELLOWORLD0}"));
+    /// ```
     Guid,
     /// A string containing a version number.  The string must consist of at
     /// most four period-separated numbers, with each number being at most
@@ -276,7 +292,20 @@ pub enum ColumnCategory {
     Binary,
     /// A string that refers to a custom source.
     CustomSource,
-    /// A string that refers to a cabinet.
+    /// A string that refers to a cabinet.  If it starts with a `#` character,
+    /// then the rest of the string is an identifier (see above) indicating a
+    /// data stream in the package where the cabinet is stored.  Otherwise, the
+    /// string is a short filename (at most eight characters, a period, and a
+    /// three-character extension).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// assert!(msi::ColumnCategory::Cabinet.validate("hello.txt"));
+    /// assert!(msi::ColumnCategory::Cabinet.validate("#HelloWorld"));
+    /// assert!(!msi::ColumnCategory::Cabinet.validate("longfilename.long"));
+    /// assert!(!msi::ColumnCategory::Cabinet.validate("#123.456"));
+    /// ```
     Cabinet,
     /// A string that refers to a shortcut.
     Shortcut,
@@ -382,10 +411,28 @@ impl ColumnCategory {
                 };
                 ColumnCategory::Identifier.validate(substr)
             }
+            ColumnCategory::Guid => {
+                string.len() == 38 && string.starts_with('{') &&
+                    string.ends_with('}') &&
+                    !string.chars().any(|chr| chr >= 'a' && chr <= 'z') &&
+                    Uuid::parse_str(&string[1..37]).is_ok()
+            }
             ColumnCategory::Version => {
                 let mut parts = string.split('.');
                 parts.clone().count() <= 4 &&
                     parts.all(|part| part.parse::<u16>().is_ok())
+            }
+            ColumnCategory::Cabinet => {
+                if string.starts_with('#') {
+                    ColumnCategory::Identifier.validate(&string[1..])
+                } else {
+                    let mut parts: Vec<&str> =
+                        string.rsplitn(2, '.').collect();
+                    parts.reverse();
+                    parts.len() > 0 && parts[0].len() > 0 &&
+                        parts[0].len() <= 8 &&
+                        (parts.len() < 2 || parts[1].len() <= 3)
+                }
             }
             // TODO: Validate other categories.
             _ => true,
