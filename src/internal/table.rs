@@ -1,4 +1,5 @@
-use internal::column::{Column, ColumnCategory};
+use internal::category::ColumnCategory;
+use internal::column::Column;
 use internal::streamname;
 use internal::stringpool::StringPool;
 use internal::value::{Value, ValueRef};

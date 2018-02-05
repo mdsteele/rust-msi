@@ -1,6 +1,7 @@
 #[macro_use]
 mod macros;
 
+pub mod category;
 pub mod codepage;
 pub mod column;
 pub mod expr;

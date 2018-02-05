@@ -1,6 +1,7 @@
 use cfb;
+use internal::category::ColumnCategory;
 use internal::codepage::CodePage;
-use internal::column::{Column, ColumnCategory};
+use internal::column::Column;
 use internal::expr::Expr;
 use internal::query::{Delete, Insert, Select, Update};
 use internal::stream::{StreamReader, StreamWriter, Streams};
