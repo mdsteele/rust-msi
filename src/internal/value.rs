@@ -1,5 +1,4 @@
 use internal::stringpool::{StringPool, StringRef};
-use std::ascii::AsciiExt;
 use std::convert::From;
 use std::fmt;
 use uuid::Uuid;

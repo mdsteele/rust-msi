@@ -1,6 +1,5 @@
 use internal::codepage::CodePage;
 use internal::propset::{OperatingSystem, PropertySet, PropertyValue};
-use std::ascii::AsciiExt;
 use std::io::{self, Read, Seek, Write};
 use std::time::SystemTime;
 use uuid::Uuid;

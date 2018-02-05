@@ -6,8 +6,8 @@
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use internal;
 use internal::codepage::CodePage;
-use ordermap::OrderMap;
 use std::cmp;
+use std::collections::BTreeMap;
 use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::time::SystemTime;
 
@@ -183,7 +183,7 @@ pub struct PropertySet {
     clsid: [u8; 16],
     fmtid: [u8; 16],
     codepage: CodePage,
-    properties: OrderMap<u32, PropertyValue>,
+    properties: BTreeMap<u32, PropertyValue>,
 }
 
 impl PropertySet {
@@ -195,7 +195,7 @@ impl PropertySet {
             clsid: [0; 16],
             fmtid: fmtid,
             codepage: CodePage::default(),
-            properties: OrderMap::new(),
+            properties: BTreeMap::new(),
         }
     }
 
@@ -242,7 +242,7 @@ impl PropertySet {
         reader.seek(SeekFrom::Start(section_offset as u64))?;
         let _section_size = reader.read_u32::<LittleEndian>()?;
         let num_properties = reader.read_u32::<LittleEndian>()?;
-        let mut property_offsets = OrderMap::<u32, u32>::new();
+        let mut property_offsets = BTreeMap::<u32, u32>::new();
         for _ in 0..num_properties {
             let name = reader.read_u32::<LittleEndian>()?;
             let offset = reader.read_u32::<LittleEndian>()?;
@@ -273,7 +273,7 @@ impl PropertySet {
         } else {
             CodePage::default()
         };
-        let mut property_values = OrderMap::<u32, PropertyValue>::new();
+        let mut property_values = BTreeMap::<u32, PropertyValue>::new();
         for (name, offset) in property_offsets.into_iter() {
             reader
                 .seek(SeekFrom::Start(section_offset as u64 + offset as u64))?;
