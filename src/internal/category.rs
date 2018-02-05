@@ -7,13 +7,13 @@ use uuid::Uuid;
 
 /// Indicates the format of a string-typed database column.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum ColumnCategory {
+pub enum Category {
     /// An unrestricted text string.
     ///
     /// # Examples
     ///
     /// ```
-    /// assert!(msi::ColumnCategory::Text.validate("Hello, World!"));
+    /// assert!(msi::Category::Text.validate("Hello, World!"));
     /// ```
     Text,
     /// A text string containing no lowercase letters.
@@ -21,8 +21,8 @@ pub enum ColumnCategory {
     /// # Examples
     ///
     /// ```
-    /// assert!(msi::ColumnCategory::UpperCase.validate("HELLO, WORLD!"));
-    /// assert!(!msi::ColumnCategory::UpperCase.validate("Hello, World!"));
+    /// assert!(msi::Category::UpperCase.validate("HELLO, WORLD!"));
+    /// assert!(!msi::Category::UpperCase.validate("Hello, World!"));
     /// ```
     UpperCase,
     /// A text string containing no uppercase letters.
@@ -30,8 +30,8 @@ pub enum ColumnCategory {
     /// # Examples
     ///
     /// ```
-    /// assert!(msi::ColumnCategory::LowerCase.validate("hello, world!"));
-    /// assert!(!msi::ColumnCategory::LowerCase.validate("Hello, World!"));
+    /// assert!(msi::Category::LowerCase.validate("hello, world!"));
+    /// assert!(!msi::Category::LowerCase.validate("Hello, World!"));
     /// ```
     LowerCase,
     /// A signed 16-bit integer.
@@ -39,9 +39,9 @@ pub enum ColumnCategory {
     /// # Examples
     ///
     /// ```
-    /// assert!(msi::ColumnCategory::Integer.validate("32767"));
-    /// assert!(msi::ColumnCategory::Integer.validate("-47"));
-    /// assert!(!msi::ColumnCategory::Integer.validate("40000"));
+    /// assert!(msi::Category::Integer.validate("32767"));
+    /// assert!(msi::Category::Integer.validate("-47"));
+    /// assert!(!msi::Category::Integer.validate("40000"));
     /// ```
     Integer,
     /// A signed 32-bit integer.
@@ -49,9 +49,9 @@ pub enum ColumnCategory {
     /// # Examples
     ///
     /// ```
-    /// assert!(msi::ColumnCategory::DoubleInteger.validate("2147483647"));
-    /// assert!(msi::ColumnCategory::DoubleInteger.validate("-99999"));
-    /// assert!(!msi::ColumnCategory::DoubleInteger.validate("3000000000"));
+    /// assert!(msi::Category::DoubleInteger.validate("2147483647"));
+    /// assert!(msi::Category::DoubleInteger.validate("-99999"));
+    /// assert!(!msi::Category::DoubleInteger.validate("3000000000"));
     /// ```
     DoubleInteger,
     /// A string identifier (such as a table or column name).  May only contain
@@ -61,9 +61,9 @@ pub enum ColumnCategory {
     /// # Examples
     ///
     /// ```
-    /// assert!(msi::ColumnCategory::Identifier.validate("HelloWorld"));
-    /// assert!(msi::ColumnCategory::Identifier.validate("_99.Bottles"));
-    /// assert!(!msi::ColumnCategory::Identifier.validate("3.14159"));
+    /// assert!(msi::Category::Identifier.validate("HelloWorld"));
+    /// assert!(msi::Category::Identifier.validate("_99.Bottles"));
+    /// assert!(!msi::Category::Identifier.validate("3.14159"));
     /// ```
     Identifier,
     /// A string that is either an identifier (see above), or a reference to an
@@ -73,9 +73,9 @@ pub enum ColumnCategory {
     /// # Examples
     ///
     /// ```
-    /// assert!(msi::ColumnCategory::Property.validate("HelloWorld"));
-    /// assert!(msi::ColumnCategory::Property.validate("%HelloWorld"));
-    /// assert!(!msi::ColumnCategory::Property.validate("Hello%World"));
+    /// assert!(msi::Category::Property.validate("HelloWorld"));
+    /// assert!(msi::Category::Property.validate("%HelloWorld"));
+    /// assert!(!msi::Category::Property.validate("Hello%World"));
     /// ```
     Property,
     /// The name of a file or directory.
@@ -106,15 +106,15 @@ pub enum ColumnCategory {
     /// # Examples
     ///
     /// ```
-    /// assert!(msi::ColumnCategory::Guid.validate(
+    /// assert!(msi::Category::Guid.validate(
     ///     "{34AB5C53-9B30-4E14-AEF0-2C1C7BA826C0}"));
-    /// assert!(!msi::ColumnCategory::Guid.validate(
+    /// assert!(!msi::Category::Guid.validate(
     ///     "{34AB5C539B304E14AEF02C1C7BA826C0}")); // Must be hyphenated
-    /// assert!(!msi::ColumnCategory::Guid.validate(
+    /// assert!(!msi::Category::Guid.validate(
     ///     "{34ab5c53-9b30-4e14-aef0-2c1c7ba826c0}")); // Must be uppercase
-    /// assert!(!msi::ColumnCategory::Guid.validate(
+    /// assert!(!msi::Category::Guid.validate(
     ///     "34AB5C53-9B30-4E14-AEF0-2C1C7BA826C0")); // Must have braces
-    /// assert!(!msi::ColumnCategory::Guid.validate(
+    /// assert!(!msi::Category::Guid.validate(
     ///     "{HELLOWO-RLDH-ELLO-WORL-DHELLOWORLD0}"));
     /// ```
     Guid,
@@ -125,13 +125,13 @@ pub enum ColumnCategory {
     /// # Examples
     ///
     /// ```
-    /// assert!(msi::ColumnCategory::Version.validate("1"));
-    /// assert!(msi::ColumnCategory::Version.validate("1.22"));
-    /// assert!(msi::ColumnCategory::Version.validate("1.22.3"));
-    /// assert!(msi::ColumnCategory::Version.validate("1.22.3.444"));
-    /// assert!(!msi::ColumnCategory::Version.validate("1.99999"));
-    /// assert!(!msi::ColumnCategory::Version.validate(".12"));
-    /// assert!(!msi::ColumnCategory::Version.validate("1.2.3.4.5"));
+    /// assert!(msi::Category::Version.validate("1"));
+    /// assert!(msi::Category::Version.validate("1.22"));
+    /// assert!(msi::Category::Version.validate("1.22.3"));
+    /// assert!(msi::Category::Version.validate("1.22.3.444"));
+    /// assert!(!msi::Category::Version.validate("1.99999"));
+    /// assert!(!msi::Category::Version.validate(".12"));
+    /// assert!(!msi::Category::Version.validate("1.2.3.4.5"));
     /// ```
     Version,
     /// A string containing a comma-separated list of deciaml language ID
@@ -150,10 +150,10 @@ pub enum ColumnCategory {
     /// # Examples
     ///
     /// ```
-    /// assert!(msi::ColumnCategory::Cabinet.validate("hello.txt"));
-    /// assert!(msi::ColumnCategory::Cabinet.validate("#HelloWorld"));
-    /// assert!(!msi::ColumnCategory::Cabinet.validate("longfilename.long"));
-    /// assert!(!msi::ColumnCategory::Cabinet.validate("#123.456"));
+    /// assert!(msi::Category::Cabinet.validate("hello.txt"));
+    /// assert!(msi::Category::Cabinet.validate("#HelloWorld"));
+    /// assert!(!msi::Category::Cabinet.validate("longfilename.long"));
+    /// assert!(!msi::Category::Cabinet.validate("#123.456"));
     /// ```
     Cabinet,
     /// A string that refers to a shortcut.
@@ -162,66 +162,66 @@ pub enum ColumnCategory {
     Url,
 }
 
-impl ColumnCategory {
-    pub(crate) fn all() -> Vec<ColumnCategory> {
+impl Category {
+    pub(crate) fn all() -> Vec<Category> {
         vec![
-            ColumnCategory::Text,
-            ColumnCategory::UpperCase,
-            ColumnCategory::LowerCase,
-            ColumnCategory::Integer,
-            ColumnCategory::DoubleInteger,
-            ColumnCategory::Identifier,
-            ColumnCategory::Property,
-            ColumnCategory::Filename,
-            ColumnCategory::WildCardFilename,
-            ColumnCategory::Path,
-            ColumnCategory::Paths,
-            ColumnCategory::AnyPath,
-            ColumnCategory::DefaultDir,
-            ColumnCategory::RegPath,
-            ColumnCategory::Formatted,
-            ColumnCategory::KeyFormatted,
-            ColumnCategory::Template,
-            ColumnCategory::Condition,
-            ColumnCategory::Guid,
-            ColumnCategory::Version,
-            ColumnCategory::Language,
-            ColumnCategory::Binary,
-            ColumnCategory::CustomSource,
-            ColumnCategory::Cabinet,
-            ColumnCategory::Shortcut,
-            ColumnCategory::Url,
+            Category::Text,
+            Category::UpperCase,
+            Category::LowerCase,
+            Category::Integer,
+            Category::DoubleInteger,
+            Category::Identifier,
+            Category::Property,
+            Category::Filename,
+            Category::WildCardFilename,
+            Category::Path,
+            Category::Paths,
+            Category::AnyPath,
+            Category::DefaultDir,
+            Category::RegPath,
+            Category::Formatted,
+            Category::KeyFormatted,
+            Category::Template,
+            Category::Condition,
+            Category::Guid,
+            Category::Version,
+            Category::Language,
+            Category::Binary,
+            Category::CustomSource,
+            Category::Cabinet,
+            Category::Shortcut,
+            Category::Url,
         ]
     }
 
     pub(crate) fn as_str(&self) -> &'static str {
         match *self {
-            ColumnCategory::AnyPath => "AnyPath",
-            ColumnCategory::Binary => "Binary",
-            ColumnCategory::Cabinet => "Cabinet",
-            ColumnCategory::Condition => "Condition",
-            ColumnCategory::CustomSource => "CustomSource",
-            ColumnCategory::DefaultDir => "DefaultDir",
-            ColumnCategory::DoubleInteger => "DoubleInteger",
-            ColumnCategory::Filename => "Filename",
-            ColumnCategory::Formatted => "Formatted",
-            ColumnCategory::Guid => "GUID",
-            ColumnCategory::Identifier => "Identifier",
-            ColumnCategory::Integer => "Integer",
-            ColumnCategory::KeyFormatted => "KeyFormatted",
-            ColumnCategory::Language => "Language",
-            ColumnCategory::LowerCase => "LowerCase",
-            ColumnCategory::Path => "Path",
-            ColumnCategory::Paths => "Paths",
-            ColumnCategory::Property => "Property",
-            ColumnCategory::RegPath => "RegPath",
-            ColumnCategory::Shortcut => "Shortcut",
-            ColumnCategory::Template => "Template",
-            ColumnCategory::Text => "Text",
-            ColumnCategory::UpperCase => "UpperCase",
-            ColumnCategory::Url => "URL",
-            ColumnCategory::Version => "Version",
-            ColumnCategory::WildCardFilename => "WildCardFilename",
+            Category::AnyPath => "AnyPath",
+            Category::Binary => "Binary",
+            Category::Cabinet => "Cabinet",
+            Category::Condition => "Condition",
+            Category::CustomSource => "CustomSource",
+            Category::DefaultDir => "DefaultDir",
+            Category::DoubleInteger => "DoubleInteger",
+            Category::Filename => "Filename",
+            Category::Formatted => "Formatted",
+            Category::Guid => "GUID",
+            Category::Identifier => "Identifier",
+            Category::Integer => "Integer",
+            Category::KeyFormatted => "KeyFormatted",
+            Category::Language => "Language",
+            Category::LowerCase => "LowerCase",
+            Category::Path => "Path",
+            Category::Paths => "Paths",
+            Category::Property => "Property",
+            Category::RegPath => "RegPath",
+            Category::Shortcut => "Shortcut",
+            Category::Template => "Template",
+            Category::Text => "Text",
+            Category::UpperCase => "UpperCase",
+            Category::Url => "URL",
+            Category::Version => "Version",
+            Category::WildCardFilename => "WildCardFilename",
         }
     }
 
@@ -229,16 +229,16 @@ impl ColumnCategory {
     /// with this category.
     pub fn validate(&self, string: &str) -> bool {
         match *self {
-            ColumnCategory::Text => true,
-            ColumnCategory::UpperCase => {
+            Category::Text => true,
+            Category::UpperCase => {
                 !string.chars().any(|chr| chr >= 'a' && chr <= 'z')
             }
-            ColumnCategory::LowerCase => {
+            Category::LowerCase => {
                 !string.chars().any(|chr| chr >= 'A' && chr <= 'Z')
             }
-            ColumnCategory::Integer => string.parse::<i16>().is_ok(),
-            ColumnCategory::DoubleInteger => string.parse::<i32>().is_ok(),
-            ColumnCategory::Identifier => {
+            Category::Integer => string.parse::<i16>().is_ok(),
+            Category::DoubleInteger => string.parse::<i32>().is_ok(),
+            Category::Identifier => {
                 string.starts_with(|chr| {
                                        chr >= 'A' && chr <= 'Z' ||
                                            chr >= 'a' && chr <= 'z' ||
@@ -252,28 +252,28 @@ impl ColumnCategory {
                                                chr == '.')
                                      })
             }
-            ColumnCategory::Property => {
+            Category::Property => {
                 let substr = if string.starts_with('%') {
                     &string[1..]
                 } else {
                     string
                 };
-                ColumnCategory::Identifier.validate(substr)
+                Category::Identifier.validate(substr)
             }
-            ColumnCategory::Guid => {
+            Category::Guid => {
                 string.len() == 38 && string.starts_with('{') &&
                     string.ends_with('}') &&
                     !string.chars().any(|chr| chr >= 'a' && chr <= 'z') &&
                     Uuid::parse_str(&string[1..37]).is_ok()
             }
-            ColumnCategory::Version => {
+            Category::Version => {
                 let mut parts = string.split('.');
                 parts.clone().count() <= 4 &&
                     parts.all(|part| part.parse::<u16>().is_ok())
             }
-            ColumnCategory::Cabinet => {
+            Category::Cabinet => {
                 if string.starts_with('#') {
-                    ColumnCategory::Identifier.validate(&string[1..])
+                    Category::Identifier.validate(&string[1..])
                 } else {
                     let mut parts: Vec<&str> =
                         string.rsplitn(2, '.').collect();
@@ -289,45 +289,45 @@ impl ColumnCategory {
     }
 }
 
-impl fmt::Display for ColumnCategory {
+impl fmt::Display for Category {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         self.as_str().fmt(formatter)
     }
 }
 
-impl str::FromStr for ColumnCategory {
+impl str::FromStr for Category {
     type Err = io::Error;
 
-    fn from_str(string: &str) -> io::Result<ColumnCategory> {
+    fn from_str(string: &str) -> io::Result<Category> {
         match string {
-            "AnyPath" => Ok(ColumnCategory::AnyPath),
-            "Binary" => Ok(ColumnCategory::Binary),
-            "Cabinet" => Ok(ColumnCategory::Cabinet),
-            "Condition" => Ok(ColumnCategory::Condition),
-            "CustomSource" => Ok(ColumnCategory::CustomSource),
-            "DefaultDir" => Ok(ColumnCategory::DefaultDir),
-            "DoubleInteger" => Ok(ColumnCategory::DoubleInteger),
-            "Filename" => Ok(ColumnCategory::Filename),
-            "Formatted" => Ok(ColumnCategory::Formatted),
-            "GUID" => Ok(ColumnCategory::Guid),
-            "Guid" => Ok(ColumnCategory::Guid),
-            "Identifier" => Ok(ColumnCategory::Identifier),
-            "Integer" => Ok(ColumnCategory::Integer),
-            "KeyFormatted" => Ok(ColumnCategory::KeyFormatted),
-            "Language" => Ok(ColumnCategory::Language),
-            "LowerCase" => Ok(ColumnCategory::LowerCase),
-            "Path" => Ok(ColumnCategory::Path),
-            "Paths" => Ok(ColumnCategory::Paths),
-            "Property" => Ok(ColumnCategory::Property),
-            "RegPath" => Ok(ColumnCategory::RegPath),
-            "Shortcut" => Ok(ColumnCategory::Shortcut),
-            "Template" => Ok(ColumnCategory::Template),
-            "Text" => Ok(ColumnCategory::Text),
-            "UpperCase" => Ok(ColumnCategory::UpperCase),
-            "URL" => Ok(ColumnCategory::Url),
-            "Url" => Ok(ColumnCategory::Url),
-            "Version" => Ok(ColumnCategory::Version),
-            "WildCardFilename" => Ok(ColumnCategory::WildCardFilename),
+            "AnyPath" => Ok(Category::AnyPath),
+            "Binary" => Ok(Category::Binary),
+            "Cabinet" => Ok(Category::Cabinet),
+            "Condition" => Ok(Category::Condition),
+            "CustomSource" => Ok(Category::CustomSource),
+            "DefaultDir" => Ok(Category::DefaultDir),
+            "DoubleInteger" => Ok(Category::DoubleInteger),
+            "Filename" => Ok(Category::Filename),
+            "Formatted" => Ok(Category::Formatted),
+            "GUID" => Ok(Category::Guid),
+            "Guid" => Ok(Category::Guid),
+            "Identifier" => Ok(Category::Identifier),
+            "Integer" => Ok(Category::Integer),
+            "KeyFormatted" => Ok(Category::KeyFormatted),
+            "Language" => Ok(Category::Language),
+            "LowerCase" => Ok(Category::LowerCase),
+            "Path" => Ok(Category::Path),
+            "Paths" => Ok(Category::Paths),
+            "Property" => Ok(Category::Property),
+            "RegPath" => Ok(Category::RegPath),
+            "Shortcut" => Ok(Category::Shortcut),
+            "Template" => Ok(Category::Template),
+            "Text" => Ok(Category::Text),
+            "UpperCase" => Ok(Category::UpperCase),
+            "URL" => Ok(Category::Url),
+            "Url" => Ok(Category::Url),
+            "Version" => Ok(Category::Version),
+            "WildCardFilename" => Ok(Category::WildCardFilename),
             _ => invalid_data!("Invalid category: {:?}", string),
         }
     }
@@ -337,15 +337,12 @@ impl str::FromStr for ColumnCategory {
 
 #[cfg(test)]
 mod tests {
-    use super::ColumnCategory;
+    use super::Category;
 
     #[test]
     fn category_string_round_trip() {
-        for category in ColumnCategory::all() {
-            assert_eq!(category
-                           .to_string()
-                           .parse::<ColumnCategory>()
-                           .unwrap(),
+        for category in Category::all() {
+            assert_eq!(category.to_string().parse::<Category>().unwrap(),
                        category);
         }
     }

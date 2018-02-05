@@ -1,5 +1,5 @@
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use internal::category::ColumnCategory;
+use internal::category::Category;
 use internal::stringpool::StringRef;
 use internal::value::{Value, ValueRef};
 use std::{fmt, i16, i32};
@@ -166,7 +166,7 @@ pub struct Column {
     is_primary_key: bool,
     value_range: Option<(i32, i32)>,
     foreign_key: Option<(String, i32)>,
-    category: Option<ColumnCategory>,
+    category: Option<Category>,
     enum_values: Vec<String>,
 }
 
@@ -215,9 +215,7 @@ impl Column {
         let nonbinary = match self.coltype {
             ColumnType::Int16 => true,
             ColumnType::Int32 => false,
-            ColumnType::Str(0) => {
-                self.category != Some(ColumnCategory::Binary)
-            }
+            ColumnType::Str(0) => self.category != Some(Category::Binary),
             ColumnType::Str(_) => true,
         };
         if nonbinary {
@@ -231,7 +229,7 @@ impl Column {
 
     /// Returns true if the given string is a valid column name.
     pub(crate) fn is_valid_name(name: &str) -> bool {
-        ColumnCategory::Identifier.validate(name)
+        Category::Identifier.validate(name)
     }
 
     /// Returns the name of the column.
@@ -259,7 +257,7 @@ impl Column {
     }
 
     /// Returns the string value category for this column, if any.
-    pub fn category(&self) -> Option<ColumnCategory> { self.category }
+    pub fn category(&self) -> Option<Category> { self.category }
 
     /// Returns the list of valid enum values for this column, if any.
     pub fn enum_values(&self) -> Option<&[String]> {
@@ -322,7 +320,7 @@ pub struct ColumnBuilder {
     is_primary_key: bool,
     value_range: Option<(i32, i32)>,
     foreign_key: Option<(String, i32)>,
-    category: Option<ColumnCategory>,
+    category: Option<Category>,
     enum_values: Vec<String>,
 }
 
@@ -372,7 +370,7 @@ impl ColumnBuilder {
     }
 
     /// For string columns, makes the column use the specified data format.
-    pub fn category(mut self, category: ColumnCategory) -> ColumnBuilder {
+    pub fn category(mut self, category: Category) -> ColumnBuilder {
         self.category = Some(category);
         self
     }
@@ -395,29 +393,27 @@ impl ColumnBuilder {
     }
 
     /// Builds a column that stores an identifier string.  This is equivalent
-    /// to `self.category(ColumnCategory::Identifier).string(max_len)`.
+    /// to `self.category(Category::Identifier).string(max_len)`.
     pub fn id_string(self, max_len: usize) -> Column {
-        self.category(ColumnCategory::Identifier).string(max_len)
+        self.category(Category::Identifier).string(max_len)
     }
 
     /// Builds a column that stores a text string.  This is equivalent to
-    /// `self.category(ColumnCategory::Text).string(max_len)`.
+    /// `self.category(Category::Text).string(max_len)`.
     pub fn text_string(self, max_len: usize) -> Column {
-        self.category(ColumnCategory::Text).string(max_len)
+        self.category(Category::Text).string(max_len)
     }
 
     /// Builds a column that stores a formatted string.  This is equivalent to
-    /// `self.category(ColumnCategory::Formatted).string(max_len)`.
+    /// `self.category(Category::Formatted).string(max_len)`.
     pub fn formatted_string(self, max_len: usize) -> Column {
-        self.category(ColumnCategory::Formatted).string(max_len)
+        self.category(Category::Formatted).string(max_len)
     }
 
     /// Builds a column that refers to a binary data stream.  This sets the
-    /// category to `ColumnCategory::Binary` in addition to setting the column
+    /// category to `Category::Binary` in addition to setting the column
     /// type.
-    pub fn binary(self) -> Column {
-        self.category(ColumnCategory::Binary).string(0)
-    }
+    pub fn binary(self) -> Column { self.category(Category::Binary).string(0) }
 
     fn with_type(self, coltype: ColumnType) -> Column {
         Column {

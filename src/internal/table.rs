@@ -1,4 +1,4 @@
-use internal::category::ColumnCategory;
+use internal::category::Category;
 use internal::column::Column;
 use internal::streamname;
 use internal::stringpool::StringPool;
@@ -41,8 +41,7 @@ impl Table {
 
     /// Returns true if the given string is a valid table name.
     pub(crate) fn is_valid_name(name: &str) -> bool {
-        ColumnCategory::Identifier.validate(name) &&
-            streamname::is_valid(name, true)
+        Category::Identifier.validate(name) && streamname::is_valid(name, true)
     }
 
     pub(crate) fn long_string_refs(&self) -> bool { self.long_string_refs }

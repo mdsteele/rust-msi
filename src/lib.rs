@@ -16,7 +16,7 @@ extern crate uuid;
 
 mod internal;
 
-pub use internal::category::ColumnCategory;
+pub use internal::category::Category;
 pub use internal::codepage::CodePage;
 pub use internal::column::{Column, ColumnBuilder, ColumnType};
 pub use internal::expr::Expr;

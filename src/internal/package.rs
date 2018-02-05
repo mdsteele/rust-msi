@@ -1,5 +1,5 @@
 use cfb;
-use internal::category::ColumnCategory;
+use internal::category::Category;
 use internal::codepage::CodePage;
 use internal::column::Column;
 use internal::expr::Expr;
@@ -56,7 +56,7 @@ fn make_validation_columns() -> Vec<Column> {
     let min = -0x7fff_ffff;
     let max = 0x7fff_ffff;
     let values: Vec<&str> =
-        ColumnCategory::all().iter().map(ColumnCategory::as_str).collect();
+        Category::all().iter().map(Category::as_str).collect();
     vec![
         Column::build("Table").primary_key().id_string(32),
         Column::build("Column").primary_key().id_string(32),
@@ -405,7 +405,7 @@ impl<F: Read + Seek> Package<F> {
                         let category = category_value
                             .as_str()
                             .unwrap()
-                            .parse::<ColumnCategory>()?;
+                            .parse::<Category>()?;
                         builder = builder.category(category);
                     }
                     let enum_values = value_refs[8].to_value(&string_pool);

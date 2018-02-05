@@ -3,7 +3,7 @@ extern crate msi;
 #[macro_use]
 mod testutil;
 
-use msi::{Column, ColumnCategory, Insert, Package, PackageType, Value};
+use msi::{Category, Column, Insert, Package, PackageType, Value};
 use std::error::Error;
 use std::io::{Cursor, ErrorKind};
 
@@ -43,7 +43,7 @@ fn string_column_category() {
     let columns = vec![
         Column::build("Property")
             .primary_key()
-            .category(ColumnCategory::Property)
+            .category(Category::Property)
             .string(32),
     ];
     package.create_table("Properties", columns).unwrap();
@@ -53,7 +53,7 @@ fn string_column_category() {
     {
         let table = package.get_table("Properties").unwrap();
         let column = table.get_column("Property").unwrap();
-        assert_eq!(column.category(), Some(ColumnCategory::Property));
+        assert_eq!(column.category(), Some(Category::Property));
     }
     let query = Insert::into("Properties").row(vec![Value::from("$99")]);
     assert_error!(package.insert_rows(query),
