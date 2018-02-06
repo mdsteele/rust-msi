@@ -21,7 +21,9 @@ pub enum Category {
     /// # Examples
     ///
     /// ```
+    /// // Valid:
     /// assert!(msi::Category::UpperCase.validate("HELLO, WORLD!"));
+    /// // Invalid:
     /// assert!(!msi::Category::UpperCase.validate("Hello, World!"));
     /// ```
     UpperCase,
@@ -30,7 +32,9 @@ pub enum Category {
     /// # Examples
     ///
     /// ```
+    /// // Valid:
     /// assert!(msi::Category::LowerCase.validate("hello, world!"));
+    /// // Invalid:
     /// assert!(!msi::Category::LowerCase.validate("Hello, World!"));
     /// ```
     LowerCase,
@@ -39,8 +43,10 @@ pub enum Category {
     /// # Examples
     ///
     /// ```
+    /// // Valid:
     /// assert!(msi::Category::Integer.validate("32767"));
     /// assert!(msi::Category::Integer.validate("-47"));
+    /// // Invalid:
     /// assert!(!msi::Category::Integer.validate("40000"));
     /// ```
     Integer,
@@ -49,8 +55,10 @@ pub enum Category {
     /// # Examples
     ///
     /// ```
+    /// // Valid:
     /// assert!(msi::Category::DoubleInteger.validate("2147483647"));
     /// assert!(msi::Category::DoubleInteger.validate("-99999"));
+    /// // Invalid:
     /// assert!(!msi::Category::DoubleInteger.validate("3000000000"));
     /// ```
     DoubleInteger,
@@ -61,8 +69,11 @@ pub enum Category {
     /// # Examples
     ///
     /// ```
+    /// // Valid:
     /// assert!(msi::Category::Identifier.validate("HelloWorld"));
     /// assert!(msi::Category::Identifier.validate("_99.Bottles"));
+    /// // Invalid:
+    /// assert!(!msi::Category::Identifier.validate("$HELLO"));
     /// assert!(!msi::Category::Identifier.validate("3.14159"));
     /// ```
     Identifier,
@@ -73,8 +84,11 @@ pub enum Category {
     /// # Examples
     ///
     /// ```
+    /// // Valid:
     /// assert!(msi::Category::Property.validate("HelloWorld"));
     /// assert!(msi::Category::Property.validate("%HelloWorld"));
+    /// // Invalid:
+    /// assert!(!msi::Category::Property.validate("%"));
     /// assert!(!msi::Category::Property.validate("Hello%World"));
     /// ```
     Property,
@@ -106,8 +120,10 @@ pub enum Category {
     /// # Examples
     ///
     /// ```
+    /// // Valid:
     /// assert!(msi::Category::Guid.validate(
     ///     "{34AB5C53-9B30-4E14-AEF0-2C1C7BA826C0}"));
+    /// // Invalid:
     /// assert!(!msi::Category::Guid.validate(
     ///     "{34AB5C539B304E14AEF02C1C7BA826C0}")); // Must be hyphenated
     /// assert!(!msi::Category::Guid.validate(
@@ -119,23 +135,38 @@ pub enum Category {
     /// ```
     Guid,
     /// A string containing a version number.  The string must consist of at
-    /// most four period-separated numbers, with each number being at most
-    /// 65535.
+    /// most four period-separated numbers, with the value of each number being
+    /// at most 65535.
     ///
     /// # Examples
     ///
     /// ```
+    /// // Valid:
     /// assert!(msi::Category::Version.validate("1"));
     /// assert!(msi::Category::Version.validate("1.22"));
     /// assert!(msi::Category::Version.validate("1.22.3"));
     /// assert!(msi::Category::Version.validate("1.22.3.444"));
+    /// // Invalid:
     /// assert!(!msi::Category::Version.validate("1.99999"));
     /// assert!(!msi::Category::Version.validate(".12"));
     /// assert!(!msi::Category::Version.validate("1.2.3.4.5"));
     /// ```
     Version,
-    /// A string containing a comma-separated list of deciaml language ID
+    /// A string containing a comma-separated list of decimal language ID
     /// numbers.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// // Valid:
+    /// assert!(msi::Category::Language.validate("1033"));
+    /// assert!(msi::Category::Language.validate("1083,2107,3131"));
+    /// // Invalid:
+    /// assert!(!msi::Category::Language.validate(""));
+    /// assert!(!msi::Category::Language.validate("1083,2107,3131,"));
+    /// assert!(!msi::Category::Language.validate("1083,,3131"));
+    /// assert!(!msi::Category::Language.validate("en-US"));
+    /// ```
     Language,
     /// A string that refers to a binary data stream.
     Binary,
@@ -150,8 +181,10 @@ pub enum Category {
     /// # Examples
     ///
     /// ```
+    /// // Valid:
     /// assert!(msi::Category::Cabinet.validate("hello.txt"));
     /// assert!(msi::Category::Cabinet.validate("#HelloWorld"));
+    /// // Invalid:
     /// assert!(!msi::Category::Cabinet.validate("longfilename.long"));
     /// assert!(!msi::Category::Cabinet.validate("#123.456"));
     /// ```
@@ -270,6 +303,10 @@ impl Category {
                 let mut parts = string.split('.');
                 parts.clone().count() <= 4 &&
                     parts.all(|part| part.parse::<u16>().is_ok())
+            }
+            Category::Language => {
+                let mut parts = string.split(',');
+                parts.all(|part| part.parse::<u16>().is_ok())
             }
             Category::Cabinet => {
                 if string.starts_with('#') {
