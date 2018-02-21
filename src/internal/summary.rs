@@ -1,4 +1,5 @@
 use internal::codepage::CodePage;
+use internal::language::Language;
 use internal::propset::{OperatingSystem, PropertySet, PropertyValue};
 use std::io::{self, Read, Seek, Write};
 use std::time::SystemTime;
@@ -21,6 +22,7 @@ const PROPERTY_TITLE: u32 = 2;
 const PROPERTY_SUBJECT: u32 = 3;
 const PROPERTY_AUTHOR: u32 = 4;
 const PROPERTY_COMMENTS: u32 = 6;
+const PROPERTY_TEMPLATE: u32 = 7;
 const PROPERTY_UUID: u32 = 9;
 const PROPERTY_CREATION_TIME: u32 = 12;
 const PROPERTY_CREATING_APP: u32 = 18;
@@ -53,6 +55,36 @@ impl SummaryInfo {
         self.properties.write(writer)
     }
 
+    /// Gets the architecture string from the "template" property, if one is
+    /// set.  This indicates the hardware architecture that this package is
+    /// intended for (e.g. `"x64"`).
+    pub fn arch(&self) -> Option<&str> {
+        match self.properties.get(PROPERTY_TEMPLATE) {
+            Some(&PropertyValue::LpStr(ref template)) => {
+                let arch = template.splitn(2, ';').next().unwrap();
+                if arch.is_empty() { None } else { Some(arch) }
+            }
+            _ => None,
+        }
+    }
+
+    /// Sets the architecture string in the "template" property.
+    pub fn set_arch<S: Into<String>>(&mut self, arch: S) {
+        let langs = match self.properties.get(PROPERTY_TEMPLATE) {
+            Some(&PropertyValue::LpStr(ref template)) => {
+                let parts: Vec<&str> = template.splitn(2, ';').collect();
+                if parts.len() > 1 {
+                    parts[1].to_string()
+                } else {
+                    String::new()
+                }
+            }
+            _ => String::new(),
+        };
+        let template = format!("{};{}", arch.into(), langs);
+        self.properties.set(PROPERTY_TEMPLATE, PropertyValue::LpStr(template));
+    }
+
     /// Gets the "author" property, if one is set.  This indicates the name of
     /// the person or company that created the package.
     pub fn author(&self) -> Option<&str> {
@@ -63,8 +95,9 @@ impl SummaryInfo {
     }
 
     /// Sets the "author" property.
-    pub fn set_author(&mut self, author: String) {
-        self.properties.set(PROPERTY_AUTHOR, PropertyValue::LpStr(author));
+    pub fn set_author<S: Into<String>>(&mut self, author: S) {
+        self.properties
+            .set(PROPERTY_AUTHOR, PropertyValue::LpStr(author.into()));
     }
 
     /// Gets the code page used for serializing this summary info.
@@ -88,8 +121,9 @@ impl SummaryInfo {
     }
 
     /// Sets the "comments" property.
-    pub fn set_comments(&mut self, comments: String) {
-        self.properties.set(PROPERTY_COMMENTS, PropertyValue::LpStr(comments));
+    pub fn set_comments<S: Into<String>>(&mut self, comments: S) {
+        self.properties
+            .set(PROPERTY_COMMENTS, PropertyValue::LpStr(comments.into()));
     }
 
     /// Gets the "creating application" property, if one is set.  This
@@ -105,9 +139,9 @@ impl SummaryInfo {
     }
 
     /// Sets the "creating application" property.
-    pub fn set_creating_application(&mut self, app_name: String) {
+    pub fn set_creating_application<S: Into<String>>(&mut self, app_name: S) {
         self.properties
-            .set(PROPERTY_CREATING_APP, PropertyValue::LpStr(app_name));
+            .set(PROPERTY_CREATING_APP, PropertyValue::LpStr(app_name.into()));
     }
 
     /// Gets the "creation time" property, if one is set.  This indicates the
@@ -130,6 +164,47 @@ impl SummaryInfo {
         self.set_creation_time(SystemTime::now());
     }
 
+    /// Gets the list of languages from the "template" property, if one is set.
+    /// This indicates the languages that this package supports.
+    pub fn languages(&self) -> Vec<Language> {
+        match self.properties.get(PROPERTY_TEMPLATE) {
+            Some(&PropertyValue::LpStr(ref template)) => {
+                let parts: Vec<&str> = template.splitn(2, ';').collect();
+                if parts.len() > 1 {
+                    parts[1]
+                        .split(',')
+                        .filter_map(|code| code.parse().ok())
+                        .map(Language::from_code)
+                        .collect()
+                } else {
+                    Vec::new()
+                }
+            }
+            _ => Vec::new(),
+        }
+    }
+
+    /// Sets the list of languages in the "template" property.
+    pub fn set_languages(&mut self, languages: &[Language]) {
+        let mut template = match self.properties.get(PROPERTY_TEMPLATE) {
+            Some(&PropertyValue::LpStr(ref template)) => {
+                template.splitn(2, ';').next().unwrap().to_string()
+            }
+            _ => String::new(),
+        };
+        template.push(';');
+        let mut first = true;
+        for language in languages.into_iter() {
+            if first {
+                first = false;
+            } else {
+                template.push(',');
+            }
+            template.push_str(&format!("{}", language.code()));
+        }
+        self.properties.set(PROPERTY_TEMPLATE, PropertyValue::LpStr(template));
+    }
+
     /// Gets the "subject" property, if one is set.  This typically indicates
     /// the name of the application/software that will be installed by the
     /// package.
@@ -141,8 +216,9 @@ impl SummaryInfo {
     }
 
     /// Sets the "subject" property.
-    pub fn set_subject(&mut self, subject: String) {
-        self.properties.set(PROPERTY_SUBJECT, PropertyValue::LpStr(subject));
+    pub fn set_subject<S: Into<String>>(&mut self, subject: S) {
+        self.properties
+            .set(PROPERTY_SUBJECT, PropertyValue::LpStr(subject.into()));
     }
 
     /// Gets the "title" property, if one is set.  This indicates the type of
@@ -155,8 +231,9 @@ impl SummaryInfo {
     }
 
     /// Sets the "title" property.
-    pub fn set_title(&mut self, title: String) {
-        self.properties.set(PROPERTY_TITLE, PropertyValue::LpStr(title));
+    pub fn set_title<S: Into<String>>(&mut self, title: S) {
+        self.properties
+            .set(PROPERTY_TITLE, PropertyValue::LpStr(title.into()));
     }
 
     /// Gets the "UUID" property, if one is set.
@@ -184,31 +261,66 @@ impl SummaryInfo {
 #[cfg(test)]
 mod tests {
     use super::SummaryInfo;
+    use internal::language::Language;
     use std::time::SystemTime;
     use uuid::Uuid;
 
     #[test]
     fn set_properties() {
+        let languages = vec![
+            Language::from_tag("en-CA"),
+            Language::from_tag("fr-CA"),
+            Language::from_tag("en-US"),
+            Language::from_tag("es-MX"),
+        ];
         let timestamp = SystemTime::now();
         let uuid = Uuid::parse_str("0000002a-000c-0005-0c03-0938362b0809")
             .unwrap();
 
         let mut summary_info = SummaryInfo::new();
-        summary_info.set_author("Jane Doe".to_string());
-        summary_info.set_comments("This app is the greatest!".to_string());
-        summary_info.set_creating_application("cargo-test".to_string());
+        summary_info.set_arch("x64");
+        summary_info.set_author("Jane Doe");
+        summary_info.set_comments("This app is the greatest!");
+        summary_info.set_creating_application("cargo-test");
         summary_info.set_creation_time(timestamp);
-        summary_info.set_subject("My Great App".to_string());
-        summary_info.set_title("Installation Package".to_string());
+        summary_info.set_languages(&languages);
+        summary_info.set_subject("My Great App");
+        summary_info.set_title("Installation Package");
         summary_info.set_uuid(uuid);
 
+        assert_eq!(summary_info.arch(), Some("x64"));
         assert_eq!(summary_info.author(), Some("Jane Doe"));
         assert_eq!(summary_info.comments(), Some("This app is the greatest!"));
         assert_eq!(summary_info.creating_application(), Some("cargo-test"));
         assert_eq!(summary_info.creation_time(), Some(timestamp));
+        assert_eq!(summary_info.languages(), languages);
         assert_eq!(summary_info.subject(), Some("My Great App"));
         assert_eq!(summary_info.title(), Some("Installation Package"));
         assert_eq!(summary_info.uuid(), Some(uuid));
+    }
+
+    #[test]
+    fn template_property() {
+        // Set language before setting arch:
+        let mut summary_info = SummaryInfo::new();
+        assert_eq!(summary_info.arch(), None);
+        summary_info.set_languages(&[Language::from_tag("en")]);
+        assert_eq!(summary_info.arch(), None);
+        assert_eq!(summary_info.languages(), vec![Language::from_tag("en")]);
+        summary_info.set_arch("Intel");
+        assert_eq!(summary_info.arch(), Some("Intel"));
+        assert_eq!(summary_info.languages(), vec![Language::from_tag("en")]);
+
+        // Set arch before setting language:
+        let mut summary_info = SummaryInfo::new();
+        assert_eq!(summary_info.languages(), vec![]);
+        assert_eq!(summary_info.arch(), None);
+        summary_info.set_arch("Intel");
+        assert_eq!(summary_info.languages(), vec![]);
+        assert_eq!(summary_info.arch(), Some("Intel"));
+        summary_info.set_languages(&[Language::from_tag("en")]);
+        assert_eq!(summary_info.languages(), vec![Language::from_tag("en")]);
+        assert_eq!(summary_info.arch(), Some("Intel"));
     }
 }
 

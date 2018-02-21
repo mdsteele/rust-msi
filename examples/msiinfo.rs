@@ -39,6 +39,15 @@ fn print_summary_info(package_type: msi::PackageType,
     if let Some(uuid) = summary_info.uuid() {
         println!("        UUID: {}", uuid.hyphenated());
     }
+    if let Some(arch) = summary_info.arch() {
+        println!("        Arch: {}", arch);
+    }
+    let languages = summary_info.languages();
+    if !languages.is_empty() {
+        let tags: Vec<&str> =
+            languages.iter().map(msi::Language::tag).collect();
+        println!("    Language: {}", tags.join(", "));
+    }
     if let Some(timestamp) = summary_info.creation_time() {
         println!("  Created at: {}", to_datetime(timestamp));
     }
