@@ -85,7 +85,7 @@ fn is_reserved_table_name(table_name: &str) -> bool {
 // ========================================================================= //
 
 /// The type of MSI package (e.g. installer or patch).
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum PackageType {
     /// An installer package, which installs a new application.
     Installer,

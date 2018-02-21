@@ -5,6 +5,7 @@ pub mod category;
 pub mod codepage;
 pub mod column;
 pub mod expr;
+pub mod language;
 pub mod package;
 pub mod propset;
 pub mod query;

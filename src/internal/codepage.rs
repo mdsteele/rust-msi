@@ -10,7 +10,7 @@ use encoding::{self, DecoderTrap, EncoderTrap, Encoding};
 /// Not all Windows code pages are supported by this library yet.  See
 /// [Wikipedia](https://en.wikipedia.org/wiki/Windows_code_page) for a complete
 /// list of valid code pages.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum CodePage {
     /// [Windows-1250 (Latin 2)](https://en.wikipedia.org/wiki/Windows-1250)
     Windows1250,

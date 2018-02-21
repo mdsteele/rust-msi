@@ -1,3 +1,4 @@
+use internal::language::Language;
 use internal::stringpool::{StringPool, StringRef};
 use std::convert::From;
 use std::fmt;
@@ -109,6 +110,24 @@ impl From<String> for Value {
     fn from(string: String) -> Value { Value::Str(string) }
 }
 
+/// Returns a string value containing the code for the given language, suitable
+/// for storing in a column with the `Language` category.
+impl From<Language> for Value {
+    fn from(language: Language) -> Value {
+        Value::Str(format!("{}", language.code()))
+    }
+}
+
+/// Returns a string value containing the codes for the given languages,
+/// suitable for storing in a column with the `Language` category.
+impl<'a> From<&'a [Language]> for Value {
+    fn from(languages: &'a [Language]) -> Value {
+        let codes: Vec<String> =
+            languages.iter().map(|lang| lang.code().to_string()).collect();
+        Value::Str(codes.join(","))
+    }
+}
+
 /// Returns a string value containing the given UUID, suitable for storing in a
 /// column with the `Guid` category.
 impl From<Uuid> for Value {
@@ -169,6 +188,7 @@ impl ValueRef {
 mod tests {
     use super::{Value, ValueRef};
     use internal::codepage::CodePage;
+    use internal::language::Language;
     use internal::stringpool::StringPool;
     use uuid::Uuid;
 
@@ -193,6 +213,18 @@ mod tests {
         assert_eq!(Value::from("foobar"), Value::Str("foobar".to_string()));
         assert_eq!(Value::from("foobar".to_string()),
                    Value::Str("foobar".to_string()));
+        assert_eq!(Value::from(Language::from_tag("en-US")),
+                   Value::Str("1033".to_string()));
+        assert_eq!(
+            Value::from(
+                &[
+                    Language::from_code(1033),
+                    Language::from_code(2107),
+                    Language::from_code(3131),
+                ] as &[Language],
+            ),
+            Value::Str("1033,2107,3131".to_string())
+        );
         assert_eq!(
             Value::from(Uuid::parse_str(
                 "34ab5c53-9b30-4e14-aef0-2c1c7ba826c0").unwrap()),
