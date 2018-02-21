@@ -362,6 +362,10 @@ impl PropertySet {
         }
         self.properties.insert(property_name, property_value);
     }
+
+    pub fn remove(&mut self, property_name: u32) {
+        self.properties.remove(&property_name);
+    }
 }
 
 // ========================================================================= //

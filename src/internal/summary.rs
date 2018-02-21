@@ -85,6 +85,9 @@ impl SummaryInfo {
         self.properties.set(PROPERTY_TEMPLATE, PropertyValue::LpStr(template));
     }
 
+    /// Clears the architecture string in the "template" property.
+    pub fn clear_arch(&mut self) { self.set_arch(""); }
+
     /// Gets the "author" property, if one is set.  This indicates the name of
     /// the person or company that created the package.
     pub fn author(&self) -> Option<&str> {
@@ -99,6 +102,9 @@ impl SummaryInfo {
         self.properties
             .set(PROPERTY_AUTHOR, PropertyValue::LpStr(author.into()));
     }
+
+    /// Clears the "author" property.
+    pub fn clear_author(&mut self) { self.properties.remove(PROPERTY_AUTHOR); }
 
     /// Gets the code page used for serializing this summary info.
     pub fn codepage(&self) -> CodePage { self.properties.codepage() }
@@ -126,6 +132,11 @@ impl SummaryInfo {
             .set(PROPERTY_COMMENTS, PropertyValue::LpStr(comments.into()));
     }
 
+    /// Clears the "comments" property.
+    pub fn clear_comments(&mut self) {
+        self.properties.remove(PROPERTY_COMMENTS);
+    }
+
     /// Gets the "creating application" property, if one is set.  This
     /// indicates the name of the software application/tool that was used to
     /// create the package.
@@ -142,6 +153,11 @@ impl SummaryInfo {
     pub fn set_creating_application<S: Into<String>>(&mut self, app_name: S) {
         self.properties
             .set(PROPERTY_CREATING_APP, PropertyValue::LpStr(app_name.into()));
+    }
+
+    /// Clears the "creating application" property.
+    pub fn clear_creating_application(&mut self) {
+        self.properties.remove(PROPERTY_CREATING_APP);
     }
 
     /// Gets the "creation time" property, if one is set.  This indicates the
@@ -162,6 +178,11 @@ impl SummaryInfo {
     /// Sets the "creation time" property to the current time.
     pub fn set_creation_time_to_now(&mut self) {
         self.set_creation_time(SystemTime::now());
+    }
+
+    /// Clears the "creation time" property.
+    pub fn clear_creation_time(&mut self) {
+        self.properties.remove(PROPERTY_CREATION_TIME);
     }
 
     /// Gets the list of languages from the "template" property, if one is set.
@@ -205,6 +226,9 @@ impl SummaryInfo {
         self.properties.set(PROPERTY_TEMPLATE, PropertyValue::LpStr(template));
     }
 
+    /// Clears the list of languages in the "template" property.
+    pub fn clear_languages(&mut self) { self.set_languages(&[]); }
+
     /// Gets the "subject" property, if one is set.  This typically indicates
     /// the name of the application/software that will be installed by the
     /// package.
@@ -221,6 +245,11 @@ impl SummaryInfo {
             .set(PROPERTY_SUBJECT, PropertyValue::LpStr(subject.into()));
     }
 
+    /// Clears the "subject" property.
+    pub fn clear_subject(&mut self) {
+        self.properties.remove(PROPERTY_SUBJECT);
+    }
+
     /// Gets the "title" property, if one is set.  This indicates the type of
     /// the installer package (e.g. "Installation Database" or "Patch").
     pub fn title(&self) -> Option<&str> {
@@ -235,6 +264,9 @@ impl SummaryInfo {
         self.properties
             .set(PROPERTY_TITLE, PropertyValue::LpStr(title.into()));
     }
+
+    /// Clears the "title" property.
+    pub fn clear_title(&mut self) { self.properties.remove(PROPERTY_TITLE); }
 
     /// Gets the "UUID" property, if one is set.
     pub fn uuid(&self) -> Option<Uuid> {
@@ -254,6 +286,9 @@ impl SummaryInfo {
         string.make_ascii_uppercase();
         self.properties.set(PROPERTY_UUID, PropertyValue::LpStr(string));
     }
+
+    /// Clears the "UUID" property.
+    pub fn clear_uuid(&mut self) { self.properties.remove(PROPERTY_UUID); }
 }
 
 // ========================================================================= //
@@ -297,6 +332,25 @@ mod tests {
         assert_eq!(summary_info.subject(), Some("My Great App"));
         assert_eq!(summary_info.title(), Some("Installation Package"));
         assert_eq!(summary_info.uuid(), Some(uuid));
+
+        summary_info.clear_arch();
+        assert_eq!(summary_info.arch(), None);
+        summary_info.clear_author();
+        assert_eq!(summary_info.author(), None);
+        summary_info.clear_comments();
+        assert_eq!(summary_info.comments(), None);
+        summary_info.clear_creating_application();
+        assert_eq!(summary_info.creating_application(), None);
+        summary_info.clear_creation_time();
+        assert_eq!(summary_info.creation_time(), None);
+        summary_info.clear_languages();
+        assert_eq!(summary_info.languages(), Vec::new());
+        summary_info.clear_subject();
+        assert_eq!(summary_info.subject(), None);
+        summary_info.clear_title();
+        assert_eq!(summary_info.title(), None);
+        summary_info.clear_uuid();
+        assert_eq!(summary_info.uuid(), None);
     }
 
     #[test]
