@@ -55,7 +55,7 @@ fn delete_one_row() {
     package.insert_rows(query).unwrap();
 
     let query = Delete::from("Foobar")
-        .with((Expr::col("Foo").eq(Expr::integer(2))));
+        .with(Expr::col("Foo").eq(Expr::integer(2)));
     package.delete_rows(query).unwrap();
 
     let cursor = package.into_inner().unwrap();
