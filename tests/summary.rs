@@ -11,8 +11,8 @@ use uuid::Uuid;
 #[test]
 fn set_summary_info_properties() {
     let timestamp = SystemTime::now();
-    let uuid = Uuid::parse_str("9bb29b0d-edc7-4699-9607-a5e201d67ed1")
-        .unwrap();
+    let uuid =
+        Uuid::parse_str("9bb29b0d-edc7-4699-9607-a5e201d67ed1").unwrap();
 
     let cursor = Cursor::new(Vec::new());
     let mut package = Package::create(PackageType::Installer, cursor).unwrap();

@@ -1,17 +1,17 @@
+use crate::internal::category::Category;
+use crate::internal::codepage::CodePage;
+use crate::internal::column::Column;
+use crate::internal::expr::Expr;
+use crate::internal::query::{Delete, Insert, Select, Update};
+use crate::internal::stream::{StreamReader, StreamWriter, Streams};
+use crate::internal::streamname::{self, SUMMARY_INFO_STREAM_NAME};
+use crate::internal::stringpool::{StringPool, StringPoolBuilder};
+use crate::internal::summary::SummaryInfo;
+use crate::internal::table::{Rows, Table};
+use crate::internal::value::{Value, ValueRef};
 use cfb;
-use internal::category::Category;
-use internal::codepage::CodePage;
-use internal::column::Column;
-use internal::expr::Expr;
-use internal::query::{Delete, Insert, Select, Update};
-use internal::stream::{StreamReader, StreamWriter, Streams};
-use internal::streamname::{self, SUMMARY_INFO_STREAM_NAME};
-use internal::stringpool::{StringPool, StringPoolBuilder};
-use internal::summary::SummaryInfo;
-use internal::table::{Rows, Table};
-use internal::value::{Value, ValueRef};
 use std::borrow::Borrow;
-use std::collections::{BTreeMap, HashMap, HashSet, btree_map};
+use std::collections::{btree_map, BTreeMap, HashMap, HashSet};
 use std::io::{self, Read, Seek, Write};
 use std::rc::Rc;
 use uuid::Uuid;
@@ -47,9 +47,11 @@ fn make_columns_table(long_string_refs: bool) -> Rc<Table> {
 }
 
 fn make_tables_table(long_string_refs: bool) -> Rc<Table> {
-    Table::new(TABLES_TABLE_NAME.to_string(),
-               vec![Column::build("Name").primary_key().string(64)],
-               long_string_refs)
+    Table::new(
+        TABLES_TABLE_NAME.to_string(),
+        vec![Column::build("Name").primary_key().string(64)],
+        long_string_refs,
+    )
 }
 
 fn make_validation_columns() -> Vec<Column> {
@@ -72,14 +74,17 @@ fn make_validation_columns() -> Vec<Column> {
 }
 
 fn make_validation_table(long_string_refs: bool) -> Rc<Table> {
-    Table::new(VALIDATION_TABLE_NAME.to_string(),
-               make_validation_columns(),
-               long_string_refs)
+    Table::new(
+        VALIDATION_TABLE_NAME.to_string(),
+        make_validation_columns(),
+        long_string_refs,
+    )
 }
 
 fn is_reserved_table_name(table_name: &str) -> bool {
-    table_name == COLUMNS_TABLE_NAME || table_name == TABLES_TABLE_NAME ||
-        table_name == VALIDATION_TABLE_NAME
+    table_name == COLUMNS_TABLE_NAME
+        || table_name == TABLES_TABLE_NAME
+        || table_name == VALIDATION_TABLE_NAME
 }
 
 // ========================================================================= //
@@ -188,18 +193,24 @@ pub struct Package<F> {
     is_summary_info_modified: bool,
     string_pool: StringPool,
     tables: BTreeMap<String, Rc<Table>>,
-    finisher: Option<Box<Finish<F>>>,
+    finisher: Option<Box<dyn Finish<F>>>,
 }
 
 impl<F> Package<F> {
     /// Returns what type of package this is.
-    pub fn package_type(&self) -> PackageType { self.package_type }
+    pub fn package_type(&self) -> PackageType {
+        self.package_type
+    }
 
     /// Returns summary information for this package.
-    pub fn summary_info(&self) -> &SummaryInfo { &self.summary_info }
+    pub fn summary_info(&self) -> &SummaryInfo {
+        &self.summary_info
+    }
 
     /// Returns the code page used for serializing strings in the database.
-    pub fn database_codepage(&self) -> CodePage { self.string_pool.codepage() }
+    pub fn database_codepage(&self) -> CodePage {
+        self.string_pool.codepage()
+    }
 
     /// Returns true if the database has a table with the given name.
     pub fn has_table(&self, table_name: &str) -> bool {
@@ -212,7 +223,9 @@ impl<F> Package<F> {
     }
 
     /// Returns an iterator over the database tables in this package.
-    pub fn tables(&self) -> Tables { Tables { iter: self.tables.values() } }
+    pub fn tables(&self) -> Tables {
+        Tables { iter: self.tables.values() }
+    }
 
     /// Returns true if the database has an embedded binary stream with the
     /// given name.
@@ -234,7 +247,9 @@ impl<F> Package<F> {
         Ok(self.comp.take().unwrap().into_inner())
     }
 
-    fn comp(&self) -> &cfb::CompoundFile<F> { self.comp.as_ref().unwrap() }
+    fn comp(&self) -> &cfb::CompoundFile<F> {
+        self.comp.as_ref().unwrap()
+    }
 
     fn comp_mut(&mut self) -> &mut cfb::CompoundFile<F> {
         self.comp.as_mut().unwrap()
@@ -252,10 +267,10 @@ impl<F: Read + Seek> Package<F> {
             let clsid = root_entry.clsid();
             match PackageType::from_clsid(clsid) {
                 Some(ptype) => ptype,
-                None => {
-                    invalid_data!("Unrecognized package CLSID ({})",
-                                  clsid.hyphenated())
-                }
+                None => invalid_data!(
+                    "Unrecognized package CLSID ({})",
+                    clsid.hyphenated()
+                ),
             }
         };
         let summary_info =
@@ -278,15 +293,19 @@ impl<F: Read + Seek> Package<F> {
             let mut names = HashSet::<String>::new();
             if comp.exists(&stream_name) {
                 let stream = comp.open_stream(&stream_name)?;
-                let rows = Rows::new(&string_pool,
-                                     table.clone(),
-                                     table.read_rows(stream)?);
+                let rows = Rows::new(
+                    &string_pool,
+                    table.clone(),
+                    table.read_rows(stream)?,
+                );
                 for row in rows {
                     let table_name = row[0].as_str().unwrap().to_string();
                     if names.contains(&table_name) {
-                        invalid_data!("Repeated key in {:?} table: {:?}",
-                                      TABLES_TABLE_NAME,
-                                      table_name);
+                        invalid_data!(
+                            "Repeated key in {:?} table: {:?}",
+                            TABLES_TABLE_NAME,
+                            table_name
+                        );
                     }
                     names.insert(table_name);
                 }
@@ -298,8 +317,7 @@ impl<F: Read + Seek> Package<F> {
             names
         };
         // Read in _Columns table:
-        let mut columns_map: HashMap<String,
-                                     BTreeMap<i32, (String, i32)>> =
+        let mut columns_map: HashMap<String, BTreeMap<i32, (String, i32)>> =
             table_names
                 .into_iter()
                 .map(|name| (name, BTreeMap::new()))
@@ -309,25 +327,31 @@ impl<F: Read + Seek> Package<F> {
             let stream_name = table.stream_name();
             if comp.exists(&stream_name) {
                 let stream = comp.open_stream(&stream_name)?;
-                let rows = Rows::new(&string_pool,
-                                     table.clone(),
-                                     table.read_rows(stream)?);
+                let rows = Rows::new(
+                    &string_pool,
+                    table.clone(),
+                    table.read_rows(stream)?,
+                );
                 for row in rows {
                     let table_name = row[0].as_str().unwrap();
                     if let Some(cols) = columns_map.get_mut(table_name) {
                         let col_index = row[1].as_int().unwrap();
                         if cols.contains_key(&col_index) {
-                            invalid_data!("Repeated key in {:?} table: {:?}",
-                                          COLUMNS_TABLE_NAME,
-                                          (table_name, col_index));
+                            invalid_data!(
+                                "Repeated key in {:?} table: {:?}",
+                                COLUMNS_TABLE_NAME,
+                                (table_name, col_index)
+                            );
                         }
                         let col_name = row[2].as_str().unwrap().to_string();
                         let type_bits = row[3].as_int().unwrap();
                         cols.insert(col_index, (col_name, type_bits));
                     } else {
-                        invalid_data!("_Columns mentions table {:?}, which \
+                        invalid_data!(
+                            "_Columns mentions table {:?}, which \
                                        isn't in _Tables",
-                                      table_name);
+                            table_name
+                        );
                     }
                 }
             }
@@ -356,9 +380,11 @@ impl<F: Read + Seek> Package<F> {
                         .to_string();
                     let key = (table_name, column_name);
                     if validation_map.contains_key(&key) {
-                        invalid_data!("Repeated key in {:?} table: {:?}",
-                                      VALIDATION_TABLE_NAME,
-                                      key);
+                        invalid_data!(
+                            "Repeated key in {:?} table: {:?}",
+                            VALIDATION_TABLE_NAME,
+                            key
+                        );
                     }
                     validation_map.insert(key, value_refs);
                 }
@@ -370,12 +396,14 @@ impl<F: Read + Seek> Package<F> {
                 invalid_data!("No columns found for table {:?}", table_name);
             }
             let num_columns = column_specs.len() as i32;
-            if column_specs.keys().next() != Some(&1) ||
-                column_specs.keys().next_back() != Some(&num_columns)
+            if column_specs.keys().next() != Some(&1)
+                || column_specs.keys().next_back() != Some(&num_columns)
             {
-                invalid_data!("Table {:?} does not have a complete set \
+                invalid_data!(
+                    "Table {:?} does not have a complete set \
                                of columns",
-                              table_name);
+                    table_name
+                );
             }
             let mut columns = Vec::<Column>::with_capacity(column_specs.len());
             for (_, (column_name, bitfield)) in column_specs.into_iter() {
@@ -396,9 +424,10 @@ impl<F: Read + Seek> Package<F> {
                     let key_table = value_refs[5].to_value(&string_pool);
                     let key_column = value_refs[6].to_value(&string_pool);
                     if !key_table.is_null() && !key_column.is_null() {
-                        builder =
-                            builder.foreign_key(key_table.as_str().unwrap(),
-                                                key_column.as_int().unwrap());
+                        builder = builder.foreign_key(
+                            key_table.as_str().unwrap(),
+                            key_column.as_int().unwrap(),
+                        );
                     }
                     let category_value = value_refs[7].to_value(&string_pool);
                     if !category_value.is_null() {
@@ -417,33 +446,40 @@ impl<F: Read + Seek> Package<F> {
                 }
                 columns.push(builder.with_bitfield(bitfield)?);
             }
-            let table = Table::new(table_name,
-                                   columns,
-                                   string_pool.long_string_refs());
+            let table = Table::new(
+                table_name,
+                columns,
+                string_pool.long_string_refs(),
+            );
             all_tables.insert(table.name().to_string(), table);
         }
         Ok(Package {
-               comp: Some(comp),
-               package_type: package_type,
-               summary_info: summary_info,
-               is_summary_info_modified: false,
-               string_pool: string_pool,
-               tables: all_tables,
-               finisher: None,
-           })
+            comp: Some(comp),
+            package_type,
+            summary_info,
+            is_summary_info_modified: false,
+            string_pool,
+            tables: all_tables,
+            finisher: None,
+        })
     }
 
     /// Attempts to execute a select query.  Returns an error if the query
     /// fails (e.g. due to the column names being incorrect or the table(s) not
     /// existing).
     pub fn select_rows(&mut self, query: Select) -> io::Result<Rows> {
-        query
-            .exec(self.comp.as_mut().unwrap(), &self.string_pool, &self.tables)
+        query.exec(
+            self.comp.as_mut().unwrap(),
+            &self.string_pool,
+            &self.tables,
+        )
     }
 
     /// Opens an existing binary stream in the package for reading.
-    pub fn read_stream(&mut self, stream_name: &str)
-                       -> io::Result<StreamReader<F>> {
+    pub fn read_stream(
+        &mut self,
+        stream_name: &str,
+    ) -> io::Result<StreamReader<F>> {
         if !streamname::is_valid(stream_name, false) {
             invalid_input!("{:?} is not a valid stream name", stream_name);
         }
@@ -458,8 +494,10 @@ impl<F: Read + Seek> Package<F> {
 impl<F: Read + Write + Seek> Package<F> {
     /// Creates a new, empty package of the given type, using the underlying
     /// reader/writer.  The reader/writer should be initially empty.
-    pub fn create(package_type: PackageType, inner: F)
-                  -> io::Result<Package<F>> {
+    pub fn create(
+        package_type: PackageType,
+        inner: F,
+    ) -> io::Result<Package<F>> {
         let mut comp = cfb::CompoundFile::create(inner)?;
         comp.set_storage_clsid("/", package_type.clsid())?;
         let mut summary_info = SummaryInfo::new();
@@ -475,11 +513,11 @@ impl<F: Read + Write + Seek> Package<F> {
         };
         let mut package = Package {
             comp: Some(comp),
-            package_type: package_type,
-            summary_info: summary_info,
+            package_type,
+            summary_info,
             is_summary_info_modified: true,
-            string_pool: string_pool,
-            tables: tables,
+            string_pool,
+            tables,
             finisher: None,
         };
         package
@@ -508,15 +546,19 @@ impl<F: Read + Write + Seek> Package<F> {
     /// Creates a new database table.  Returns an error without modifying the
     /// database if the table name or columns are invalid, or if a table with
     /// that name already exists.
-    pub fn create_table<S: Into<String>>(&mut self, table_name: S,
-                                         columns: Vec<Column>)
-                                         -> io::Result<()> {
+    pub fn create_table<S: Into<String>>(
+        &mut self,
+        table_name: S,
+        columns: Vec<Column>,
+    ) -> io::Result<()> {
         self.create_table_with_name(table_name.into(), columns)
     }
 
-    fn create_table_with_name(&mut self, table_name: String,
-                              columns: Vec<Column>)
-                              -> io::Result<()> {
+    fn create_table_with_name(
+        &mut self,
+        table_name: String,
+        columns: Vec<Column>,
+    ) -> io::Result<()> {
         if !Table::is_valid_name(&table_name) {
             invalid_input!("{:?} is not a valid table name", table_name);
         }
@@ -524,12 +566,16 @@ impl<F: Read + Write + Seek> Package<F> {
             invalid_input!("Cannot create a table with no columns");
         }
         if columns.len() > MAX_NUM_TABLE_COLUMNS {
-            invalid_input!("Cannot create a table with more than {} columns",
-                           MAX_NUM_TABLE_COLUMNS);
+            invalid_input!(
+                "Cannot create a table with more than {} columns",
+                MAX_NUM_TABLE_COLUMNS
+            );
         }
         if !columns.iter().any(Column::is_primary_key) {
-            invalid_input!("Cannot create a table without at least one \
-                            primary key column");
+            invalid_input!(
+                "Cannot create a table without at least one \
+                            primary key column"
+            );
         }
         {
             let mut column_names = HashSet::<&str>::new();
@@ -539,9 +585,11 @@ impl<F: Read + Write + Seek> Package<F> {
                     invalid_input!("{:?} is not a valid column name", name);
                 }
                 if column_names.contains(name) {
-                    invalid_input!("Cannot create a table with multiple \
+                    invalid_input!(
+                        "Cannot create a table with multiple \
                                     columns with the same name ({:?})",
-                                   name);
+                        name
+                    );
                 }
                 column_names.insert(name);
             }
@@ -565,8 +613,10 @@ impl<F: Read + Write + Seek> Package<F> {
                     .collect(),
             ),
         )?;
-        self.insert_rows(Insert::into(TABLES_TABLE_NAME)
-                             .row(vec![Value::Str(table_name.clone())]))?;
+        self.insert_rows(
+            Insert::into(TABLES_TABLE_NAME)
+                .row(vec![Value::Str(table_name.clone())]),
+        )?;
         let validation_rows: Vec<Vec<Value>> = columns
             .iter()
             .map(|column| {
@@ -586,10 +636,10 @@ impl<F: Read + Write + Seek> Package<F> {
                     Value::Str(table_name.clone()),
                     Value::Str(column.name().to_string()),
                     Value::Str(if column.is_nullable() {
-                                   "Y".to_string()
-                               } else {
-                                   "N".to_string()
-                               }),
+                        "Y".to_string()
+                    } else {
+                        "N".to_string()
+                    }),
                     min_value,
                     max_value,
                     key_table,
@@ -611,8 +661,9 @@ impl<F: Read + Write + Seek> Package<F> {
         let long_string_refs = self.string_pool.long_string_refs();
         let table = Table::new(table_name.clone(), columns, long_string_refs);
         self.tables.insert(table_name, table);
-        self.insert_rows(Insert::into(VALIDATION_TABLE_NAME)
-                             .rows(validation_rows))?;
+        self.insert_rows(
+            Insert::into(VALIDATION_TABLE_NAME).rows(validation_rows),
+        )?;
         Ok(())
     }
 
@@ -632,15 +683,18 @@ impl<F: Read + Write + Seek> Package<F> {
         if self.comp().exists(&stream_name) {
             self.comp_mut().remove_stream(&stream_name)?;
         }
-        self.delete_rows(Delete::from(VALIDATION_TABLE_NAME)
-                             .with(Expr::col("Table")
-                                       .eq(Expr::string(table_name))))?;
-        self.delete_rows(Delete::from(COLUMNS_TABLE_NAME)
-                             .with(Expr::col("Table")
-                                       .eq(Expr::string(table_name))))?;
-        self.delete_rows(Delete::from(TABLES_TABLE_NAME)
-                             .with(Expr::col("Name")
-                                       .eq(Expr::string(table_name))))?;
+        self.delete_rows(
+            Delete::from(VALIDATION_TABLE_NAME)
+                .with(Expr::col("Table").eq(Expr::string(table_name))),
+        )?;
+        self.delete_rows(
+            Delete::from(COLUMNS_TABLE_NAME)
+                .with(Expr::col("Table").eq(Expr::string(table_name))),
+        )?;
+        self.delete_rows(
+            Delete::from(TABLES_TABLE_NAME)
+                .with(Expr::col("Name").eq(Expr::string(table_name))),
+        )?;
         self.tables.remove(table_name);
         Ok(())
     }
@@ -649,9 +703,11 @@ impl<F: Read + Write + Seek> Package<F> {
     /// the database if the query fails (e.g. due to the table not existing).
     pub fn delete_rows(&mut self, query: Delete) -> io::Result<()> {
         self.set_finisher();
-        query.exec(self.comp.as_mut().unwrap(),
-                   &mut self.string_pool,
-                   &self.tables)
+        query.exec(
+            self.comp.as_mut().unwrap(),
+            &mut self.string_pool,
+            &self.tables,
+        )
     }
 
     /// Attempts to execute an insert query.  Returns an error without
@@ -659,9 +715,11 @@ impl<F: Read + Write + Seek> Package<F> {
     /// invalid, or keys not being unique, or the table not existing).
     pub fn insert_rows(&mut self, query: Insert) -> io::Result<()> {
         self.set_finisher();
-        query.exec(self.comp.as_mut().unwrap(),
-                   &mut self.string_pool,
-                   &self.tables)
+        query.exec(
+            self.comp.as_mut().unwrap(),
+            &mut self.string_pool,
+            &self.tables,
+        )
     }
 
     /// Attempts to execute an update query.  Returns an error without
@@ -669,14 +727,18 @@ impl<F: Read + Write + Seek> Package<F> {
     /// invalid, or column names being incorrect, or the table not existing).
     pub fn update_rows(&mut self, query: Update) -> io::Result<()> {
         self.set_finisher();
-        query.exec(self.comp.as_mut().unwrap(),
-                   &mut self.string_pool,
-                   &self.tables)
+        query.exec(
+            self.comp.as_mut().unwrap(),
+            &mut self.string_pool,
+            &self.tables,
+        )
     }
 
     /// Creates (or overwrites) a binary stream in the package.
-    pub fn write_stream(&mut self, stream_name: &str)
-                        -> io::Result<StreamWriter<F>> {
+    pub fn write_stream(
+        &mut self,
+        stream_name: &str,
+    ) -> io::Result<StreamWriter<F>> {
         if !streamname::is_valid(stream_name, false) {
             invalid_input!("{:?} is not a valid stream name", stream_name);
         }
@@ -706,7 +768,7 @@ impl<F: Read + Write + Seek> Package<F> {
 
     fn set_finisher(&mut self) {
         if self.finisher.is_none() {
-            let finisher: Box<Finish<F>> = Box::new(FinishImpl {});
+            let finisher: Box<dyn Finish<F>> = Box::new(FinishImpl {});
             self.finisher = Some(finisher);
         }
     }
@@ -737,7 +799,9 @@ impl<'a> Iterator for Tables<'a> {
         self.iter.next().map(Rc::borrow)
     }
 
-    fn size_hint(&self) -> (usize, Option<usize>) { self.iter.size_hint() }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.iter.size_hint()
+    }
 }
 
 impl<'a> ExactSizeIterator for Tables<'a> {}
@@ -785,18 +849,18 @@ impl<F: Read + Write + Seek> Finish<F> for FinishImpl {
 #[cfg(test)]
 mod tests {
     use super::{Package, PackageType};
-    use internal::codepage::CodePage;
-    use internal::column::Column;
-    use internal::expr::Expr;
-    use internal::query::{Insert, Select, Update};
-    use internal::value::Value;
+    use crate::internal::codepage::CodePage;
+    use crate::internal::column::Column;
+    use crate::internal::expr::Expr;
+    use crate::internal::query::{Insert, Select, Update};
+    use crate::internal::value::Value;
     use std::io::Cursor;
 
     #[test]
     fn set_database_codepage() {
         let cursor = Cursor::new(Vec::new());
-        let mut package = Package::create(PackageType::Installer, cursor)
-            .expect("create");
+        let mut package =
+            Package::create(PackageType::Installer, cursor).expect("create");
         assert_eq!(package.database_codepage(), CodePage::Utf8);
         package.set_database_codepage(CodePage::MacintoshRoman);
         assert_eq!(package.database_codepage(), CodePage::MacintoshRoman);
@@ -809,8 +873,8 @@ mod tests {
     #[test]
     fn insert_rows() {
         let cursor = Cursor::new(Vec::new());
-        let mut package = Package::create(PackageType::Installer, cursor)
-            .expect("create");
+        let mut package =
+            Package::create(PackageType::Installer, cursor).expect("create");
         let columns = vec![
             Column::build("Number").primary_key().int16(),
             Column::build("Word").nullable().string(50),
@@ -824,19 +888,26 @@ mod tests {
                     .row(vec![Value::Int(1), Value::Str("One".to_string())]),
             )
             .expect("insert_rows");
-        assert_eq!(package
-                       .select_rows(Select::table("Numbers"))
-                       .expect("select")
-                       .len(),
-                   3);
+        assert_eq!(
+            package
+                .select_rows(Select::table("Numbers"))
+                .expect("select")
+                .len(),
+            3
+        );
 
         let cursor = package.into_inner().expect("into_inner");
         let mut package = Package::open(cursor).expect("open");
         let rows = package.select_rows(Select::table("Numbers")).unwrap();
         assert_eq!(rows.len(), 3);
-        let values: Vec<(i32, String)> = rows.map(|row| {
-            (row[0].as_int().unwrap(), row[1].as_str().unwrap().to_string())
-        }).collect();
+        let values: Vec<(i32, String)> = rows
+            .map(|row| {
+                (
+                    row[0].as_int().unwrap(),
+                    row[1].as_str().unwrap().to_string(),
+                )
+            })
+            .collect();
         assert_eq!(
             values,
             vec![
@@ -850,40 +921,43 @@ mod tests {
     #[test]
     fn update_rows() {
         let cursor = Cursor::new(Vec::new());
-        let mut package = Package::create(PackageType::Installer, cursor)
-            .expect("create");
+        let mut package =
+            Package::create(PackageType::Installer, cursor).expect("create");
         let columns = vec![
             Column::build("Key").primary_key().int16(),
             Column::build("Value").nullable().int32(),
         ];
         package.create_table("Mapping", columns).expect("create_table");
         package
-            .insert_rows(Insert::into("Mapping")
-                             .row(vec![Value::Int(1), Value::Int(17)])
-                             .row(vec![Value::Int(2), Value::Int(42)])
-                             .row(vec![Value::Int(3), Value::Int(17)]))
+            .insert_rows(
+                Insert::into("Mapping")
+                    .row(vec![Value::Int(1), Value::Int(17)])
+                    .row(vec![Value::Int(2), Value::Int(42)])
+                    .row(vec![Value::Int(3), Value::Int(17)]),
+            )
             .expect("insert_rows");
         package
-            .update_rows(Update::table("Mapping")
-                             .set("Value", Value::Int(-5))
-                             .with(Expr::col("Value").eq(Expr::integer(17))))
+            .update_rows(
+                Update::table("Mapping")
+                    .set("Value", Value::Int(-5))
+                    .with(Expr::col("Value").eq(Expr::integer(17))),
+            )
             .unwrap();
 
         let cursor = package.into_inner().expect("into_inner");
         let mut package = Package::open(cursor).expect("open");
         let rows = package.select_rows(Select::table("Mapping")).unwrap();
-        let values: Vec<(i32, i32)> =
-            rows.map(|row| {
-                         (row[0].as_int().unwrap(), row[1].as_int().unwrap())
-                     }).collect();
+        let values: Vec<(i32, i32)> = rows
+            .map(|row| (row[0].as_int().unwrap(), row[1].as_int().unwrap()))
+            .collect();
         assert_eq!(values, vec![(1, -5), (2, 42), (3, -5)]);
     }
 
     #[test]
     fn select_rows() {
         let cursor = Cursor::new(Vec::new());
-        let mut package = Package::create(PackageType::Installer, cursor)
-            .expect("create");
+        let mut package =
+            Package::create(PackageType::Installer, cursor).expect("create");
         let columns = vec![
             Column::build("Foo").primary_key().int16(),
             Column::build("Bar").string(16),
@@ -917,32 +991,43 @@ mod tests {
             .expect("insert_rows");
 
         let rows = package
-            .select_rows(Select::table("Quux")
-                             .columns(&["Bar", "Foo"])
-                             .with(Expr::col("Baz").eq(Expr::integer(0))))
+            .select_rows(
+                Select::table("Quux")
+                    .columns(&["Bar", "Foo"])
+                    .with(Expr::col("Baz").eq(Expr::integer(0))),
+            )
             .expect("select_rows");
-        let values: Vec<(String, i32)> = rows.map(|row| {
-            (row[0].as_str().unwrap().to_string(), row[1].as_int().unwrap())
-        }).collect();
-        assert_eq!(values,
-                   vec![("spam".to_string(), 1), ("bacon".to_string(), 3)]);
+        let values: Vec<(String, i32)> = rows
+            .map(|row| {
+                (
+                    row[0].as_str().unwrap().to_string(),
+                    row[1].as_int().unwrap(),
+                )
+            })
+            .collect();
+        assert_eq!(
+            values,
+            vec![("spam".to_string(), 1), ("bacon".to_string(), 3)]
+        );
     }
 
     #[test]
     fn join_tables() {
         let cursor = Cursor::new(Vec::new());
-        let mut package = Package::create(PackageType::Installer, cursor)
-            .expect("create");
+        let mut package =
+            Package::create(PackageType::Installer, cursor).expect("create");
         let columns = vec![
             Column::build("Foo").primary_key().int16(),
             Column::build("Bar").int16(),
         ];
         package.create_table("Foobar", columns).unwrap();
         package
-            .insert_rows(Insert::into("Foobar")
-                             .row(vec![Value::Int(1), Value::Int(17)])
-                             .row(vec![Value::Int(2), Value::Int(42)])
-                             .row(vec![Value::Int(3), Value::Int(17)]))
+            .insert_rows(
+                Insert::into("Foobar")
+                    .row(vec![Value::Int(1), Value::Int(17)])
+                    .row(vec![Value::Int(2), Value::Int(42)])
+                    .row(vec![Value::Int(3), Value::Int(17)]),
+            )
             .unwrap();
         let columns = vec![
             Column::build("Baz").primary_key().int16(),
@@ -950,37 +1035,47 @@ mod tests {
         ];
         package.create_table("Bazfoo", columns).unwrap();
         package
-            .insert_rows(Insert::into("Bazfoo")
-                             .row(vec![Value::Int(4), Value::Int(42)])
-                             .row(vec![Value::Int(5), Value::Int(13)])
-                             .row(vec![Value::Int(6), Value::Int(17)]))
+            .insert_rows(
+                Insert::into("Bazfoo")
+                    .row(vec![Value::Int(4), Value::Int(42)])
+                    .row(vec![Value::Int(5), Value::Int(13)])
+                    .row(vec![Value::Int(6), Value::Int(17)]),
+            )
             .unwrap();
         {
             let rows = package
-                .select_rows(Select::table("Foobar")
-                                 .inner_join(Select::table("Bazfoo"),
-                                             Expr::col("Foobar.Bar")
-                                                 .eq(Expr::col("Bazfoo.Foo")))
-                                 .columns(&["Foobar.Foo", "Bazfoo.Baz"]))
+                .select_rows(
+                    Select::table("Foobar")
+                        .inner_join(
+                            Select::table("Bazfoo"),
+                            Expr::col("Foobar.Bar")
+                                .eq(Expr::col("Bazfoo.Foo")),
+                        )
+                        .columns(&["Foobar.Foo", "Bazfoo.Baz"]),
+                )
                 .expect("select_rows");
-            let values: Vec<(i32, i32)> =
-                rows.map(|row| {
-                             (row[0].as_int().unwrap(),
-                              row[1].as_int().unwrap())
-                         }).collect();
+            let values: Vec<(i32, i32)> = rows
+                .map(|row| {
+                    (row[0].as_int().unwrap(), row[1].as_int().unwrap())
+                })
+                .collect();
             assert_eq!(values, vec![(1, 6), (2, 4), (3, 6)]);
         }
         {
             let rows = package
-                .select_rows(Select::table("Bazfoo")
-                                 .left_join(Select::table("Foobar"),
-                                            Expr::col("Foobar.Bar")
-                                                .eq(Expr::col("Bazfoo.Foo")))
-                                 .columns(&["Bazfoo.Baz", "Foobar.Foo"]))
+                .select_rows(
+                    Select::table("Bazfoo")
+                        .left_join(
+                            Select::table("Foobar"),
+                            Expr::col("Foobar.Bar")
+                                .eq(Expr::col("Bazfoo.Foo")),
+                        )
+                        .columns(&["Bazfoo.Baz", "Foobar.Foo"]),
+                )
                 .expect("select_rows");
-            let values: Vec<(i32, Option<i32>)> =
-                rows.map(|row| (row[0].as_int().unwrap(), row[1].as_int()))
-                    .collect();
+            let values: Vec<(i32, Option<i32>)> = rows
+                .map(|row| (row[0].as_int().unwrap(), row[1].as_int()))
+                .collect();
             assert_eq!(
                 values,
                 vec![(4, Some(2)), (5, None), (6, Some(1)), (6, Some(3))]

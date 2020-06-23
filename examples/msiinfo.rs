@@ -10,8 +10,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 fn to_datetime(timestamp: SystemTime) -> DateTime<Utc> {
     let delta = timestamp.duration_since(UNIX_EPOCH).expect("duration_since");
-    let naive = NaiveDateTime::from_timestamp(delta.as_secs() as i64,
-                                              delta.subsec_nanos());
+    let naive = NaiveDateTime::from_timestamp(
+        delta.as_secs() as i64,
+        delta.subsec_nanos(),
+    );
     DateTime::<Utc>::from_utc(naive, Utc)
 }
 
@@ -22,8 +24,10 @@ fn pad(mut string: String, fill: char, width: usize) -> String {
     string
 }
 
-fn print_summary_info(package_type: msi::PackageType,
-                      summary_info: &msi::SummaryInfo) {
+fn print_summary_info(
+    package_type: msi::PackageType,
+    summary_info: &msi::SummaryInfo,
+) {
     println!("Package type: {:?}", package_type);
     let codepage = summary_info.codepage();
     println!("   Code page: {} ({})", codepage.id(), codepage.name());
@@ -65,16 +69,20 @@ fn print_summary_info(package_type: msi::PackageType,
 fn print_table_description(table: &msi::Table) {
     println!("{}", table.name());
     for column in table.columns() {
-        println!("  {:<16} {}{}{}",
-                 column.name(),
-                 if column.is_primary_key() { '*' } else { ' ' },
-                 column.coltype(),
-                 if column.is_nullable() { "?" } else { "" });
+        println!(
+            "  {:<16} {}{}{}",
+            column.name(),
+            if column.is_primary_key() { '*' } else { ' ' },
+            column.coltype(),
+            if column.is_nullable() { "?" } else { "" }
+        );
     }
 }
 
-fn print_table_contents<F: Read + Seek>(package: &mut msi::Package<F>,
-                                        table_name: &str) {
+fn print_table_contents<F: Read + Seek>(
+    package: &mut msi::Package<F>,
+    table_name: &str,
+) {
     let mut col_widths: Vec<usize> = package
         .get_table(table_name)
         .unwrap()
@@ -97,12 +105,8 @@ fn print_table_contents<F: Read + Seek>(package: &mut msi::Package<F>,
         .collect();
     {
         let mut line = String::new();
-        for (index, column) in package
-            .get_table(table_name)
-            .unwrap()
-            .columns()
-            .iter()
-            .enumerate()
+        for (index, column) in
+            package.get_table(table_name).unwrap().columns().iter().enumerate()
         {
             let string =
                 pad(column.name().to_string(), ' ', col_widths[index]);
@@ -136,27 +140,39 @@ fn main() {
         .version("0.1")
         .author("Matthew D. Steele <mdsteele@alum.mit.edu>")
         .about("Inspects MSI files")
-        .subcommand(SubCommand::with_name("describe")
-                        .about("Prints schema for a table in an MSI file")
-                        .arg(Arg::with_name("path").required(true))
-                        .arg(Arg::with_name("table").required(true)))
-        .subcommand(SubCommand::with_name("export")
-                        .about("Prints all rows for a table in an MSI file")
-                        .arg(Arg::with_name("path").required(true))
-                        .arg(Arg::with_name("table").required(true)))
-        .subcommand(SubCommand::with_name("extract")
-                        .about("Extract a binary stream from an MSI file")
-                        .arg(Arg::with_name("path").required(true))
-                        .arg(Arg::with_name("stream").required(true)))
-        .subcommand(SubCommand::with_name("streams")
-                        .about("Lists binary streams in an MSI file")
-                        .arg(Arg::with_name("path").required(true)))
-        .subcommand(SubCommand::with_name("summary")
-                        .about("Prints summary information for an MSI file")
-                        .arg(Arg::with_name("path").required(true)))
-        .subcommand(SubCommand::with_name("tables")
-                        .about("Lists database tables in an MSI file")
-                        .arg(Arg::with_name("path").required(true)))
+        .subcommand(
+            SubCommand::with_name("describe")
+                .about("Prints schema for a table in an MSI file")
+                .arg(Arg::with_name("path").required(true))
+                .arg(Arg::with_name("table").required(true)),
+        )
+        .subcommand(
+            SubCommand::with_name("export")
+                .about("Prints all rows for a table in an MSI file")
+                .arg(Arg::with_name("path").required(true))
+                .arg(Arg::with_name("table").required(true)),
+        )
+        .subcommand(
+            SubCommand::with_name("extract")
+                .about("Extract a binary stream from an MSI file")
+                .arg(Arg::with_name("path").required(true))
+                .arg(Arg::with_name("stream").required(true)),
+        )
+        .subcommand(
+            SubCommand::with_name("streams")
+                .about("Lists binary streams in an MSI file")
+                .arg(Arg::with_name("path").required(true)),
+        )
+        .subcommand(
+            SubCommand::with_name("summary")
+                .about("Prints summary information for an MSI file")
+                .arg(Arg::with_name("path").required(true)),
+        )
+        .subcommand(
+            SubCommand::with_name("tables")
+                .about("Lists database tables in an MSI file")
+                .arg(Arg::with_name("path").required(true)),
+        )
         .get_matches();
     if let Some(submatches) = matches.subcommand_matches("describe") {
         let path = submatches.value_of("path").unwrap();

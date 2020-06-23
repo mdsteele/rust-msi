@@ -1,5 +1,5 @@
-use internal::table::Row;
-use internal::value::Value;
+use crate::internal::table::Row;
+use crate::internal::value::Value;
 use std::collections::HashSet;
 use std::fmt;
 use std::ops;
@@ -27,7 +27,9 @@ impl Expr {
     }
 
     /// Returns an expression that evaluates to a null value.
-    pub fn null() -> Expr { Expr { ast: Ast::Literal(Value::Null) } }
+    pub fn null() -> Expr {
+        Expr { ast: Ast::Literal(Value::Null) }
+    }
 
     /// Returns an expression that evaluates to the given boolean value.
     pub fn boolean(boolean: bool) -> Expr {
@@ -90,7 +92,9 @@ impl Expr {
     ///
     /// This method exists instead of the `std::ops::Not` trait to distinguish
     /// it from the (logical) `not()` method.
-    pub fn bitinv(self) -> Expr { Expr::unop(UnOp::BitNot, self.ast) }
+    pub fn bitinv(self) -> Expr {
+        Expr::unop(UnOp::BitNot, self.ast)
+    }
 
     /// Returns an expression that evaluates to true if both subexpressions
     /// evaluate to true.
@@ -109,12 +113,16 @@ impl Expr {
     ///
     /// This method exists instead of the `std::ops::Not` trait to distinguish
     /// it from the (bitwise) `bitinv()` method.
-    pub fn not(self) -> Expr { Expr::unop(UnOp::BoolNot, self.ast) }
+    pub fn not(self) -> Expr {
+        Expr::unop(UnOp::BoolNot, self.ast)
+    }
 
     /// Evaluates the expression against the given row.  Any errors in the
     /// expression (such as dividing a number by zero, or applying a bitwise
     /// operator to a string) will result in a null value.
-    pub fn eval(&self, row: &Row) -> Value { self.ast.eval(row) }
+    pub fn eval(&self, row: &Row) -> Value {
+        self.ast.eval(row)
+    }
 
     /// Returns the set of all column names referenced by this expression.
     pub fn column_names(&self) -> HashSet<&str> {
@@ -130,7 +138,9 @@ impl Expr {
 impl ops::Neg for Expr {
     type Output = Expr;
 
-    fn neg(self) -> Expr { Expr::unop(UnOp::Neg, self.ast) }
+    fn neg(self) -> Expr {
+        Expr::unop(UnOp::Neg, self.ast)
+    }
 }
 
 /// Produces an expression that evaluates to the sum of the two subexpressions
@@ -286,22 +296,22 @@ impl Ast {
                 names.insert(name.as_str());
             }
             Ast::UnOp(_, ref arg) => arg.populate_column_names(names),
-            Ast::BinOp(_, ref arg1, ref arg2) |
-            Ast::And(ref arg1, ref arg2) |
-            Ast::Or(ref arg1, ref arg2) => {
+            Ast::BinOp(_, ref arg1, ref arg2)
+            | Ast::And(ref arg1, ref arg2)
+            | Ast::Or(ref arg1, ref arg2) => {
                 arg1.populate_column_names(names);
                 arg2.populate_column_names(names);
             }
         }
     }
 
-    fn format_with_precedence(&self, formatter: &mut fmt::Formatter,
-                              parent_prec: i32)
-                              -> Result<(), fmt::Error> {
+    fn format_with_precedence(
+        &self,
+        formatter: &mut fmt::Formatter,
+        parent_prec: i32,
+    ) -> Result<(), fmt::Error> {
         match self {
-            &Ast::Literal(ref value) => {
-                (value as &fmt::Display).fmt(formatter)
-            }
+            &Ast::Literal(ref value) => fmt::Display::fmt(value, formatter),
             &Ast::Column(ref name) => formatter.write_str(name.as_str()),
             &Ast::UnOp(op, ref arg) => {
                 match op {
@@ -389,18 +399,14 @@ enum UnOp {
 impl UnOp {
     fn eval(&self, arg: Value) -> Value {
         match *self {
-            UnOp::Neg => {
-                match arg {
-                    Value::Int(number) => Value::Int(-number),
-                    _ => Value::Null,
-                }
-            }
-            UnOp::BitNot => {
-                match arg {
-                    Value::Int(number) => Value::Int(!number),
-                    _ => Value::Null,
-                }
-            }
+            UnOp::Neg => match arg {
+                Value::Int(number) => Value::Int(-number),
+                _ => Value::Null,
+            },
+            UnOp::BitNot => match arg {
+                Value::Int(number) => Value::Int(!number),
+                _ => Value::Null,
+            },
             UnOp::BoolNot => Value::from_bool(!arg.to_bool()),
         }
     }
@@ -437,82 +443,64 @@ impl BinOp {
             BinOp::Le => Value::from_bool(arg1 <= arg2),
             BinOp::Gt => Value::from_bool(arg1 > arg2),
             BinOp::Ge => Value::from_bool(arg1 >= arg2),
-            BinOp::Add => {
-                match (arg1, arg2) {
-                    (Value::Int(num1), Value::Int(num2)) => {
-                        Value::Int(num1 + num2)
-                    }
-                    (Value::Str(str1), Value::Str(str2)) => {
-                        Value::Str(str1 + &str2)
-                    }
-                    _ => Value::Null,
+            BinOp::Add => match (arg1, arg2) {
+                (Value::Int(num1), Value::Int(num2)) => {
+                    Value::Int(num1 + num2)
                 }
-            }
-            BinOp::Sub => {
-                match (arg1, arg2) {
-                    (Value::Int(num1), Value::Int(num2)) => {
-                        Value::Int(num1 - num2)
-                    }
-                    _ => Value::Null,
+                (Value::Str(str1), Value::Str(str2)) => {
+                    Value::Str(str1 + &str2)
                 }
-            }
-            BinOp::Mul => {
-                match (arg1, arg2) {
-                    (Value::Int(num1), Value::Int(num2)) => {
-                        Value::Int(num1 * num2)
-                    }
-                    _ => Value::Null,
+                _ => Value::Null,
+            },
+            BinOp::Sub => match (arg1, arg2) {
+                (Value::Int(num1), Value::Int(num2)) => {
+                    Value::Int(num1 - num2)
                 }
-            }
-            BinOp::Div => {
-                match (arg1, arg2) {
-                    (_, Value::Int(0)) => Value::Null,
-                    (Value::Int(num1), Value::Int(num2)) => {
-                        Value::Int(num1 / num2)
-                    }
-                    _ => Value::Null,
+                _ => Value::Null,
+            },
+            BinOp::Mul => match (arg1, arg2) {
+                (Value::Int(num1), Value::Int(num2)) => {
+                    Value::Int(num1 * num2)
                 }
-            }
-            BinOp::BitAnd => {
-                match (arg1, arg2) {
-                    (Value::Int(num1), Value::Int(num2)) => {
-                        Value::Int(num1 & num2)
-                    }
-                    _ => Value::Null,
+                _ => Value::Null,
+            },
+            BinOp::Div => match (arg1, arg2) {
+                (_, Value::Int(0)) => Value::Null,
+                (Value::Int(num1), Value::Int(num2)) => {
+                    Value::Int(num1 / num2)
                 }
-            }
-            BinOp::BitOr => {
-                match (arg1, arg2) {
-                    (Value::Int(num1), Value::Int(num2)) => {
-                        Value::Int(num1 | num2)
-                    }
-                    _ => Value::Null,
+                _ => Value::Null,
+            },
+            BinOp::BitAnd => match (arg1, arg2) {
+                (Value::Int(num1), Value::Int(num2)) => {
+                    Value::Int(num1 & num2)
                 }
-            }
-            BinOp::BitXor => {
-                match (arg1, arg2) {
-                    (Value::Int(num1), Value::Int(num2)) => {
-                        Value::Int(num1 ^ num2)
-                    }
-                    _ => Value::Null,
+                _ => Value::Null,
+            },
+            BinOp::BitOr => match (arg1, arg2) {
+                (Value::Int(num1), Value::Int(num2)) => {
+                    Value::Int(num1 | num2)
                 }
-            }
-            BinOp::Shl => {
-                match (arg1, arg2) {
-                    (Value::Int(num1), Value::Int(num2)) => {
-                        Value::Int(num1 << num2)
-                    }
-                    _ => Value::Null,
+                _ => Value::Null,
+            },
+            BinOp::BitXor => match (arg1, arg2) {
+                (Value::Int(num1), Value::Int(num2)) => {
+                    Value::Int(num1 ^ num2)
                 }
-            }
-            BinOp::Shr => {
-                match (arg1, arg2) {
-                    (Value::Int(num1), Value::Int(num2)) => {
-                        Value::Int(num1 >> num2)
-                    }
-                    _ => Value::Null,
+                _ => Value::Null,
+            },
+            BinOp::Shl => match (arg1, arg2) {
+                (Value::Int(num1), Value::Int(num2)) => {
+                    Value::Int(num1 << num2)
                 }
-            }
+                _ => Value::Null,
+            },
+            BinOp::Shr => match (arg1, arg2) {
+                (Value::Int(num1), Value::Int(num2)) => {
+                    Value::Int(num1 >> num2)
+                }
+                _ => Value::Null,
+            },
         }
     }
 
@@ -542,9 +530,9 @@ impl BinOp {
 #[cfg(test)]
 mod tests {
     use super::Expr;
-    use internal::column::Column;
-    use internal::table::{Row, Table};
-    use internal::value::Value;
+    use crate::internal::column::Column;
+    use crate::internal::table::{Row, Table};
+    use crate::internal::value::Value;
     use std::collections::HashSet;
 
     #[test]
@@ -566,31 +554,42 @@ mod tests {
         ];
         let row = Row::new(table, values);
 
-        assert_eq!(Expr::col("Str2").gt(Expr::col("Str1")).eval(&row),
-                   Value::from_bool(false));
-        assert_eq!(Expr::col("Null")
-                       .eq(Expr::null())
-                       .and(Expr::col("Int2").lt(Expr::integer(0)))
-                       .eval(&row),
-                   Value::from_bool(true));
-        assert_eq!(Expr::col("Null")
-                       .or(Expr::col("Int1").ne(Expr::col("Int2")))
-                       .eval(&row),
-                   Value::from_bool(true));
-        assert_eq!(((Expr::col("Int1") - Expr::col("Int2")) *
-                        Expr::col("Int1"))
-                       .eval(&row),
-                   Value::Int(2478));
-        assert_eq!(((Expr::col("Int1") << Expr::integer(2)) ^
-                        Expr::col("Int2"))
-                       .eval(&row),
-                   Value::Int(-185));
-        assert_eq!((Expr::col("Int2") / Expr::integer(0)).eval(&row),
-                   Value::Null);
-        assert_eq!((Expr::col("Str1") + Expr::string(":") +
-                       Expr::col("Str2"))
-                       .eval(&row),
-                   Value::from("foo:bar"));
+        assert_eq!(
+            Expr::col("Str2").gt(Expr::col("Str1")).eval(&row),
+            Value::from_bool(false)
+        );
+        assert_eq!(
+            Expr::col("Null")
+                .eq(Expr::null())
+                .and(Expr::col("Int2").lt(Expr::integer(0)))
+                .eval(&row),
+            Value::from_bool(true)
+        );
+        assert_eq!(
+            Expr::col("Null")
+                .or(Expr::col("Int1").ne(Expr::col("Int2")))
+                .eval(&row),
+            Value::from_bool(true)
+        );
+        assert_eq!(
+            ((Expr::col("Int1") - Expr::col("Int2")) * Expr::col("Int1"))
+                .eval(&row),
+            Value::Int(2478)
+        );
+        assert_eq!(
+            ((Expr::col("Int1") << Expr::integer(2)) ^ Expr::col("Int2"))
+                .eval(&row),
+            Value::Int(-185)
+        );
+        assert_eq!(
+            (Expr::col("Int2") / Expr::integer(0)).eval(&row),
+            Value::Null
+        );
+        assert_eq!(
+            (Expr::col("Str1") + Expr::string(":") + Expr::col("Str2"))
+                .eval(&row),
+            Value::from("foo:bar")
+        );
     }
 
     #[test]
@@ -608,8 +607,10 @@ mod tests {
         let expr = (Expr::col("Foo") / Expr::integer(10))
             .le(Expr::col("Bar"))
             .or(Expr::col("Baz").ge(Expr::col("Foo")));
-        assert_eq!(format!("{}", expr),
-                   "Foo / 10 <= Bar OR Baz >= Foo".to_string());
+        assert_eq!(
+            format!("{}", expr),
+            "Foo / 10 <= Bar OR Baz >= Foo".to_string()
+        );
 
         let expr = Expr::col("Foo") * (Expr::integer(10) + Expr::col("Bar"));
         assert_eq!(format!("{}", expr), "Foo * (10 + Bar)".to_string());

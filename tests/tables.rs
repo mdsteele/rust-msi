@@ -3,9 +3,9 @@ extern crate msi;
 #[macro_use]
 mod testutil;
 
-use msi::{Column, ColumnType, Expr, Insert, Package, PackageType, Select,
-          Value};
-use std::error::Error;
+use msi::{
+    Column, ColumnType, Expr, Insert, Package, PackageType, Select, Value,
+};
 use std::io::{Cursor, ErrorKind};
 
 // ========================================================================= //
@@ -15,9 +15,11 @@ fn create_table_with_invalid_name() {
     let cursor = Cursor::new(Vec::new());
     let mut package = Package::create(PackageType::Installer, cursor).unwrap();
     let columns = vec![Column::build("Foo").primary_key().int32()];
-    assert_error!(package.create_table("Foo & Bar", columns),
-                  ErrorKind::InvalidInput,
-                  "\"Foo & Bar\" is not a valid table name");
+    assert_error!(
+        package.create_table("Foo & Bar", columns),
+        ErrorKind::InvalidInput,
+        "\"Foo & Bar\" is not a valid table name"
+    );
     assert!(!package.has_table("Foo & Bar"));
 }
 
@@ -25,9 +27,11 @@ fn create_table_with_invalid_name() {
 fn create_table_with_no_columns() {
     let cursor = Cursor::new(Vec::new());
     let mut package = Package::create(PackageType::Installer, cursor).unwrap();
-    assert_error!(package.create_table("FooBar", vec![]),
-                  ErrorKind::InvalidInput,
-                  "Cannot create a table with no columns");
+    assert_error!(
+        package.create_table("FooBar", vec![]),
+        ErrorKind::InvalidInput,
+        "Cannot create a table with no columns"
+    );
     assert!(!package.has_table("FooBar"));
 }
 
@@ -36,10 +40,12 @@ fn create_table_with_no_primary_key() {
     let cursor = Cursor::new(Vec::new());
     let mut package = Package::create(PackageType::Installer, cursor).unwrap();
     let columns = vec![Column::build("Foo").int32()];
-    assert_error!(package.create_table("FooBar", columns),
-                  ErrorKind::InvalidInput,
-                  "Cannot create a table without at least one primary key \
-                   column");
+    assert_error!(
+        package.create_table("FooBar", columns),
+        ErrorKind::InvalidInput,
+        "Cannot create a table without at least one primary key \
+                   column"
+    );
     assert!(!package.has_table("FooBar"));
 }
 
@@ -51,9 +57,11 @@ fn create_duplicate_table() {
     package.create_table("FooBar", columns).unwrap();
     assert!(package.has_table("FooBar"));
     let columns = vec![Column::build("Bar").primary_key().int32()];
-    assert_error!(package.create_table("FooBar", columns),
-                  ErrorKind::AlreadyExists,
-                  "Table \"FooBar\" already exists");
+    assert_error!(
+        package.create_table("FooBar", columns),
+        ErrorKind::AlreadyExists,
+        "Table \"FooBar\" already exists"
+    );
     assert!(package.has_table("FooBar"));
 }
 
@@ -62,9 +70,11 @@ fn create_table_with_invalid_column_name() {
     let cursor = Cursor::new(Vec::new());
     let mut package = Package::create(PackageType::Installer, cursor).unwrap();
     let columns = vec![Column::build("Foo & Bar").primary_key().int32()];
-    assert_error!(package.create_table("FooBar", columns),
-                  ErrorKind::InvalidInput,
-                  "\"Foo & Bar\" is not a valid column name");
+    assert_error!(
+        package.create_table("FooBar", columns),
+        ErrorKind::InvalidInput,
+        "\"Foo & Bar\" is not a valid column name"
+    );
     assert!(!package.has_table("FooBar"));
 }
 
@@ -77,10 +87,12 @@ fn create_table_with_duplicate_column_names() {
         Column::build("Bar").int16(),
         Column::build("Foo").string(6),
     ];
-    assert_error!(package.create_table("FooBar", columns),
-                  ErrorKind::InvalidInput,
-                  "Cannot create a table with multiple columns with the \
-                   same name (\"Foo\")");
+    assert_error!(
+        package.create_table("FooBar", columns),
+        ErrorKind::InvalidInput,
+        "Cannot create a table with multiple columns with the \
+                   same name (\"Foo\")"
+    );
     assert!(!package.has_table("FooBar"));
 }
 
@@ -88,11 +100,10 @@ fn create_table_with_duplicate_column_names() {
 fn create_valid_table() {
     let cursor = Cursor::new(Vec::new());
     let mut package = Package::create(PackageType::Installer, cursor).unwrap();
-    let columns =
-        vec![
-            Column::build("Number").primary_key().range(0, 100).int16(),
-            Column::build("Word").nullable().string(50),
-        ];
+    let columns = vec![
+        Column::build("Number").primary_key().range(0, 100).int16(),
+        Column::build("Word").nullable().string(50),
+    ];
     package.create_table("Numbers", columns).unwrap();
     assert!(package.has_table("Numbers"));
 
@@ -122,9 +133,11 @@ fn create_valid_table() {
 fn drop_table_with_invalid_name() {
     let cursor = Cursor::new(Vec::new());
     let mut package = Package::create(PackageType::Installer, cursor).unwrap();
-    assert_error!(package.drop_table("Foo & Bar"),
-                  ErrorKind::InvalidInput,
-                  "\"Foo & Bar\" is not a valid table name");
+    assert_error!(
+        package.drop_table("Foo & Bar"),
+        ErrorKind::InvalidInput,
+        "\"Foo & Bar\" is not a valid table name"
+    );
 }
 
 #[test]
@@ -132,26 +145,34 @@ fn drop_nonexistent_table() {
     let cursor = Cursor::new(Vec::new());
     let mut package = Package::create(PackageType::Installer, cursor).unwrap();
     assert!(!package.has_table("FooBar"));
-    assert_error!(package.drop_table("FooBar"),
-                  ErrorKind::NotFound,
-                  "Table \"FooBar\" does not exist");
+    assert_error!(
+        package.drop_table("FooBar"),
+        ErrorKind::NotFound,
+        "Table \"FooBar\" does not exist"
+    );
 }
 
 #[test]
 fn drop_special_tables() {
     let cursor = Cursor::new(Vec::new());
     let mut package = Package::create(PackageType::Installer, cursor).unwrap();
-    assert_error!(package.drop_table("_Columns"),
-                  ErrorKind::InvalidInput,
-                  "Cannot drop special \"_Columns\" table");
+    assert_error!(
+        package.drop_table("_Columns"),
+        ErrorKind::InvalidInput,
+        "Cannot drop special \"_Columns\" table"
+    );
     assert!(package.has_table("_Columns"));
-    assert_error!(package.drop_table("_Tables"),
-                  ErrorKind::InvalidInput,
-                  "Cannot drop special \"_Tables\" table");
+    assert_error!(
+        package.drop_table("_Tables"),
+        ErrorKind::InvalidInput,
+        "Cannot drop special \"_Tables\" table"
+    );
     assert!(package.has_table("_Tables"));
-    assert_error!(package.drop_table("_Validation"),
-                  ErrorKind::InvalidInput,
-                  "Cannot drop special \"_Validation\" table");
+    assert_error!(
+        package.drop_table("_Validation"),
+        ErrorKind::InvalidInput,
+        "Cannot drop special \"_Validation\" table"
+    );
     assert!(package.has_table("_Validation"));
 }
 
@@ -162,11 +183,10 @@ fn drop_valid_table() {
     let table_name = "Numbers";
     let cursor = Cursor::new(Vec::new());
     let mut package = Package::create(PackageType::Installer, cursor).unwrap();
-    let columns =
-        vec![
-            Column::build("Number").primary_key().range(0, 100).int16(),
-            Column::build("Word").nullable().string(50),
-        ];
+    let columns = vec![
+        Column::build("Number").primary_key().range(0, 100).int16(),
+        Column::build("Word").nullable().string(50),
+    ];
     package.create_table(table_name, columns.clone()).unwrap();
     assert!(package.has_table(table_name));
     let query = Select::table("_Tables")
@@ -208,11 +228,10 @@ fn drop_table_with_rows() {
     let table_name = "Numbers";
     let cursor = Cursor::new(Vec::new());
     let mut package = Package::create(PackageType::Installer, cursor).unwrap();
-    let columns =
-        vec![
-            Column::build("Number").primary_key().range(0, 100).int16(),
-            Column::build("Word").nullable().string(50),
-        ];
+    let columns = vec![
+        Column::build("Number").primary_key().range(0, 100).int16(),
+        Column::build("Word").nullable().string(50),
+    ];
     package.create_table(table_name, columns.clone()).unwrap();
     assert!(package.has_table(table_name));
     let query = Insert::into(table_name)

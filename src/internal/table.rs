@@ -1,8 +1,8 @@
-use internal::category::Category;
-use internal::column::Column;
-use internal::streamname;
-use internal::stringpool::StringPool;
-use internal::value::{Value, ValueRef};
+use crate::internal::category::Category;
+use crate::internal::column::Column;
+use crate::internal::streamname;
+use crate::internal::stringpool::StringPool;
+use crate::internal::value::{Value, ValueRef};
 use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::ops::Index;
 use std::rc::Rc;
@@ -21,18 +21,18 @@ impl Table {
     /// Creates a new table object with the given name and columns.  The
     /// `long_string_refs` argument indicates the size of any encoded string
     /// refs.
-    pub(crate) fn new(name: String, columns: Vec<Column>,
-                      long_string_refs: bool)
-                      -> Rc<Table> {
-        Rc::new(Table {
-                    name: name,
-                    columns: columns,
-                    long_string_refs: long_string_refs,
-                })
+    pub(crate) fn new(
+        name: String,
+        columns: Vec<Column>,
+        long_string_refs: bool,
+    ) -> Rc<Table> {
+        Rc::new(Table { name, columns, long_string_refs })
     }
 
     /// Returns the name of the table.
-    pub fn name(&self) -> &str { &self.name }
+    pub fn name(&self) -> &str {
+        &self.name
+    }
 
     /// Returns the name of the CFB stream that holds this table's data.
     pub(crate) fn stream_name(&self) -> String {
@@ -44,10 +44,14 @@ impl Table {
         Category::Identifier.validate(name) && streamname::is_valid(name, true)
     }
 
-    pub(crate) fn long_string_refs(&self) -> bool { self.long_string_refs }
+    pub(crate) fn long_string_refs(&self) -> bool {
+        self.long_string_refs
+    }
 
     /// Returns the list of columns in this table.
-    pub fn columns(&self) -> &[Column] { &self.columns }
+    pub fn columns(&self) -> &[Column] {
+        &self.columns
+    }
 
     /// Returns true if this table has a column with the given name.
     pub fn has_column(&self, column_name: &str) -> bool {
@@ -67,16 +71,20 @@ impl Table {
         self.columns
             .iter()
             .enumerate()
-            .filter_map(|(index, column)| if column.is_primary_key() {
-                            Some(index)
-                        } else {
-                            None
-                        })
+            .filter_map(|(index, column)| {
+                if column.is_primary_key() {
+                    Some(index)
+                } else {
+                    None
+                }
+            })
             .collect()
     }
 
-    pub(crate) fn index_for_column_name(&self, column_name: &str)
-                                        -> Option<usize> {
+    pub(crate) fn index_for_column_name(
+        &self,
+        column_name: &str,
+    ) -> Option<usize> {
         for (index, column) in self.columns.iter().enumerate() {
             if column.name() == column_name {
                 return Some(index);
@@ -88,42 +96,45 @@ impl Table {
     /// Parses row data from the given data source and returns an interator
     /// over the rows.
     pub(crate) fn read_rows<R: Read + Seek>(
-        &self, mut reader: R)
-        -> io::Result<Vec<Vec<ValueRef>>> {
+        &self,
+        mut reader: R,
+    ) -> io::Result<Vec<Vec<ValueRef>>> {
         let data_length = reader.seek(SeekFrom::End(0))?;
         reader.seek(SeekFrom::Start(0))?;
-        let row_size = self.columns
+        let row_size = self
+            .columns
             .iter()
             .map(|col| col.coltype().width(self.long_string_refs))
             .sum::<u64>();
         let num_columns = self.columns.len();
-        let num_rows = if row_size > 0 {
-            (data_length / row_size) as usize
-        } else {
-            0
-        };
+        let num_rows =
+            if row_size > 0 { (data_length / row_size) as usize } else { 0 };
         let mut rows =
             vec![Vec::<ValueRef>::with_capacity(num_columns); num_rows];
         for column in self.columns.iter() {
             let coltype = column.coltype();
             for row in rows.iter_mut() {
-                row.push(coltype
-                             .read_value(&mut reader, self.long_string_refs)?);
+                row.push(
+                    coltype.read_value(&mut reader, self.long_string_refs)?,
+                );
             }
         }
         Ok(rows)
     }
 
-    pub(crate) fn write_rows<W: Write>(&self, mut writer: W,
-                                       rows: Vec<Vec<ValueRef>>)
-                                       -> io::Result<()> {
+    pub(crate) fn write_rows<W: Write>(
+        &self,
+        mut writer: W,
+        rows: Vec<Vec<ValueRef>>,
+    ) -> io::Result<()> {
         for (index, column) in self.columns.iter().enumerate() {
             let coltype = column.coltype();
             for row in rows.iter() {
-                coltype
-                    .write_value(&mut writer,
-                                 row[index],
-                                 self.long_string_refs)?;
+                coltype.write_value(
+                    &mut writer,
+                    row[index],
+                    self.long_string_refs,
+                )?;
             }
         }
         Ok(())
@@ -142,17 +153,18 @@ pub struct Row {
 impl Row {
     pub(crate) fn new(table: Rc<Table>, values: Vec<Value>) -> Row {
         debug_assert_eq!(values.len(), table.columns().len());
-        Row {
-            table: table,
-            values: values,
-        }
+        Row { table, values }
     }
 
     /// Returns the number of values in the row.
-    pub fn len(&self) -> usize { self.values.len() }
+    pub fn len(&self) -> usize {
+        self.values.len()
+    }
 
     /// Returns the list of columns in this row.
-    pub fn columns(&self) -> &[Column] { self.table.columns() }
+    pub fn columns(&self) -> &[Column] {
+        self.table.columns()
+    }
 
     /// Returns true if this row has a column with the given name.
     pub fn has_column(&self, column_name: &str) -> bool {
@@ -170,10 +182,12 @@ impl Index<usize> for Row {
         if index < self.values.len() {
             &self.values[index]
         } else {
-            panic!("Table {:?} has only {} columns (index was {})",
-                   self.table.name,
-                   self.values.len(),
-                   index);
+            panic!(
+                "Table {:?} has only {} columns (index was {})",
+                self.table.name,
+                self.values.len(),
+                index
+            );
         }
     }
 }
@@ -187,9 +201,10 @@ impl<'a> Index<&'a str> for Row {
         match self.table.index_for_column_name(column_name) {
             Some(index) => &self.values[index],
             None => {
-                panic!("Table {:?} has no column named {:?}",
-                       self.table.name,
-                       column_name);
+                panic!(
+                    "Table {:?} has no column named {:?}",
+                    self.table.name, column_name
+                );
             }
         }
     }
@@ -206,19 +221,17 @@ pub struct Rows<'a> {
 }
 
 impl<'a> Rows<'a> {
-    pub(crate) fn new(string_pool: &'a StringPool, table: Rc<Table>,
-                      rows: Vec<Vec<ValueRef>>)
-                      -> Rows<'a> {
-        Rows {
-            table: table,
-            string_pool: string_pool,
-            rows: rows,
-            next_row_index: 0,
-        }
+    pub(crate) fn new(
+        string_pool: &'a StringPool,
+        table: Rc<Table>,
+        rows: Vec<Vec<ValueRef>>,
+    ) -> Rows<'a> {
+        Rows { table, string_pool, rows, next_row_index: 0 }
     }
 
-    pub(crate) fn into_table_and_values(self)
-                                        -> (Rc<Table>, Vec<Vec<ValueRef>>) {
+    pub(crate) fn into_table_and_values(
+        self,
+    ) -> (Rc<Table>, Vec<Vec<ValueRef>>) {
         (self.table, self.rows)
     }
 }
@@ -263,9 +276,11 @@ mod tests {
 
         assert!(!Table::is_valid_name(""));
         assert!(!Table::is_valid_name("99Bottles"));
-        assert!(!Table::is_valid_name("ThisStringIsWayTooLongToBeATableName\
+        assert!(!Table::is_valid_name(
+            "ThisStringIsWayTooLongToBeATableName\
                                        IMeanSeriouslyWhoWouldTryToUseAName\
-                                       ThatIsThisLongItWouldBePrettySilly"));
+                                       ThatIsThisLongItWouldBePrettySilly"
+        ));
     }
 }
 

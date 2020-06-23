@@ -1,6 +1,6 @@
-use std::{fmt, i16, i32};
 use std::io;
 use std::str;
+use std::{fmt, i16, i32};
 use uuid::Uuid;
 
 // ========================================================================= //
@@ -273,17 +273,16 @@ impl Category {
             Category::DoubleInteger => string.parse::<i32>().is_ok(),
             Category::Identifier => {
                 string.starts_with(|chr| {
-                                       chr >= 'A' && chr <= 'Z' ||
-                                           chr >= 'a' && chr <= 'z' ||
-                                           chr == '_'
-                                   }) &&
-                    !string.contains(|chr| {
-                                         !(chr >= 'A' && chr <= 'Z' ||
-                                               chr >= 'a' && chr <= 'z' ||
-                                               chr >= '0' && chr <= '9' ||
-                                               chr == '_' ||
-                                               chr == '.')
-                                     })
+                    chr >= 'A' && chr <= 'Z'
+                        || chr >= 'a' && chr <= 'z'
+                        || chr == '_'
+                }) && !string.contains(|chr| {
+                    !(chr >= 'A' && chr <= 'Z'
+                        || chr >= 'a' && chr <= 'z'
+                        || chr >= '0' && chr <= '9'
+                        || chr == '_'
+                        || chr == '.')
+                })
             }
             Category::Property => {
                 let substr = if string.starts_with('%') {
@@ -294,15 +293,16 @@ impl Category {
                 Category::Identifier.validate(substr)
             }
             Category::Guid => {
-                string.len() == 38 && string.starts_with('{') &&
-                    string.ends_with('}') &&
-                    !string.chars().any(|chr| chr >= 'a' && chr <= 'z') &&
-                    Uuid::parse_str(&string[1..37]).is_ok()
+                string.len() == 38
+                    && string.starts_with('{')
+                    && string.ends_with('}')
+                    && !string.chars().any(|chr| chr >= 'a' && chr <= 'z')
+                    && Uuid::parse_str(&string[1..37]).is_ok()
             }
             Category::Version => {
                 let mut parts = string.split('.');
-                parts.clone().count() <= 4 &&
-                    parts.all(|part| part.parse::<u16>().is_ok())
+                parts.clone().count() <= 4
+                    && parts.all(|part| part.parse::<u16>().is_ok())
             }
             Category::Language => {
                 let mut parts = string.split(',');
@@ -315,9 +315,10 @@ impl Category {
                     let mut parts: Vec<&str> =
                         string.rsplitn(2, '.').collect();
                     parts.reverse();
-                    parts.len() > 0 && parts[0].len() > 0 &&
-                        parts[0].len() <= 8 &&
-                        (parts.len() < 2 || parts[1].len() <= 3)
+                    parts.len() > 0
+                        && parts[0].len() > 0
+                        && parts[0].len() <= 8
+                        && (parts.len() < 2 || parts[1].len() <= 3)
                 }
             }
             // TODO: Validate other categories.
@@ -379,8 +380,10 @@ mod tests {
     #[test]
     fn category_string_round_trip() {
         for category in Category::all() {
-            assert_eq!(category.to_string().parse::<Category>().unwrap(),
-                       category);
+            assert_eq!(
+                category.to_string().parse::<Category>().unwrap(),
+                category
+            );
         }
     }
 }

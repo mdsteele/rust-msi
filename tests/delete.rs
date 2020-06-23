@@ -4,7 +4,6 @@ extern crate msi;
 mod testutil;
 
 use msi::{Column, Delete, Expr, Insert, Package, PackageType, Select, Value};
-use std::error::Error;
 use std::io::{Cursor, ErrorKind};
 
 // ========================================================================= //
@@ -13,12 +12,13 @@ use std::io::{Cursor, ErrorKind};
 fn nonexistent_table() {
     let cursor = Cursor::new(Vec::new());
     let mut package = Package::create(PackageType::Installer, cursor).unwrap();
-    let query = Delete::from("Foobar")
-        .with(Expr::col("Foo").eq(Expr::integer(1)));
-    assert_error!(package.delete_rows(query),
-                  ErrorKind::NotFound,
-                  "Table \"Foobar\" does not exist");
-
+    let query =
+        Delete::from("Foobar").with(Expr::col("Foo").eq(Expr::integer(1)));
+    assert_error!(
+        package.delete_rows(query),
+        ErrorKind::NotFound,
+        "Table \"Foobar\" does not exist"
+    );
 }
 
 #[test]
@@ -30,12 +30,15 @@ fn nonexistent_column() {
         Column::build("Bar").nullable().string(6),
     ];
     package.create_table("Foobar", columns).unwrap();
-    let query = Delete::from("Foobar")
-        .with((Expr::col("Bar").ne(Expr::null()))
-                  .and(Expr::col("Baz").eq(Expr::integer(1))));
-    assert_error!(package.delete_rows(query),
-                  ErrorKind::InvalidInput,
-                  "Table \"Foobar\" has no column named \"Baz\"");
+    let query = Delete::from("Foobar").with(
+        (Expr::col("Bar").ne(Expr::null()))
+            .and(Expr::col("Baz").eq(Expr::integer(1))),
+    );
+    assert_error!(
+        package.delete_rows(query),
+        ErrorKind::InvalidInput,
+        "Table \"Foobar\" has no column named \"Baz\""
+    );
 }
 
 #[test]
@@ -54,8 +57,8 @@ fn delete_one_row() {
         .row(vec![Value::Int(3), Value::from("Three")]);
     package.insert_rows(query).unwrap();
 
-    let query = Delete::from("Foobar")
-        .with(Expr::col("Foo").eq(Expr::integer(2)));
+    let query =
+        Delete::from("Foobar").with(Expr::col("Foo").eq(Expr::integer(2)));
     package.delete_rows(query).unwrap();
 
     let cursor = package.into_inner().unwrap();
@@ -82,16 +85,16 @@ fn delete_multiple_rows() {
         .row(vec![Value::Int(3), Value::Int(17)]);
     package.insert_rows(query).unwrap();
 
-    let query = Delete::from("Mapping")
-        .with(Expr::col("Value").eq(Expr::integer(17)));
+    let query =
+        Delete::from("Mapping").with(Expr::col("Value").eq(Expr::integer(17)));
     package.delete_rows(query).unwrap();
 
     let cursor = package.into_inner().unwrap();
     let mut package = Package::open(cursor).unwrap();
     let rows = package.select_rows(Select::table("Mapping")).unwrap();
-    let values: Vec<(i32, i32)> =
-        rows.map(|row| (row[0].as_int().unwrap(), row[1].as_int().unwrap()))
-            .collect();
+    let values: Vec<(i32, i32)> = rows
+        .map(|row| (row[0].as_int().unwrap(), row[1].as_int().unwrap()))
+        .collect();
     assert_eq!(values, vec![(2, 42)]);
 }
 

@@ -156,7 +156,7 @@ impl CodePage {
         self.encoding().encode(string, EncoderTrap::Replace).unwrap()
     }
 
-    fn encoding(&self) -> &Encoding {
+    fn encoding(&self) -> &dyn Encoding {
         match *self {
             CodePage::Windows1250 => encoding::all::WINDOWS_1250,
             CodePage::Windows1251 => encoding::all::WINDOWS_1251,
@@ -184,7 +184,9 @@ impl CodePage {
 }
 
 impl Default for CodePage {
-    fn default() -> CodePage { CodePage::Utf8 }
+    fn default() -> CodePage {
+        CodePage::Utf8
+    }
 }
 
 // ========================================================================= //
@@ -224,37 +226,54 @@ mod tests {
 
     #[test]
     fn decode_string() {
-        assert_eq!(&CodePage::Windows1252.decode(b"\xbfQu\xe9 pasa?"),
-                   "¿Qué pasa?");
-        assert_eq!(&CodePage::MacintoshRoman.decode(b"\xc0Qu\x8e pasa?"),
-                   "¿Qué pasa?");
-        assert_eq!(&CodePage::Utf8.decode(b"\xc2\xbfQu\xc3\xa9 pasa?"),
-                   "¿Qué pasa?");
+        assert_eq!(
+            &CodePage::Windows1252.decode(b"\xbfQu\xe9 pasa?"),
+            "¿Qué pasa?"
+        );
+        assert_eq!(
+            &CodePage::MacintoshRoman.decode(b"\xc0Qu\x8e pasa?"),
+            "¿Qué pasa?"
+        );
+        assert_eq!(
+            &CodePage::Utf8.decode(b"\xc2\xbfQu\xc3\xa9 pasa?"),
+            "¿Qué pasa?"
+        );
     }
 
     #[test]
     fn decoding_error() {
-        assert_eq!(&CodePage::Utf8.decode(b"Qu\xee pasa?"),
-                   "Qu\u{fffd} pasa?");
+        assert_eq!(
+            &CodePage::Utf8.decode(b"Qu\xee pasa?"),
+            "Qu\u{fffd} pasa?"
+        );
     }
-
 
     #[test]
     fn encode_string() {
-        assert_eq!(&CodePage::Windows1252.encode("¿Qué pasa?") as &[u8],
-                   b"\xbfQu\xe9 pasa?");
-        assert_eq!(&CodePage::MacintoshRoman.encode("¿Qué pasa?") as &[u8],
-                   b"\xc0Qu\x8e pasa?");
-        assert_eq!(&CodePage::Utf8.encode("¿Qué pasa?") as &[u8],
-                   b"\xc2\xbfQu\xc3\xa9 pasa?");
+        assert_eq!(
+            &CodePage::Windows1252.encode("¿Qué pasa?") as &[u8],
+            b"\xbfQu\xe9 pasa?"
+        );
+        assert_eq!(
+            &CodePage::MacintoshRoman.encode("¿Qué pasa?") as &[u8],
+            b"\xc0Qu\x8e pasa?"
+        );
+        assert_eq!(
+            &CodePage::Utf8.encode("¿Qué pasa?") as &[u8],
+            b"\xc2\xbfQu\xc3\xa9 pasa?"
+        );
     }
 
     #[test]
     fn encoding_error() {
-        assert_eq!(&CodePage::Windows1252.encode("Snowman=\u{2603}") as &[u8],
-                   b"Snowman=?");
-        assert_eq!(&CodePage::UsAscii.encode("¿Qué pasa?") as &[u8],
-                   b"?Qu? pasa?");
+        assert_eq!(
+            &CodePage::Windows1252.encode("Snowman=\u{2603}") as &[u8],
+            b"Snowman=?"
+        );
+        assert_eq!(
+            &CodePage::UsAscii.encode("¿Qué pasa?") as &[u8],
+            b"?Qu? pasa?"
+        );
     }
 }
 

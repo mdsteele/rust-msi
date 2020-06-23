@@ -1,5 +1,5 @@
+use crate::internal::codepage::CodePage;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use internal::codepage::CodePage;
 use std::io::{self, Read, Write};
 use std::u16;
 
@@ -19,24 +19,24 @@ impl StringRef {
     /// Reads a serialized StringRef and returns it, or `None` for a null
     /// reference.  The `long_string_refs` argument specifies whether to read
     /// three bytes (if true) or two (if false).
-    pub fn read<R: Read>(reader: &mut R, long_string_refs: bool)
-                         -> io::Result<Option<StringRef>> {
+    pub fn read<R: Read>(
+        reader: &mut R,
+        long_string_refs: bool,
+    ) -> io::Result<Option<StringRef>> {
         let mut number = reader.read_u16::<LittleEndian>()? as i32;
         if long_string_refs {
             number |= (reader.read_u8()? as i32) << 16;
         }
-        Ok(if number == 0 {
-               None
-           } else {
-               Some(StringRef(number))
-           })
+        Ok(if number == 0 { None } else { Some(StringRef(number)) })
     }
 
     /// Serializes a nullable StringRef.  The `long_string_refs` argument
     /// specifies whether to write three bytes (if true) or two (if false).
-    pub fn write<W: Write>(writer: &mut W, string_ref: Option<StringRef>,
-                           long_string_refs: bool)
-                           -> io::Result<()> {
+    pub fn write<W: Write>(
+        writer: &mut W,
+        string_ref: Option<StringRef>,
+        long_string_refs: bool,
+    ) -> io::Result<()> {
         let number = if let Some(StringRef(number)) = string_ref {
             debug_assert!(number > 0);
             debug_assert!(number <= MAX_STRING_REF);
@@ -50,8 +50,10 @@ impl StringRef {
         } else if number <= (u16::MAX as i32) {
             writer.write_u16::<LittleEndian>(number as u16)?;
         } else {
-            invalid_input!("Cannot write {:?} with long_string_refs=false",
-                           StringRef(number));
+            invalid_input!(
+                "Cannot write {:?} with long_string_refs=false",
+                StringRef(number)
+            );
         }
         Ok(())
     }
@@ -82,17 +84,18 @@ pub struct StringPoolBuilder {
 }
 
 impl StringPoolBuilder {
-    pub fn read_from_pool<R: Read>(mut reader: R)
-                                   -> io::Result<StringPoolBuilder> {
+    pub fn read_from_pool<R: Read>(
+        mut reader: R,
+    ) -> io::Result<StringPoolBuilder> {
         let codepage_id = reader.read_u32::<LittleEndian>()?;
         let long_string_refs = (codepage_id & LONG_STRING_REFS_BIT) != 0;
         let codepage_id = (codepage_id & !LONG_STRING_REFS_BIT) as i32;
         let codepage = match CodePage::from_id(codepage_id) {
             Some(codepage) => codepage,
-            None => {
-                invalid_data!("Unknown codepage for string pool ({})",
-                              codepage_id)
-            }
+            None => invalid_data!(
+                "Unknown codepage for string pool ({})",
+                codepage_id
+            ),
         };
         let mut lengths_and_refcounts = Vec::<(u32, u16)>::new();
         loop {
@@ -104,21 +107,23 @@ impl StringPoolBuilder {
             };
             let mut refcount = reader.read_u16::<LittleEndian>()?;
             if length == 0 && refcount > 0 {
-                length = ((refcount as u32) << 16) &
-                    (reader.read_u16::<LittleEndian>()? as u32);
+                length = ((refcount as u32) << 16)
+                    & (reader.read_u16::<LittleEndian>()? as u32);
                 refcount = reader.read_u16::<LittleEndian>()?;
             }
             lengths_and_refcounts.push((length, refcount));
         }
         Ok(StringPoolBuilder {
-               codepage: codepage,
-               long_string_refs: long_string_refs,
-               lengths_and_refcounts: lengths_and_refcounts,
-           })
+            codepage,
+            long_string_refs,
+            lengths_and_refcounts,
+        })
     }
 
-    pub fn build_from_data<R: Read>(self, mut reader: R)
-                                    -> io::Result<StringPool> {
+    pub fn build_from_data<R: Read>(
+        self,
+        mut reader: R,
+    ) -> io::Result<StringPool> {
         let mut strings = Vec::<(String, u16)>::new();
         for (length, refcount) in self.lengths_and_refcounts.into_iter() {
             let mut buffer = vec![0u8; length as usize];
@@ -126,11 +131,11 @@ impl StringPoolBuilder {
             strings.push((self.codepage.decode(&buffer), refcount));
         }
         Ok(StringPool {
-               codepage: self.codepage,
-               strings: strings,
-               long_string_refs: self.long_string_refs,
-               is_modified: false,
-           })
+            codepage: self.codepage,
+            strings,
+            long_string_refs: self.long_string_refs,
+            is_modified: false,
+        })
     }
 }
 
@@ -148,7 +153,7 @@ impl StringPool {
     /// Creates a new, empty string pool.
     pub fn new(codepage: CodePage) -> StringPool {
         StringPool {
-            codepage: codepage,
+            codepage,
             strings: Vec::new(),
             long_string_refs: false,
             is_modified: true,
@@ -156,7 +161,9 @@ impl StringPool {
     }
 
     /// Gets the code page used for serializing the string data.
-    pub fn codepage(&self) -> CodePage { self.codepage }
+    pub fn codepage(&self) -> CodePage {
+        self.codepage
+    }
 
     /// Sets the code page used for serializing the string data.
     pub fn set_codepage(&mut self, codepage: CodePage) {
@@ -167,15 +174,23 @@ impl StringPool {
     /// Returns the number of strings in the string pool (including empty
     /// entries).
     #[allow(dead_code)]
-    pub fn num_strings(&self) -> u32 { self.strings.len() as u32 }
+    pub fn num_strings(&self) -> u32 {
+        self.strings.len() as u32
+    }
 
     /// Returns true if string references should be serialized with three bytes
     /// instead of two.
-    pub fn long_string_refs(&self) -> bool { self.long_string_refs }
+    pub fn long_string_refs(&self) -> bool {
+        self.long_string_refs
+    }
 
-    pub(crate) fn is_modified(&self) -> bool { self.is_modified }
+    pub(crate) fn is_modified(&self) -> bool {
+        self.is_modified
+    }
 
-    pub(crate) fn mark_unmodified(&mut self) { self.is_modified = false; }
+    pub(crate) fn mark_unmodified(&mut self) {
+        self.is_modified = false;
+    }
 
     /// Returns the string in the pool for the given reference.
     pub fn get(&self, string_ref: StringRef) -> &str {
@@ -221,8 +236,10 @@ impl StringPool {
         if self.strings.len() >= u16::MAX as usize && !self.long_string_refs {
             // TODO: If this happens, we need to rewrite all database tables
             // from short to long string refs.
-            panic!("Too many strings; rewriting to long string refs is not \
-                    yet supported");
+            panic!(
+                "Too many strings; rewriting to long string refs is not \
+                    yet supported"
+            );
         }
         if self.strings.len() >= MAX_STRING_REF as usize {
             panic!("Too many distinct strings in string pool");
@@ -235,9 +252,11 @@ impl StringPool {
     pub fn decref(&mut self, string_ref: StringRef) {
         let index = string_ref.index();
         if index >= self.strings.len() {
-            panic!("decref: string_ref {} invalid, pool has only {} entries",
-                   string_ref.number(),
-                   self.strings.len());
+            panic!(
+                "decref: string_ref {} invalid, pool has only {} entries",
+                string_ref.number(),
+                self.strings.len()
+            );
         }
         let (ref mut string, ref mut refcount) = self.strings[index];
         if *refcount < 1 {
@@ -283,7 +302,7 @@ impl StringPool {
 #[cfg(test)]
 mod tests {
     use super::{StringPool, StringPoolBuilder, StringRef};
-    use internal::codepage::CodePage;
+    use crate::internal::codepage::CodePage;
 
     #[test]
     fn read_string_ref() {
@@ -291,19 +310,25 @@ mod tests {
         assert_eq!(StringRef::read(&mut input, false).unwrap(), None);
 
         let mut input: &[u8] = b"\x34\x12";
-        assert_eq!(StringRef::read(&mut input, false).unwrap(),
-                   Some(StringRef(0x1234)));
+        assert_eq!(
+            StringRef::read(&mut input, false).unwrap(),
+            Some(StringRef(0x1234))
+        );
 
         let mut input: &[u8] = b"\x00\x00\x00";
         assert_eq!(StringRef::read(&mut input, true).unwrap(), None);
 
         let mut input: &[u8] = b"\x00\x00\x02";
-        assert_eq!(StringRef::read(&mut input, true).unwrap(),
-                   Some(StringRef(0x20000)));
+        assert_eq!(
+            StringRef::read(&mut input, true).unwrap(),
+            Some(StringRef(0x20000))
+        );
 
         let mut input: &[u8] = b"\x56\x34\x12";
-        assert_eq!(StringRef::read(&mut input, true).unwrap(),
-                   Some(StringRef(0x123456)));
+        assert_eq!(
+            StringRef::read(&mut input, true).unwrap(),
+            Some(StringRef(0x123456))
+        );
     }
 
     #[test]
@@ -366,8 +391,10 @@ mod tests {
         assert_eq!(string_pool.incref("Foo".to_string()), StringRef(1));
         let mut pool_output = Vec::<u8>::new();
         string_pool.write_pool(&mut pool_output).expect("pool");
-        assert_eq!(&pool_output as &[u8],
-                   b"\xe4\x04\x00\x00\x03\x00\x02\x00\x04\x00\x01\x00");
+        assert_eq!(
+            &pool_output as &[u8],
+            b"\xe4\x04\x00\x00\x03\x00\x02\x00\x04\x00\x01\x00"
+        );
         let mut data_output = Vec::<u8>::new();
         string_pool.write_data(&mut data_output).expect("data");
         assert_eq!(&data_output as &[u8], b"FooQuux");

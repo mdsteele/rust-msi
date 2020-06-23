@@ -8,14 +8,22 @@ macro_rules! assert_error {
             Ok(_) => panic!("Expected {:?} error, but result was Ok", kind),
             Err(error) => {
                 if error.kind() != kind {
-                    panic!("Expected {:?} error, but result was {:?} error \
+                    panic!(
+                        "Expected {:?} error, but result was {:?} error \
                             with description {:?}",
-                           kind, error.kind(), error.description());
+                        kind,
+                        error.kind(),
+                        error.to_string()
+                    );
                 }
-                if error.description() != description {
-                    panic!("Expected {:?} error with description {:?}, but \
+                if error.to_string() != description {
+                    panic!(
+                        "Expected {:?} error with description {:?}, but \
                             result had description {:?}",
-                           kind, description, error.description());
+                        kind,
+                        description,
+                        error.to_string()
+                    );
                 }
             }
         }

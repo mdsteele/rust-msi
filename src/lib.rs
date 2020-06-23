@@ -16,17 +16,17 @@ extern crate uuid;
 
 mod internal;
 
-pub use internal::category::Category;
-pub use internal::codepage::CodePage;
-pub use internal::column::{Column, ColumnBuilder, ColumnType};
-pub use internal::expr::Expr;
-pub use internal::language::Language;
-pub use internal::package::{Package, PackageType, Tables};
-pub use internal::query::{Delete, Insert, Select, Update};
-pub use internal::stream::{StreamReader, StreamWriter, Streams};
-pub use internal::summary::SummaryInfo;
-pub use internal::table::{Row, Rows, Table};
-pub use internal::value::Value;
+pub use crate::internal::category::Category;
+pub use crate::internal::codepage::CodePage;
+pub use crate::internal::column::{Column, ColumnBuilder, ColumnType};
+pub use crate::internal::expr::Expr;
+pub use crate::internal::language::Language;
+pub use crate::internal::package::{Package, PackageType, Tables};
+pub use crate::internal::query::{Delete, Insert, Select, Update};
+pub use crate::internal::stream::{StreamReader, StreamWriter, Streams};
+pub use crate::internal::summary::SummaryInfo;
+pub use crate::internal::table::{Row, Rows, Table};
+pub use crate::internal::value::Value;
 use std::fs;
 use std::io;
 use std::path::Path;

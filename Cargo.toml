@@ -7,6 +7,7 @@ repository = "https://github.com/mdsteele/rust-msi"
 keywords = ["msi", "windows", "installer", "package"]
 license = "MIT"
 readme = "README.md"
+edition = "2018"
 
 [dependencies]
 byteorder = "1"

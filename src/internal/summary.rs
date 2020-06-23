@@ -1,6 +1,6 @@
-use internal::codepage::CodePage;
-use internal::language::Language;
-use internal::propset::{OperatingSystem, PropertySet, PropertyValue};
+use crate::internal::codepage::CodePage;
+use crate::internal::language::Language;
+use crate::internal::propset::{OperatingSystem, PropertySet, PropertyValue};
 use std::io::{self, Read, Seek, Write};
 use std::time::SystemTime;
 use uuid::Uuid;
@@ -38,7 +38,7 @@ impl SummaryInfo {
     /// Creates an empty `SummaryInfo` with no properties set.
     pub(crate) fn new() -> SummaryInfo {
         let properties = PropertySet::new(OperatingSystem::Win32, 10, FMTID);
-        let mut summary = SummaryInfo { properties: properties };
+        let mut summary = SummaryInfo { properties };
         summary.set_codepage(CodePage::Utf8);
         summary
     }
@@ -48,7 +48,7 @@ impl SummaryInfo {
         if properties.format_identifier() != &FMTID {
             invalid_data!("Property set has wrong format identifier");
         }
-        Ok(SummaryInfo { properties: properties })
+        Ok(SummaryInfo { properties })
     }
 
     pub(crate) fn write<W: Write>(&self, writer: W) -> io::Result<()> {
@@ -62,7 +62,11 @@ impl SummaryInfo {
         match self.properties.get(PROPERTY_TEMPLATE) {
             Some(&PropertyValue::LpStr(ref template)) => {
                 let arch = template.splitn(2, ';').next().unwrap();
-                if arch.is_empty() { None } else { Some(arch) }
+                if arch.is_empty() {
+                    None
+                } else {
+                    Some(arch)
+                }
             }
             _ => None,
         }
@@ -86,7 +90,9 @@ impl SummaryInfo {
     }
 
     /// Clears the architecture string in the "template" property.
-    pub fn clear_arch(&mut self) { self.set_arch(""); }
+    pub fn clear_arch(&mut self) {
+        self.set_arch("");
+    }
 
     /// Gets the "author" property, if one is set.  This indicates the name of
     /// the person or company that created the package.
@@ -104,10 +110,14 @@ impl SummaryInfo {
     }
 
     /// Clears the "author" property.
-    pub fn clear_author(&mut self) { self.properties.remove(PROPERTY_AUTHOR); }
+    pub fn clear_author(&mut self) {
+        self.properties.remove(PROPERTY_AUTHOR);
+    }
 
     /// Gets the code page used for serializing this summary info.
-    pub fn codepage(&self) -> CodePage { self.properties.codepage() }
+    pub fn codepage(&self) -> CodePage {
+        self.properties.codepage()
+    }
 
     /// Sets the code page used for serializing this summary info.
     pub fn set_codepage(&mut self, codepage: CodePage) {
@@ -227,7 +237,9 @@ impl SummaryInfo {
     }
 
     /// Clears the list of languages in the "template" property.
-    pub fn clear_languages(&mut self) { self.set_languages(&[]); }
+    pub fn clear_languages(&mut self) {
+        self.set_languages(&[]);
+    }
 
     /// Gets the "subject" property, if one is set.  This typically indicates
     /// the name of the application/software that will be installed by the
@@ -266,14 +278,16 @@ impl SummaryInfo {
     }
 
     /// Clears the "title" property.
-    pub fn clear_title(&mut self) { self.properties.remove(PROPERTY_TITLE); }
+    pub fn clear_title(&mut self) {
+        self.properties.remove(PROPERTY_TITLE);
+    }
 
     /// Gets the "UUID" property, if one is set.
     pub fn uuid(&self) -> Option<Uuid> {
         match self.properties.get(PROPERTY_UUID) {
             Some(&PropertyValue::LpStr(ref string)) => {
                 let trimmed =
-                    string.trim_left_matches('{').trim_right_matches('}');
+                    string.trim_start_matches('{').trim_end_matches('}');
                 Uuid::parse_str(trimmed).ok()
             }
             _ => None,
@@ -288,7 +302,9 @@ impl SummaryInfo {
     }
 
     /// Clears the "UUID" property.
-    pub fn clear_uuid(&mut self) { self.properties.remove(PROPERTY_UUID); }
+    pub fn clear_uuid(&mut self) {
+        self.properties.remove(PROPERTY_UUID);
+    }
 }
 
 // ========================================================================= //
@@ -296,7 +312,7 @@ impl SummaryInfo {
 #[cfg(test)]
 mod tests {
     use super::SummaryInfo;
-    use internal::language::Language;
+    use crate::internal::language::Language;
     use std::time::SystemTime;
     use uuid::Uuid;
 
@@ -309,8 +325,8 @@ mod tests {
             Language::from_tag("es-MX"),
         ];
         let timestamp = SystemTime::now();
-        let uuid = Uuid::parse_str("0000002a-000c-0005-0c03-0938362b0809")
-            .unwrap();
+        let uuid =
+            Uuid::parse_str("0000002a-000c-0005-0c03-0938362b0809").unwrap();
 
         let mut summary_info = SummaryInfo::new();
         summary_info.set_arch("x64");

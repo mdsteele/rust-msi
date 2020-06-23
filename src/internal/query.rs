@@ -1,8 +1,8 @@
+use crate::internal::expr::Expr;
+use crate::internal::stringpool::StringPool;
+use crate::internal::table::{Row, Rows, Table};
+use crate::internal::value::{Value, ValueRef};
 use cfb;
-use internal::expr::Expr;
-use internal::stringpool::StringPool;
-use internal::table::{Row, Rows, Table};
-use internal::value::{Value, ValueRef};
 use std::collections::{BTreeMap, HashSet};
 use std::fmt;
 use std::io::{self, Read, Seek, Write};
@@ -19,10 +19,7 @@ pub struct Delete {
 impl Delete {
     /// Starts building a query that will delete rows from the specified table.
     pub fn from<S: Into<String>>(table_name: S) -> Delete {
-        Delete {
-            table_name: table_name.into(),
-            condition: None,
-        }
+        Delete { table_name: table_name.into(), condition: None }
     }
 
     /// Adds a restriction on which rows should be deleted by the query; only
@@ -38,10 +35,12 @@ impl Delete {
         self
     }
 
-    pub(crate) fn exec<F>(self, comp: &mut cfb::CompoundFile<F>,
-                          string_pool: &mut StringPool,
-                          tables: &BTreeMap<String, Rc<Table>>)
-                          -> io::Result<()>
+    pub(crate) fn exec<F>(
+        self,
+        comp: &mut cfb::CompoundFile<F>,
+        string_pool: &mut StringPool,
+        tables: &BTreeMap<String, Rc<Table>>,
+    ) -> io::Result<()>
     where
         F: Read + Write + Seek,
     {
@@ -53,9 +52,11 @@ impl Delete {
         if let Some(ref expr) = self.condition {
             for column_name in expr.column_names().into_iter() {
                 if !table.has_column(column_name) {
-                    invalid_input!("Table {:?} has no column named {:?}",
-                                   self.table_name,
-                                   column_name);
+                    invalid_input!(
+                        "Table {:?} has no column named {:?}",
+                        self.table_name,
+                        column_name
+                    );
                 }
             }
         }
@@ -120,10 +121,7 @@ pub struct Insert {
 impl Insert {
     /// Starts building a query that will insert rows into the specified table.
     pub fn into<S: Into<String>>(table_name: S) -> Insert {
-        Insert {
-            table_name: table_name.into(),
-            new_rows: Vec::new(),
-        }
+        Insert { table_name: table_name.into(), new_rows: Vec::new() }
     }
 
     /// Adds a new row to be inserted into the table.
@@ -138,10 +136,12 @@ impl Insert {
         self
     }
 
-    pub(crate) fn exec<F>(self, comp: &mut cfb::CompoundFile<F>,
-                          string_pool: &mut StringPool,
-                          tables: &BTreeMap<String, Rc<Table>>)
-                          -> io::Result<()>
+    pub(crate) fn exec<F>(
+        self,
+        comp: &mut cfb::CompoundFile<F>,
+        string_pool: &mut StringPool,
+        tables: &BTreeMap<String, Rc<Table>>,
+    ) -> io::Result<()>
     where
         F: Read + Write + Seek,
     {
@@ -152,17 +152,21 @@ impl Insert {
         // Validate the new rows.
         for values in self.new_rows.iter() {
             if values.len() != table.columns().len() {
-                invalid_input!("Table {:?} has {} columns, but a row with {} \
+                invalid_input!(
+                    "Table {:?} has {} columns, but a row with {} \
                                 values was provided",
-                               self.table_name,
-                               table.columns().len(),
-                               values.len());
+                    self.table_name,
+                    table.columns().len(),
+                    values.len()
+                );
             }
             for (column, value) in table.columns().iter().zip(values.iter()) {
                 if !column.is_valid_value(value) {
-                    invalid_input!("{} is not a valid value for column {:?}",
-                                   value,
-                                   column.name());
+                    invalid_input!(
+                        "{} is not a valid value for column {:?}",
+                        value,
+                        column.name()
+                    );
                 }
                 // TODO: Validate foreign keys.
             }
@@ -179,10 +183,12 @@ impl Insert {
                     .map(|&index| row[index].to_value(string_pool))
                     .collect();
                 if rows_map.contains_key(&keys) {
-                    invalid_data!("Malformed table {:?} contains \
+                    invalid_data!(
+                        "Malformed table {:?} contains \
                                    multiple rows with key {:?}",
-                                  self.table_name,
-                                  keys);
+                        self.table_name,
+                        keys
+                    );
                 }
                 rows_map.insert(keys, row);
             }
@@ -196,14 +202,18 @@ impl Insert {
                 .map(|&index| values[index].clone())
                 .collect();
             if rows_map.contains_key(&keys) {
-                already_exists!("Table {:?} already contains a row with \
+                already_exists!(
+                    "Table {:?} already contains a row with \
                                  key {:?}",
-                                self.table_name,
-                                keys);
+                    self.table_name,
+                    keys
+                );
             }
             if new_keys_set.contains(&keys) {
-                invalid_input!("Cannot insert multiple rows with key {:?}",
-                               keys);
+                invalid_input!(
+                    "Cannot insert multiple rows with key {:?}",
+                    keys
+                );
             }
             new_keys_set.insert(keys);
         }
@@ -267,10 +277,12 @@ enum Join {
 }
 
 impl Join {
-    fn exec<'a, F>(self, comp: &mut cfb::CompoundFile<F>,
-                   string_pool: &'a StringPool,
-                   tables: &BTreeMap<String, Rc<Table>>)
-                   -> io::Result<Rows<'a>>
+    fn exec<'a, F>(
+        self,
+        comp: &mut cfb::CompoundFile<F>,
+        string_pool: &'a StringPool,
+        tables: &BTreeMap<String, Rc<Table>>,
+    ) -> io::Result<Rows<'a>>
     where
         F: Read + Seek,
     {
@@ -298,17 +310,20 @@ impl Join {
                 let (table2, rows2) = select2
                     .exec(comp, string_pool, tables)?
                     .into_table_and_values();
-                let columns = table1
-                    .columns()
-                    .iter()
-                    .map(|column| column.with_name_prefix(table1.name()))
-                    .chain(table2.columns().iter().map(|column| {
-                        column.with_name_prefix(table2.name())
-                    }))
-                    .collect();
-                let table = Table::new("<InnerJoin>".to_string(),
-                                       columns,
-                                       string_pool.long_string_refs());
+                let columns =
+                    table1
+                        .columns()
+                        .iter()
+                        .map(|column| column.with_name_prefix(table1.name()))
+                        .chain(table2.columns().iter().map(|column| {
+                            column.with_name_prefix(table2.name())
+                        }))
+                        .collect();
+                let table = Table::new(
+                    "<InnerJoin>".to_string(),
+                    columns,
+                    string_pool.long_string_refs(),
+                );
                 let mut rows = Vec::<Vec<ValueRef>>::new();
                 for value_refs1 in rows1.iter() {
                     for value_refs2 in rows2.iter() {
@@ -344,9 +359,11 @@ impl Join {
                         column.with_name_prefix(table2.name()).but_nullable()
                     }))
                     .collect();
-                let table = Table::new("<LeftJoin>".to_string(),
-                                       columns,
-                                       string_pool.long_string_refs());
+                let table = Table::new(
+                    "<LeftJoin>".to_string(),
+                    columns,
+                    string_pool.long_string_refs(),
+                );
                 let mut rows = Vec::<Vec<ValueRef>>::new();
                 for value_refs1 in rows1.iter() {
                     let mut found_any = false;
@@ -370,10 +387,12 @@ impl Join {
                         let value_refs: Vec<ValueRef> = value_refs1
                             .iter()
                             .cloned()
-                            .chain(table2
-                                       .columns()
-                                       .iter()
-                                       .map(|_| ValueRef::Null))
+                            .chain(
+                                table2
+                                    .columns()
+                                    .iter()
+                                    .map(|_| ValueRef::Null),
+                            )
                             .collect();
                         rows.push(value_refs);
                     }
@@ -469,10 +488,12 @@ impl Select {
         self
     }
 
-    pub(crate) fn exec<'a, F>(self, comp: &mut cfb::CompoundFile<F>,
-                              string_pool: &'a StringPool,
-                              tables: &BTreeMap<String, Rc<Table>>)
-                              -> io::Result<Rows<'a>>
+    pub(crate) fn exec<'a, F>(
+        self,
+        comp: &mut cfb::CompoundFile<F>,
+        string_pool: &'a StringPool,
+        tables: &BTreeMap<String, Rc<Table>>,
+    ) -> io::Result<Rows<'a>>
     where
         F: Read + Seek,
     {
@@ -486,9 +507,11 @@ impl Select {
             match table.index_for_column_name(column_name.as_str()) {
                 Some(index) => column_indices.push(index),
                 None => {
-                    invalid_input!("Table {:?} has no column named {:?}",
-                                   table.name(),
-                                   column_name);
+                    invalid_input!(
+                        "Table {:?} has no column named {:?}",
+                        table.name(),
+                        column_name
+                    );
                 }
             }
         }
@@ -496,9 +519,11 @@ impl Select {
         if let Some(ref expr) = self.condition {
             for column_name in expr.column_names().into_iter() {
                 if !table.has_column(column_name) {
-                    invalid_input!("Table {:?} has no column named {:?}",
-                                   table.name(),
-                                   column_name);
+                    invalid_input!(
+                        "Table {:?} has no column named {:?}",
+                        table.name(),
+                        column_name
+                    );
                 }
             }
         }
@@ -519,9 +544,11 @@ impl Select {
                 .iter()
                 .map(|&index| table.columns()[index].clone())
                 .collect();
-            table = Table::new("<Select>".to_string(),
-                               columns,
-                               table.long_string_refs());
+            table = Table::new(
+                "<Select>".to_string(),
+                columns,
+                table.long_string_refs(),
+            );
             for value_refs in rows.iter_mut() {
                 *value_refs = column_indices
                     .iter()
@@ -532,15 +559,17 @@ impl Select {
         Ok(Rows::new(string_pool, table, rows))
     }
 
-    fn format_for_join(&self, formatter: &mut fmt::Formatter)
-                       -> Result<(), fmt::Error> {
+    fn format_for_join(
+        &self,
+        formatter: &mut fmt::Formatter,
+    ) -> Result<(), fmt::Error> {
         if self.column_names.is_empty() && self.condition.is_none() {
             if let Join::Table(ref name) = self.from {
                 return formatter.write_str(name.as_str());
             }
         }
         formatter.write_str("(")?;
-        (self as &fmt::Display).fmt(formatter)?;
+        fmt::Display::fmt(self, formatter)?;
         formatter.write_str(")")?;
         Ok(())
     }
@@ -610,10 +639,12 @@ impl Update {
         self
     }
 
-    pub(crate) fn exec<F>(self, comp: &mut cfb::CompoundFile<F>,
-                          string_pool: &mut StringPool,
-                          tables: &BTreeMap<String, Rc<Table>>)
-                          -> io::Result<()>
+    pub(crate) fn exec<F>(
+        self,
+        comp: &mut cfb::CompoundFile<F>,
+        string_pool: &mut StringPool,
+        tables: &BTreeMap<String, Rc<Table>>,
+    ) -> io::Result<()>
     where
         F: Read + Write + Seek,
     {
@@ -624,15 +655,19 @@ impl Update {
         // Validate the updates.
         for &(ref column_name, ref value) in self.updates.iter() {
             if !table.has_column(column_name.as_str()) {
-                invalid_input!("Table {:?} has no column named {:?}",
-                               self.table_name,
-                               column_name);
+                invalid_input!(
+                    "Table {:?} has no column named {:?}",
+                    self.table_name,
+                    column_name
+                );
             }
             let column = table.get_column(column_name).unwrap();
             if !column.is_valid_value(value) {
-                invalid_input!("{} is not a valid value for column {:?}",
-                               value,
-                               column_name);
+                invalid_input!(
+                    "{} is not a valid value for column {:?}",
+                    value,
+                    column_name
+                );
             }
             // TODO: Validate foreign keys.
         }
@@ -640,9 +675,11 @@ impl Update {
         if let Some(ref expr) = self.condition {
             for column_name in expr.column_names().into_iter() {
                 if !table.has_column(column_name) {
-                    invalid_input!("Table {:?} has no column named {:?}",
-                                   self.table_name,
-                                   column_name);
+                    invalid_input!(
+                        "Table {:?} has no column named {:?}",
+                        self.table_name,
+                        column_name
+                    );
                 }
             }
         }
@@ -713,8 +750,8 @@ impl fmt::Display for Update {
 #[cfg(test)]
 mod tests {
     use super::{Delete, Insert, Select, Update};
-    use internal::expr::Expr;
-    use internal::value::Value;
+    use crate::internal::expr::Expr;
+    use crate::internal::value::Value;
 
     #[test]
     fn display_delete() {
@@ -723,8 +760,10 @@ mod tests {
 
         let query = Delete::from("Foobar")
             .with(Expr::col("Foo").lt(Expr::integer(17)));
-        assert_eq!(format!("{}", query),
-                   "DELETE FROM Foobar WHERE Foo < 17".to_string());
+        assert_eq!(
+            format!("{}", query),
+            "DELETE FROM Foobar WHERE Foo < 17".to_string()
+        );
     }
 
     #[test]
@@ -732,10 +771,12 @@ mod tests {
         let query = Insert::into("Foobar");
         assert_eq!(format!("{}", query), "INSERT INTO Foobar".to_string());
 
-        let query = Insert::into("Foobar")
-            .row(vec![Value::from("Foo"), Value::Null]);
-        assert_eq!(format!("{}", query),
-                   "INSERT INTO Foobar VALUES (\"Foo\", NULL)".to_string());
+        let query =
+            Insert::into("Foobar").row(vec![Value::from("Foo"), Value::Null]);
+        assert_eq!(
+            format!("{}", query),
+            "INSERT INTO Foobar VALUES (\"Foo\", NULL)".to_string()
+        );
 
         let query = Insert::into("Foobar")
             .row(vec![Value::Int(1), Value::Int(2)])
@@ -744,9 +785,11 @@ mod tests {
                 vec![Value::Int(5), Value::Int(6)],
             ])
             .row(vec![Value::Int(7), Value::Int(8)]);
-        assert_eq!(format!("{}", query),
-                   "INSERT INTO Foobar VALUES (1, 2), (3, 4), (5, 6), (7, 8)"
-                       .to_string());
+        assert_eq!(
+            format!("{}", query),
+            "INSERT INTO Foobar VALUES (1, 2), (3, 4), (5, 6), (7, 8)"
+                .to_string()
+        );
     }
 
     #[test]
@@ -757,46 +800,60 @@ mod tests {
         let query = Select::table("Foobar")
             .columns(&["Foo", "Bar"])
             .with(Expr::col("Foo").lt(Expr::integer(17)));
-        assert_eq!(format!("{}", query),
-                   "SELECT Foo, Bar FROM Foobar WHERE Foo < 17".to_string());
+        assert_eq!(
+            format!("{}", query),
+            "SELECT Foo, Bar FROM Foobar WHERE Foo < 17".to_string()
+        );
 
         let query = Select::table("Foobar")
-            .inner_join(Select::table("Quux"),
-                        Expr::col("Foobar.Key").eq(Expr::col("Quux.Quay")))
+            .inner_join(
+                Select::table("Quux"),
+                Expr::col("Foobar.Key").eq(Expr::col("Quux.Quay")),
+            )
             .columns(&["Foobar.Foo", "Quux.Baz"]);
-        assert_eq!(format!("{}", query),
-                   "SELECT Foobar.Foo, Quux.Baz FROM Foobar INNER JOIN \
+        assert_eq!(
+            format!("{}", query),
+            "SELECT Foobar.Foo, Quux.Baz FROM Foobar INNER JOIN \
                     Quux ON Foobar.Key = Quux.Quay"
-                       .to_string());
+                .to_string()
+        );
 
         let query = Select::table("Foobar")
-            .inner_join(Select::table("Quux")
-                            .with(Expr::col("Quay").gt(Expr::integer(42))),
-                        Expr::col("Foobar.Key").eq(Expr::col("Quux.Quay")))
+            .inner_join(
+                Select::table("Quux")
+                    .with(Expr::col("Quay").gt(Expr::integer(42))),
+                Expr::col("Foobar.Key").eq(Expr::col("Quux.Quay")),
+            )
             .columns(&["Foobar.Foo", "Quux.Baz"]);
-        assert_eq!(format!("{}", query),
-                   "SELECT Foobar.Foo, Quux.Baz \
+        assert_eq!(
+            format!("{}", query),
+            "SELECT Foobar.Foo, Quux.Baz \
                     FROM Foobar \
                     INNER JOIN (SELECT * FROM Quux WHERE Quay > 42) \
                     ON Foobar.Key = Quux.Quay"
-                       .to_string());
+                .to_string()
+        );
     }
 
     #[test]
     fn display_update() {
         let query = Update::table("Foobar").set("Foo", Value::Int(17));
-        assert_eq!(format!("{}", query),
-                   "UPDATE Foobar SET Foo = 17".to_string());
+        assert_eq!(
+            format!("{}", query),
+            "UPDATE Foobar SET Foo = 17".to_string()
+        );
 
         let query = Update::table("Foobar")
             .set("Foo", Value::Int(17))
             .set("Bar", Value::Null)
             .set("Baz", Value::from("quux"))
             .with(Expr::col("Foo").lt(Expr::integer(17)));
-        assert_eq!(format!("{}", query),
-                   "UPDATE Foobar SET Foo = 17, Bar = NULL, Baz = \"quux\" \
+        assert_eq!(
+            format!("{}", query),
+            "UPDATE Foobar SET Foo = 17, Bar = NULL, Baz = \"quux\" \
                     WHERE Foo < 17"
-                       .to_string());
+                .to_string()
+        );
     }
 }
 

@@ -1,5 +1,5 @@
+use crate::internal::streamname::{self, SUMMARY_INFO_STREAM_NAME};
 use cfb;
-use internal::streamname::{self, SUMMARY_INFO_STREAM_NAME};
 use std::io::{self, Read, Seek, SeekFrom, Write};
 
 // ========================================================================= //
@@ -11,7 +11,7 @@ pub struct StreamReader<'a, F: 'a> {
 
 impl<'a, F> StreamReader<'a, F> {
     pub(crate) fn new(stream: cfb::Stream<'a, F>) -> StreamReader<'a, F> {
-        StreamReader { stream: stream }
+        StreamReader { stream }
     }
 }
 
@@ -36,7 +36,7 @@ pub struct StreamWriter<'a, F: 'a> {
 
 impl<'a, F> StreamWriter<'a, F> {
     pub(crate) fn new(stream: cfb::Stream<'a, F>) -> StreamWriter<'a, F> {
-        StreamWriter { stream: stream }
+        StreamWriter { stream }
     }
 }
 
@@ -45,7 +45,9 @@ impl<'a, F: Read + Seek + Write> Write for StreamWriter<'a, F> {
         self.stream.write(buf)
     }
 
-    fn flush(&mut self) -> io::Result<()> { self.stream.flush() }
+    fn flush(&mut self) -> io::Result<()> {
+        self.stream.flush()
+    }
 }
 
 impl<'a, F: Read + Seek + Write> Seek for StreamWriter<'a, F> {
@@ -65,7 +67,7 @@ pub struct Streams<'a> {
 
 impl<'a> Streams<'a> {
     pub(crate) fn new(entries: cfb::Entries<'a>) -> Streams<'a> {
-        Streams { entries: entries }
+        Streams { entries }
     }
 }
 

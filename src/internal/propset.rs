@@ -3,9 +3,9 @@
 //     https://msdn.microsoft.com/en-us/library/windows/desktop/
 //     aa380367(v=vs.85).aspx
 
+use crate::internal;
+use crate::internal::codepage::CodePage;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use internal;
-use internal::codepage::CodePage;
 use std::cmp;
 use std::collections::BTreeMap;
 use std::io::{self, Read, Seek, SeekFrom, Write};
@@ -56,8 +56,10 @@ pub enum PropertyValue {
 }
 
 impl PropertyValue {
-    fn read<R: Read>(mut reader: R, codepage: CodePage)
-                     -> io::Result<PropertyValue> {
+    fn read<R: Read>(
+        mut reader: R,
+        codepage: CodePage,
+    ) -> io::Result<PropertyValue> {
         let type_number = reader.read_u32::<LittleEndian>()?;
         match type_number {
             0 => Ok(PropertyValue::Empty),
@@ -84,14 +86,19 @@ impl PropertyValue {
                 Ok(PropertyValue::FileTime(timestamp))
             }
             _ => {
-                invalid_data!("Unknown property set value type ({})",
-                              type_number);
+                invalid_data!(
+                    "Unknown property set value type ({})",
+                    type_number
+                );
             }
         }
     }
 
-    fn write<W: Write>(&self, mut writer: W, codepage: CodePage)
-                       -> io::Result<()> {
+    fn write<W: Write>(
+        &self,
+        mut writer: W,
+        codepage: CodePage,
+    ) -> io::Result<()> {
         match self {
             &PropertyValue::Empty => {
                 writer.write_u32::<LittleEndian>(0)?;
@@ -146,7 +153,7 @@ impl PropertyValue {
             &PropertyValue::I2(_) => 8,
             &PropertyValue::I4(_) => 8,
             &PropertyValue::LpStr(ref string) => {
-                (((12 + string.len() as u32) >> 2) << 2)
+                ((12 + string.len() as u32) >> 2) << 2
             }
             &PropertyValue::FileTime(_) => 12,
         }
@@ -187,13 +194,16 @@ pub struct PropertySet {
 }
 
 impl PropertySet {
-    pub fn new(os: OperatingSystem, os_version: u16, fmtid: [u8; 16])
-               -> PropertySet {
+    pub fn new(
+        os: OperatingSystem,
+        os_version: u16,
+        fmtid: [u8; 16],
+    ) -> PropertySet {
         PropertySet {
-            os: os,
-            os_version: os_version,
+            os,
+            os_version,
             clsid: [0; 16],
-            fmtid: fmtid,
+            fmtid,
             codepage: CodePage::default(),
             properties: BTreeMap::new(),
         }
@@ -209,10 +219,10 @@ impl PropertySet {
             match version_number {
                 0 => PropertyFormatVersion::V0,
                 1 => PropertyFormatVersion::V1,
-                _ => {
-                    invalid_data!("Unsupported property set version ({})",
-                                  version_number)
-                }
+                _ => invalid_data!(
+                    "Unsupported property set version ({})",
+                    version_number
+                ),
             }
         };
         let os_version = reader.read_u16::<LittleEndian>()?;
@@ -229,8 +239,10 @@ impl PropertySet {
         reader.read_exact(&mut clsid)?;
         let reserved = reader.read_u32::<LittleEndian>()?;
         if reserved < 1 {
-            invalid_data!("Invalid property set header reserved value ({})",
-                          reserved);
+            invalid_data!(
+                "Invalid property set header reserved value ({})",
+                reserved
+            );
         }
 
         // Section header:
@@ -251,50 +263,58 @@ impl PropertySet {
             }
             property_offsets.insert(name, offset);
         }
-        let codepage = if let Some(&offset) = property_offsets
-            .get(&PROPERTY_CODEPAGE)
+        let codepage = if let Some(&offset) =
+            property_offsets.get(&PROPERTY_CODEPAGE)
         {
-            reader
-                .seek(SeekFrom::Start(section_offset as u64 + offset as u64))?;
-            let value = PropertyValue::read(reader.by_ref(),
-                                            CodePage::default())?;
+            reader.seek(SeekFrom::Start(
+                section_offset as u64 + offset as u64,
+            ))?;
+            let value =
+                PropertyValue::read(reader.by_ref(), CodePage::default())?;
             if let PropertyValue::I2(codepage_id) = value {
                 let codepage_id = codepage_id as u16;
                 if let Some(codepage) = CodePage::from_id(codepage_id as i32) {
                     codepage
                 } else {
-                    invalid_data!("Unknown codepage for property set ({})",
-                                  codepage_id);
+                    invalid_data!(
+                        "Unknown codepage for property set ({})",
+                        codepage_id
+                    );
                 }
             } else {
-                invalid_data!("Codepage property value has wrong type ({})",
-                              value.type_name());
+                invalid_data!(
+                    "Codepage property value has wrong type ({})",
+                    value.type_name()
+                );
             }
         } else {
             CodePage::default()
         };
         let mut property_values = BTreeMap::<u32, PropertyValue>::new();
         for (name, offset) in property_offsets.into_iter() {
-            reader
-                .seek(SeekFrom::Start(section_offset as u64 + offset as u64))?;
+            reader.seek(SeekFrom::Start(
+                section_offset as u64 + offset as u64,
+            ))?;
             let value = PropertyValue::read(reader.by_ref(), codepage)?;
             if value.minimum_version() > format_version {
-                invalid_data!("Property value of type {} is not supported \
+                invalid_data!(
+                    "Property value of type {} is not supported \
                                in format version {}",
-                              value.type_name(),
-                              format_version.version_number());
+                    value.type_name(),
+                    format_version.version_number()
+                );
             }
             debug_assert!(!property_values.contains_key(&name));
             property_values.insert(name, value);
         }
         Ok(PropertySet {
-               os: os,
-               os_version: os_version,
-               clsid: clsid,
-               fmtid: fmtid,
-               codepage: codepage,
-               properties: property_values,
-           })
+            os,
+            os_version,
+            clsid,
+            fmtid,
+            codepage,
+            properties: property_values,
+        })
     }
 
     pub fn write<W: Write>(&self, mut writer: W) -> io::Result<()> {
@@ -306,12 +326,11 @@ impl PropertySet {
         }
         writer.write_u16::<LittleEndian>(format_version.version_number())?;
         writer.write_u16::<LittleEndian>(self.os_version)?;
-        writer
-            .write_u16::<LittleEndian>(match self.os {
-                                           OperatingSystem::Win16 => 0,
-                                           OperatingSystem::Macintosh => 1,
-                                           OperatingSystem::Win32 => 2,
-                                       })?;
+        writer.write_u16::<LittleEndian>(match self.os {
+            OperatingSystem::Win16 => 0,
+            OperatingSystem::Macintosh => 1,
+            OperatingSystem::Win32 => 2,
+        })?;
         writer.write_all(&self.clsid)?;
         writer.write_u32::<LittleEndian>(1)?; // Reserved field
 
@@ -339,9 +358,13 @@ impl PropertySet {
         Ok(())
     }
 
-    pub fn format_identifier(&self) -> &[u8; 16] { &self.fmtid }
+    pub fn format_identifier(&self) -> &[u8; 16] {
+        &self.fmtid
+    }
 
-    pub fn codepage(&self) -> CodePage { self.codepage }
+    pub fn codepage(&self) -> CodePage {
+        self.codepage
+    }
 
     pub fn set_codepage(&mut self, codepage: CodePage) {
         self.set(PROPERTY_CODEPAGE, PropertyValue::I2(codepage.id() as i16));
@@ -373,38 +396,50 @@ impl PropertySet {
 #[cfg(test)]
 mod tests {
     use super::{OperatingSystem, PropertySet, PropertyValue};
-    use internal::codepage::CodePage;
+    use crate::internal::codepage::CodePage;
     use std::io::Cursor;
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
     #[test]
     fn read_property_value() {
         let input: &[u8] = &[0, 0, 0, 0];
-        assert_eq!(PropertyValue::read(input, CodePage::Utf8).unwrap(),
-                   PropertyValue::Empty);
+        assert_eq!(
+            PropertyValue::read(input, CodePage::Utf8).unwrap(),
+            PropertyValue::Empty
+        );
 
         let input: &[u8] = &[1, 0, 0, 0];
-        assert_eq!(PropertyValue::read(input, CodePage::Utf8).unwrap(),
-                   PropertyValue::Null);
+        assert_eq!(
+            PropertyValue::read(input, CodePage::Utf8).unwrap(),
+            PropertyValue::Null
+        );
 
         let input: &[u8] = &[2, 0, 0, 0, 0x2e, 0xfb];
-        assert_eq!(PropertyValue::read(input, CodePage::Utf8).unwrap(),
-                   PropertyValue::I2(-1234));
+        assert_eq!(
+            PropertyValue::read(input, CodePage::Utf8).unwrap(),
+            PropertyValue::I2(-1234)
+        );
 
         let input: &[u8] = &[3, 0, 0, 0, 0x15, 0xcd, 0x5b, 0x07];
-        assert_eq!(PropertyValue::read(input, CodePage::Utf8).unwrap(),
-                   PropertyValue::I4(123456789));
+        assert_eq!(
+            PropertyValue::read(input, CodePage::Utf8).unwrap(),
+            PropertyValue::I4(123456789)
+        );
 
         let input: &[u8] =
             b"\x1e\x00\x00\x00\x0e\x00\x00\x00Hello, world!\x00";
-        assert_eq!(PropertyValue::read(input, CodePage::Utf8).unwrap(),
-                   PropertyValue::LpStr("Hello, world!".to_string()));
+        assert_eq!(
+            PropertyValue::read(input, CodePage::Utf8).unwrap(),
+            PropertyValue::LpStr("Hello, world!".to_string())
+        );
 
-        let sat_2017_mar_18_at_18_46_36_gmt = UNIX_EPOCH +
-            Duration::from_secs(1489862796);
+        let sat_2017_mar_18_at_18_46_36_gmt =
+            UNIX_EPOCH + Duration::from_secs(1489862796);
         let input: &[u8] = &[64, 0, 0, 0, 0, 206, 112, 248, 23, 160, 210, 1];
-        assert_eq!(PropertyValue::read(input, CodePage::Utf8).unwrap(),
-                   PropertyValue::FileTime(sat_2017_mar_18_at_18_46_36_gmt));
+        assert_eq!(
+            PropertyValue::read(input, CodePage::Utf8).unwrap(),
+            PropertyValue::FileTime(sat_2017_mar_18_at_18_46_36_gmt)
+        );
     }
 
     #[test]
@@ -434,15 +469,18 @@ mod tests {
         value.write(&mut output, CodePage::Utf8).unwrap();
         assert_eq!(
             &output as &[u8],
-            b"\x1e\x00\x00\x00\x0e\x00\x00\x00Hello, world!\x00\x00\x00");
+            b"\x1e\x00\x00\x00\x0e\x00\x00\x00Hello, world!\x00\x00\x00"
+        );
 
-        let sat_2017_mar_18_at_18_46_36_gmt = UNIX_EPOCH +
-            Duration::from_secs(1489862796);
+        let sat_2017_mar_18_at_18_46_36_gmt =
+            UNIX_EPOCH + Duration::from_secs(1489862796);
         let value = PropertyValue::FileTime(sat_2017_mar_18_at_18_46_36_gmt);
         let mut output = Vec::<u8>::new();
         value.write(&mut output, CodePage::Utf8).unwrap();
-        assert_eq!(&output as &[u8],
-                   &[64, 0, 0, 0, 0, 206, 112, 248, 23, 160, 210, 1]);
+        assert_eq!(
+            &output as &[u8],
+            &[64, 0, 0, 0, 0, 206, 112, 248, 23, 160, 210, 1]
+        );
     }
 
     #[test]
@@ -465,8 +503,8 @@ mod tests {
         for value in values.iter() {
             let mut output = Vec::<u8>::new();
             value.write(&mut output, codepage).unwrap();
-            let parsed = PropertyValue::read(&output as &[u8], codepage)
-                .unwrap();
+            let parsed =
+                PropertyValue::read(&output as &[u8], codepage).unwrap();
             assert_eq!(parsed, *value);
             let expected_size = value.size_including_padding();
             assert_eq!(output.len() as u32, expected_size);
@@ -477,30 +515,34 @@ mod tests {
     #[test]
     fn read_property_set() {
         let input: &[u8] = &[
-            0xfe, 0xff,  // Byte order mark
-            1, 0,        // Format version
+            0xfe, 0xff, // Byte order mark
+            1, 0, // Format version
             10, 0, 2, 0, // OS
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // CLSID
-            1, 0, 0, 0,  // Reserved
+            1, 0, 0, 0, // Reserved
             1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8, // FMTID
             48, 0, 0, 0, // Section offset
             48, 0, 0, 0, // Section size
-            2, 0, 0, 0,  // Number of properties
-            4, 0, 0, 0,  // 1st property name
+            2, 0, 0, 0, // Number of properties
+            4, 0, 0, 0, // 1st property name
             24, 0, 0, 0, // 1st property offset
             37, 0, 0, 0, // 2nd property name
             40, 0, 0, 0, // 2nd property offset
             30, 0, 0, 0, // 1st property type (LPSTR)
-            8, 0, 0, 0,  // String length (including terminating null)
-            b'F', b'o', b'o', b' ', b'B', b'a', b'r', 0,  // String value
+            8, 0, 0, 0, // String length (including terminating null)
+            b'F', b'o', b'o', b' ', b'B', b'a', b'r', 0, // String value
             16, 0, 0, 0, // 2nd property type (I1)
             253, 0, 0, 0, // Int value (and padding)
         ];
         let property_set = PropertySet::read(Cursor::new(input)).unwrap();
-        assert_eq!(property_set.format_identifier(),
-                   &[1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8]);
-        assert_eq!(property_set.get(4),
-                   Some(&PropertyValue::LpStr("Foo Bar".to_string())));
+        assert_eq!(
+            property_set.format_identifier(),
+            &[1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8]
+        );
+        assert_eq!(
+            property_set.get(4),
+            Some(&PropertyValue::LpStr("Foo Bar".to_string()))
+        );
         assert_eq!(property_set.get(37), Some(&PropertyValue::I1(-3)));
     }
 
@@ -514,22 +556,22 @@ mod tests {
         let mut output = Vec::<u8>::new();
         property_set.write(&mut output).unwrap();
         let expected: &[u8] = &[
-            0xfe, 0xff,  // Byte order mark
-            1, 0,        // Format version
+            0xfe, 0xff, // Byte order mark
+            1, 0, // Format version
             10, 0, 2, 0, // OS
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // CLSID
-            1, 0, 0, 0,  // Reserved
+            1, 0, 0, 0, // Reserved
             1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8, // FMTID
             48, 0, 0, 0, // Section offset
             48, 0, 0, 0, // Section size
-            2, 0, 0, 0,  // Number of properties
-            4, 0, 0, 0,  // 1st property name
+            2, 0, 0, 0, // Number of properties
+            4, 0, 0, 0, // 1st property name
             24, 0, 0, 0, // 1st property offset
             37, 0, 0, 0, // 2nd property name
             40, 0, 0, 0, // 2nd property offset
             30, 0, 0, 0, // 1st property type (LPSTR)
-            8, 0, 0, 0,  // String length (including terminating null)
-            b'F', b'o', b'o', b' ', b'B', b'a', b'r', 0,  // String value
+            8, 0, 0, 0, // String length (including terminating null)
+            b'F', b'o', b'o', b' ', b'B', b'a', b'r', 0, // String value
             16, 0, 0, 0, // 2nd property type (I1)
             253, 0, 0, 0, // Int value (and padding)
         ];

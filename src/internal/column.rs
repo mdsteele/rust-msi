@@ -1,10 +1,10 @@
+use crate::internal::category::Category;
+use crate::internal::stringpool::StringRef;
+use crate::internal::value::{Value, ValueRef};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use internal::category::Category;
-use internal::stringpool::StringRef;
-use internal::value::{Value, ValueRef};
-use std::{fmt, i16, i32};
 use std::io::{self, Read, Write};
 use std::str;
+use std::{fmt, i16, i32};
 
 // ========================================================================= //
 
@@ -43,8 +43,10 @@ impl ColumnType {
         } else if field_size == 4 {
             Ok(ColumnType::Int32)
         } else {
-            invalid_data!("Invalid field size for integer column ({})",
-                          field_size);
+            invalid_data!(
+                "Invalid field size for integer column ({})",
+                field_size
+            );
         }
     }
 
@@ -56,22 +58,20 @@ impl ColumnType {
         }
     }
 
-    pub(crate) fn read_value<R: Read>(&self, reader: &mut R,
-                                      long_string_refs: bool)
-                                      -> io::Result<ValueRef> {
+    pub(crate) fn read_value<R: Read>(
+        &self,
+        reader: &mut R,
+        long_string_refs: bool,
+    ) -> io::Result<ValueRef> {
         match *self {
-            ColumnType::Int16 => {
-                match reader.read_i16::<LittleEndian>()? {
-                    0 => Ok(ValueRef::Null),
-                    number => Ok(ValueRef::Int((number ^ -0x8000) as i32)),
-                }
-            }
-            ColumnType::Int32 => {
-                match reader.read_i32::<LittleEndian>()? {
-                    0 => Ok(ValueRef::Null),
-                    number => Ok(ValueRef::Int(number ^ -0x8000_0000)),
-                }
-            }
+            ColumnType::Int16 => match reader.read_i16::<LittleEndian>()? {
+                0 => Ok(ValueRef::Null),
+                number => Ok(ValueRef::Int((number ^ -0x8000) as i32)),
+            },
+            ColumnType::Int32 => match reader.read_i32::<LittleEndian>()? {
+                0 => Ok(ValueRef::Null),
+                number => Ok(ValueRef::Int(number ^ -0x8000_0000)),
+            },
             ColumnType::Str(_) => {
                 match StringRef::read(reader, long_string_refs)? {
                     Some(string_ref) => Ok(ValueRef::Str(string_ref)),
@@ -81,47 +81,45 @@ impl ColumnType {
         }
     }
 
-    pub(crate) fn write_value<W: Write>(&self, writer: &mut W,
-                                        value_ref: ValueRef,
-                                        long_string_refs: bool)
-                                        -> io::Result<()> {
+    pub(crate) fn write_value<W: Write>(
+        &self,
+        writer: &mut W,
+        value_ref: ValueRef,
+        long_string_refs: bool,
+    ) -> io::Result<()> {
         match *self {
-            ColumnType::Int16 => {
-                match value_ref {
-                    ValueRef::Null => writer.write_i16::<LittleEndian>(0)?,
-                    ValueRef::Int(number) => {
-                        let number = (number as i16) ^ -0x8000;
-                        writer.write_i16::<LittleEndian>(number)?
-                    }
-                    ValueRef::Str(_) => {
-                        invalid_input!("Cannot write {:?} to {} column",
-                                       value_ref,
-                                       self)
-                    }
+            ColumnType::Int16 => match value_ref {
+                ValueRef::Null => writer.write_i16::<LittleEndian>(0)?,
+                ValueRef::Int(number) => {
+                    let number = (number as i16) ^ -0x8000;
+                    writer.write_i16::<LittleEndian>(number)?
                 }
-            }
-            ColumnType::Int32 => {
-                match value_ref {
-                    ValueRef::Null => writer.write_i32::<LittleEndian>(0)?,
-                    ValueRef::Int(number) => {
-                        let number = number ^ -0x8000_0000;
-                        writer.write_i32::<LittleEndian>(number)?
-                    }
-                    ValueRef::Str(_) => {
-                        invalid_input!("Cannot write {:?} to {} column",
-                                       value_ref,
-                                       self)
-                    }
+                ValueRef::Str(_) => invalid_input!(
+                    "Cannot write {:?} to {} column",
+                    value_ref,
+                    self
+                ),
+            },
+            ColumnType::Int32 => match value_ref {
+                ValueRef::Null => writer.write_i32::<LittleEndian>(0)?,
+                ValueRef::Int(number) => {
+                    let number = number ^ -0x8000_0000;
+                    writer.write_i32::<LittleEndian>(number)?
                 }
-            }
+                ValueRef::Str(_) => invalid_input!(
+                    "Cannot write {:?} to {} column",
+                    value_ref,
+                    self
+                ),
+            },
             ColumnType::Str(_) => {
                 let string_ref = match value_ref {
                     ValueRef::Null => None,
-                    ValueRef::Int(_) => {
-                        invalid_input!("Cannot write {:?} to {} column",
-                                       value_ref,
-                                       self)
-                    }
+                    ValueRef::Int(_) => invalid_input!(
+                        "Cannot write {:?} to {} column",
+                        value_ref,
+                        self
+                    ),
                     ValueRef::Str(string_ref) => Some(string_ref),
                 };
                 StringRef::write(writer, string_ref, long_string_refs)?;
@@ -134,7 +132,13 @@ impl ColumnType {
         match *self {
             ColumnType::Int16 => 2,
             ColumnType::Int32 => 4,
-            ColumnType::Str(_) => if long_string_refs { 3 } else { 2 },
+            ColumnType::Str(_) => {
+                if long_string_refs {
+                    3
+                } else {
+                    2
+                }
+            }
         }
     }
 }
@@ -233,22 +237,34 @@ impl Column {
     }
 
     /// Returns the name of the column.
-    pub fn name(&self) -> &str { &self.name }
+    pub fn name(&self) -> &str {
+        &self.name
+    }
 
     /// Returns the type of data stored in the column.
-    pub fn coltype(&self) -> ColumnType { self.coltype }
+    pub fn coltype(&self) -> ColumnType {
+        self.coltype
+    }
 
     /// Returns true if values in this column can be localized.
-    pub fn is_localizable(&self) -> bool { self.is_localizable }
+    pub fn is_localizable(&self) -> bool {
+        self.is_localizable
+    }
 
     /// Returns true if values in this column can be null.
-    pub fn is_nullable(&self) -> bool { self.is_nullable }
+    pub fn is_nullable(&self) -> bool {
+        self.is_nullable
+    }
 
     /// Returns true if this is primary key column.
-    pub fn is_primary_key(&self) -> bool { self.is_primary_key }
+    pub fn is_primary_key(&self) -> bool {
+        self.is_primary_key
+    }
 
     /// Returns the (min, max) integer value range for this column, if any.
-    pub fn value_range(&self) -> Option<(i32, i32)> { self.value_range }
+    pub fn value_range(&self) -> Option<(i32, i32)> {
+        self.value_range
+    }
 
     pub(crate) fn foreign_key(&self) -> Option<(&str, i32)> {
         self.foreign_key
@@ -257,7 +273,9 @@ impl Column {
     }
 
     /// Returns the string value category for this column, if any.
-    pub fn category(&self) -> Option<Category> { self.category }
+    pub fn category(&self) -> Option<Category> {
+        self.category
+    }
 
     /// Returns the list of valid enum values for this column, if any.
     pub fn enum_values(&self) -> Option<&[String]> {
@@ -280,32 +298,29 @@ impl Column {
                 }
                 match self.coltype {
                     ColumnType::Int16 => {
-                        number > (i16::MIN as i32) &&
-                            number <= (i16::MAX as i32)
+                        number > (i16::MIN as i32)
+                            && number <= (i16::MAX as i32)
                     }
                     ColumnType::Int32 => number > i32::MIN,
                     ColumnType::Str(_) => false,
                 }
             }
-            Value::Str(ref string) => {
-                match self.coltype {
-                    ColumnType::Int16 |
-                    ColumnType::Int32 => false,
-                    ColumnType::Str(max_len) => {
-                        if let Some(category) = self.category {
-                            if !category.validate(&string) {
-                                return false;
-                            }
-                        }
-                        if !self.enum_values.is_empty() &&
-                            !self.enum_values.contains(string)
-                        {
+            Value::Str(ref string) => match self.coltype {
+                ColumnType::Int16 | ColumnType::Int32 => false,
+                ColumnType::Str(max_len) => {
+                    if let Some(category) = self.category {
+                        if !category.validate(&string) {
                             return false;
                         }
-                        max_len == 0 || string.chars().count() <= max_len
                     }
+                    if !self.enum_values.is_empty()
+                        && !self.enum_values.contains(string)
+                    {
+                        return false;
+                    }
+                    max_len == 0 || string.chars().count() <= max_len
                 }
-            }
+            },
         }
     }
 }
@@ -327,7 +342,7 @@ pub struct ColumnBuilder {
 impl ColumnBuilder {
     fn new(name: String) -> ColumnBuilder {
         ColumnBuilder {
-            name: name,
+            name,
             is_localizable: false,
             is_nullable: false,
             is_primary_key: false,
@@ -363,8 +378,11 @@ impl ColumnBuilder {
     }
 
     /// Makes the column refer to a key column in another table.
-    pub fn foreign_key(mut self, table_name: &str, column_index: i32)
-                       -> ColumnBuilder {
+    pub fn foreign_key(
+        mut self,
+        table_name: &str,
+        column_index: i32,
+    ) -> ColumnBuilder {
         self.foreign_key = Some((table_name.to_string(), column_index));
         self
     }
@@ -382,10 +400,14 @@ impl ColumnBuilder {
     }
 
     /// Builds a column that stores a 16-bit integer.
-    pub fn int16(self) -> Column { self.with_type(ColumnType::Int16) }
+    pub fn int16(self) -> Column {
+        self.with_type(ColumnType::Int16)
+    }
 
     /// Builds a column that stores a 32-bit integer.
-    pub fn int32(self) -> Column { self.with_type(ColumnType::Int32) }
+    pub fn int32(self) -> Column {
+        self.with_type(ColumnType::Int32)
+    }
 
     /// Builds a column that stores a string.
     pub fn string(self, max_len: usize) -> Column {
@@ -413,12 +435,14 @@ impl ColumnBuilder {
     /// Builds a column that refers to a binary data stream.  This sets the
     /// category to `Category::Binary` in addition to setting the column
     /// type.
-    pub fn binary(self) -> Column { self.category(Category::Binary).string(0) }
+    pub fn binary(self) -> Column {
+        self.category(Category::Binary).string(0)
+    }
 
     fn with_type(self, coltype: ColumnType) -> Column {
         Column {
             name: self.name,
-            coltype: coltype,
+            coltype,
             is_localizable: self.is_localizable,
             is_nullable: self.is_nullable,
             is_primary_key: self.is_primary_key,
@@ -432,16 +456,16 @@ impl ColumnBuilder {
     pub(crate) fn with_bitfield(self, type_bits: i32) -> io::Result<Column> {
         let is_nullable = (type_bits & COL_NULLABLE_BIT) != 0;
         Ok(Column {
-               name: self.name,
-               coltype: ColumnType::from_bitfield(type_bits)?,
-               is_localizable: (type_bits & COL_LOCALIZABLE_BIT) != 0,
-               is_nullable: is_nullable || self.is_nullable,
-               is_primary_key: (type_bits & COL_PRIMARY_KEY_BIT) != 0,
-               value_range: self.value_range,
-               foreign_key: self.foreign_key,
-               category: self.category,
-               enum_values: self.enum_values,
-           })
+            name: self.name,
+            coltype: ColumnType::from_bitfield(type_bits)?,
+            is_localizable: (type_bits & COL_LOCALIZABLE_BIT) != 0,
+            is_nullable: is_nullable || self.is_nullable,
+            is_primary_key: (type_bits & COL_PRIMARY_KEY_BIT) != 0,
+            value_range: self.value_range,
+            foreign_key: self.foreign_key,
+            category: self.category,
+            enum_values: self.enum_values,
+        })
     }
 }
 
@@ -450,9 +474,9 @@ impl ColumnBuilder {
 #[cfg(test)]
 mod tests {
     use super::{Column, ColumnType};
-    use internal::codepage::CodePage;
-    use internal::stringpool::StringPool;
-    use internal::value::{Value, ValueRef};
+    use crate::internal::codepage::CodePage;
+    use crate::internal::stringpool::StringPool;
+    use crate::internal::value::{Value, ValueRef};
 
     #[test]
     fn valid_column_name() {
@@ -468,48 +492,68 @@ mod tests {
     #[test]
     fn read_column_value() {
         let mut input: &[u8] = b"\x00\x00";
-        assert_eq!(ColumnType::Int16.read_value(&mut input, false).unwrap(),
-                   ValueRef::Null);
+        assert_eq!(
+            ColumnType::Int16.read_value(&mut input, false).unwrap(),
+            ValueRef::Null
+        );
 
         let mut input: &[u8] = b"\x23\x81";
-        assert_eq!(ColumnType::Int16.read_value(&mut input, false).unwrap(),
-                   ValueRef::Int(0x123));
+        assert_eq!(
+            ColumnType::Int16.read_value(&mut input, false).unwrap(),
+            ValueRef::Int(0x123)
+        );
 
         let mut input: &[u8] = b"\xff\x7f";
-        assert_eq!(ColumnType::Int16.read_value(&mut input, false).unwrap(),
-                   ValueRef::Int(-1));
+        assert_eq!(
+            ColumnType::Int16.read_value(&mut input, false).unwrap(),
+            ValueRef::Int(-1)
+        );
 
         let mut input: &[u8] = b"\x00\x00\x00\x00";
-        assert_eq!(ColumnType::Int32.read_value(&mut input, false).unwrap(),
-                   ValueRef::Null);
+        assert_eq!(
+            ColumnType::Int32.read_value(&mut input, false).unwrap(),
+            ValueRef::Null
+        );
 
         let mut input: &[u8] = b"\x67\x45\x23\x81";
-        assert_eq!(ColumnType::Int32.read_value(&mut input, false).unwrap(),
-                   ValueRef::Int(0x1234567));
+        assert_eq!(
+            ColumnType::Int32.read_value(&mut input, false).unwrap(),
+            ValueRef::Int(0x1234567)
+        );
 
         let mut input: &[u8] = b"\xff\xff\xff\x7f";
-        assert_eq!(ColumnType::Int32.read_value(&mut input, false).unwrap(),
-                   ValueRef::Int(-1));
+        assert_eq!(
+            ColumnType::Int32.read_value(&mut input, false).unwrap(),
+            ValueRef::Int(-1)
+        );
 
         let mut string_pool = StringPool::new(CodePage::default());
         let string_ref = string_pool.incref("Hello, world!".to_string());
         assert_eq!(string_ref.number(), 1);
 
         let mut input: &[u8] = b"\x00\x00";
-        assert_eq!(ColumnType::Str(24).read_value(&mut input, false).unwrap(),
-                   ValueRef::Null);
+        assert_eq!(
+            ColumnType::Str(24).read_value(&mut input, false).unwrap(),
+            ValueRef::Null
+        );
 
         let mut input: &[u8] = b"\x01\x00";
-        assert_eq!(ColumnType::Str(24).read_value(&mut input, false).unwrap(),
-                   ValueRef::Str(string_ref));
+        assert_eq!(
+            ColumnType::Str(24).read_value(&mut input, false).unwrap(),
+            ValueRef::Str(string_ref)
+        );
 
         let mut input: &[u8] = b"\x00\x00\x00";
-        assert_eq!(ColumnType::Str(24).read_value(&mut input, true).unwrap(),
-                   ValueRef::Null);
+        assert_eq!(
+            ColumnType::Str(24).read_value(&mut input, true).unwrap(),
+            ValueRef::Null
+        );
 
         let mut input: &[u8] = b"\x01\x00\x00";
-        assert_eq!(ColumnType::Str(24).read_value(&mut input, true).unwrap(),
-                   ValueRef::Str(string_ref));
+        assert_eq!(
+            ColumnType::Str(24).read_value(&mut input, true).unwrap(),
+            ValueRef::Str(string_ref)
+        );
     }
 
     #[test]

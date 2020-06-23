@@ -118,22 +118,34 @@ mod tests {
 
     #[test]
     fn decode_stream_name() {
-        assert_eq!(decode("\u{4840}\u{3b3f}\u{43f2}\u{4438}\u{45b1}"),
-                   ("_Columns".to_string(), true));
-        assert_eq!(decode("\u{4840}\u{3f7f}\u{4164}\u{422f}\u{4836}"),
-                   ("_Tables".to_string(), true));
-        assert_eq!(decode("\u{44ca}\u{47b3}\u{46e8}\u{4828}"),
-                   ("App.exe".to_string(), false));
+        assert_eq!(
+            decode("\u{4840}\u{3b3f}\u{43f2}\u{4438}\u{45b1}"),
+            ("_Columns".to_string(), true)
+        );
+        assert_eq!(
+            decode("\u{4840}\u{3f7f}\u{4164}\u{422f}\u{4836}"),
+            ("_Tables".to_string(), true)
+        );
+        assert_eq!(
+            decode("\u{44ca}\u{47b3}\u{46e8}\u{4828}"),
+            ("App.exe".to_string(), false)
+        );
     }
 
     #[test]
     fn encode_stream_name() {
-        assert_eq!(encode("_Columns", true),
-                   "\u{4840}\u{3b3f}\u{43f2}\u{4438}\u{45b1}");
-        assert_eq!(encode("_Tables", true),
-                   "\u{4840}\u{3f7f}\u{4164}\u{422f}\u{4836}");
-        assert_eq!(encode("App.exe", false),
-                   "\u{44ca}\u{47b3}\u{46e8}\u{4828}");
+        assert_eq!(
+            encode("_Columns", true),
+            "\u{4840}\u{3b3f}\u{43f2}\u{4438}\u{45b1}"
+        );
+        assert_eq!(
+            encode("_Tables", true),
+            "\u{4840}\u{3f7f}\u{4164}\u{422f}\u{4836}"
+        );
+        assert_eq!(
+            encode("App.exe", false),
+            "\u{44ca}\u{47b3}\u{46e8}\u{4828}"
+        );
     }
 
     #[test]
@@ -145,10 +157,12 @@ mod tests {
         assert!(!is_valid("", false));
         assert!(!is_valid("", true));
         assert!(!is_valid("\u{4840}Stream", false));
-        assert!(!is_valid("ThisStringIsWayTooLongToBeAStreamName\
+        assert!(!is_valid(
+            "ThisStringIsWayTooLongToBeAStreamName\
                            IMeanSeriouslyWhoWouldTryToUseAName\
                            ThatIsThisLongItWouldBePrettySilly",
-                          false));
+            false
+        ));
     }
 }
 
