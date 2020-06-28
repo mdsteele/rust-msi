@@ -1,0 +1,114 @@
+////////// Grammar Rules //////////
+
+QueryList = _{ SOI ~ Query ~ (OpSemicolon ~ Query)* ~ OpSemicolon? ~ EOI }
+
+Query = _{ QueryDelete | QueryInsert | QuerySelect | QueryUpdate }
+QueryDelete = { KwDelete ~ KwFrom ~ Ident ~ (KwWhere ~ Expr)? }
+QueryInsert = { KwInsert ~ KwInto ~ Ident ~ (KwValues ~ RowList)? }
+QuerySelect = { KwSelect ~ ColumnList ~ KwFrom ~ Table ~ (KwWhere ~ Expr)? }
+QueryUpdate = { KwUpdate ~ Ident ~ KwSet ~ AssignmentList ~ (KwWhere ~ Expr)? }
+
+AssignmentList = { Assignment ~ (OpComma ~ Assignment)* }
+Assignment = { Ident ~ OpEq ~ Literal }
+
+ColumnList = _{ OpStar | CompoundIdentList }
+CompoundIdentList = { CompoundIdent ~ (OpComma ~ CompoundIdent)* }
+
+RowList = { Row ~ (OpComma ~ Row)* }
+Row = { OpParenL ~ Literal ~ (OpComma ~ Literal)* ~ OpParenR }
+
+Table = _{ TableJoin | Table2 }
+TableJoin = { Table2 ~ (KwInner | KwLeft) ~ KwJoin ~ Table2 ~ KwOn ~ Expr }
+Table2 = _{ Ident | TableParens }
+TableParens = _{ OpParenL ~ QuerySelect ~ OpParenR }
+
+Expr = _{ ExprOr | Expr2 }
+ExprOr = { Expr2 ~ (KwOr ~ Expr2)+ }
+Expr2 = _{ ExprAnd | Expr3 }
+ExprAnd = { Expr3 ~ (KwAnd ~ Expr3)+ }
+Expr3 = _{ ExprNot | Expr4 }
+ExprNot = { KwNot ~ Expr3 }
+Expr4 = _{ ExprCmp | Expr5 }
+ExprCmp = { Expr5 ~ (OpGe | OpGt | OpLe | OpLt | OpNeq | OpEq) ~ Expr5 }
+Expr5 = _{ ExprBitOr | Expr6 }
+ExprBitOr = { Expr6 ~ (OpBitOr ~ Expr6)+ }
+Expr6 = _{ ExprBitAnd | Expr7 }
+ExprBitAnd = { Expr7 ~ (OpBitAnd ~ Expr7)+ }
+Expr7 = _{ ExprShift | Expr8 }
+ExprShift = { Expr8 ~ (OpShl | OpShr) ~ Expr8 }
+Expr8 = _{ ExprSum | Expr9 }
+ExprSum = { Expr9 ~ ((OpPlus | OpMinus) ~ Expr9)+ }
+Expr9 = _{ ExprProd | Expr10 }
+ExprProd = { Expr10 ~ ((OpStar | OpSlash) ~ Expr10)+ }
+Expr10 = _{ ExprNeg | ExprBitNot | Expr11 }
+ExprNeg = { OpMinus ~ Expr10 }
+ExprBitNot = { OpBitNot ~ Expr10 }
+Expr11 = _{ Literal | CompoundIdent | ExprParens }
+ExprParens = _{ OpParenL ~ Expr ~ OpParenR }
+
+Literal = _{ KwNull | KwFalse | KwTrue | Integer | String }
+
+////////// Lexical Tokens //////////
+
+CompoundIdent = @{ Ident ~ ("." ~ Ident)* }
+Ident = @{ !Keyword ~ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+
+Integer = @{ "-"? ~ ASCII_DIGIT+ ~ EndOfWord }
+
+String = ${ "\"" ~ StringInnerD ~ "\"" | "'" ~ StringInnerS ~ "'" }
+StringInnerD = @{ (!("\"" | "\\") ~ ANY | StringEscape)* }
+StringInnerS = @{ (!("'" | "\\") ~ ANY | StringEscape)* }
+StringEscape = @{
+    "\\" ~ ("\\" | "\"" | "'" | "n" | "r" | "t") |
+    "\\x" ~ ASCII_HEX_DIGIT{2} |
+    "\\u" ~ ASCII_HEX_DIGIT{4}
+}
+
+OpBitAnd = @{ "&" }
+OpBitNot = @{ "~" }
+OpBitOr = @{ "|" }
+OpComma = @{ "," }
+OpEq = @{ "=" }
+OpGe = @{ ">=" }
+OpGt = @{ ">" ~ !(">" | "=") }
+OpLe = @{ "<=" }
+OpLt = @{ "<" ~ !("<" | "=") }
+OpMinus = @{ "-" }
+OpNeq = @{ "!=" }
+OpParenL = _{ "(" }
+OpParenR = _{ ")" }
+OpPlus = @{ "+" }
+OpSemicolon = _{ ";" }
+OpShl = @{ "<<" }
+OpShr = @{ ">>" }
+OpSlash = @{ "/" }
+OpStar = @{ "*" }
+
+KwAnd    = @{ ^"AND" ~ EndOfWord }
+KwDelete = @{ ^"DELETE" ~ EndOfWord }
+KwFalse  = @{ ^"FALSE" ~ EndOfWord }
+KwFrom   = @{ ^"FROM" ~ EndOfWord }
+KwInner  = @{ ^"INNER" ~ EndOfWord }
+KwInsert = @{ ^"INSERT" ~ EndOfWord }
+KwInto   = @{ ^"INTO" ~ EndOfWord }
+KwJoin   = @{ ^"JOIN" ~ EndOfWord }
+KwLeft   = @{ ^"LEFT" ~ EndOfWord }
+KwNot    = @{ ^"NOT" ~ EndOfWord }
+KwNull   = @{ ^"NULL" ~ EndOfWord }
+KwOn     = @{ ^"ON" ~ EndOfWord }
+KwOr     = @{ ^"OR" ~ EndOfWord }
+KwSelect = @{ ^"SELECT" ~ EndOfWord }
+KwSet    = @{ ^"SET" ~ EndOfWord }
+KwTrue   = @{ ^"TRUE" ~ EndOfWord }
+KwUpdate = @{ ^"UPDATE" ~ EndOfWord }
+KwValues = @{ ^"VALUES" ~ EndOfWord }
+KwWhere  = @{ ^"WHERE" ~ EndOfWord }
+Keyword = _{
+    KwAnd | KwDelete | KwFalse | KwFrom | KwInner | KwInsert | KwInto |
+    KwJoin | KwLeft | KwNot | KwNull | KwOn | KwOr | KwSelect | KwSet |
+    KwTrue | KwUpdate | KwValues | KwWhere
+}
+
+EndOfWord = _{ !(ASCII_ALPHANUMERIC | "_") }
+
+WHITESPACE = _{ " " }

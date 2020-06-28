@@ -469,9 +469,12 @@ impl Select {
 
     /// Transforms the selected rows to only include the specified columns, in
     /// the order given.
-    pub fn columns(mut self, column_names: &[&str]) -> Select {
+    pub fn columns<S>(mut self, column_names: &[S]) -> Select
+    where
+        S: Clone + Into<String>,
+    {
         self.column_names =
-            column_names.iter().map(|name| name.to_string()).collect();
+            column_names.iter().cloned().map(|name| name.into()).collect();
         self
     }
 
@@ -621,8 +624,12 @@ impl Update {
     }
 
     /// Adds a column value to be set by the query.
-    pub fn set(mut self, column_name: &str, value: Value) -> Update {
-        self.updates.push((column_name.to_string(), value));
+    pub fn set<S: Into<String>>(
+        mut self,
+        column_name: S,
+        value: Value,
+    ) -> Update {
+        self.updates.push((column_name.into(), value));
         self
     }
 

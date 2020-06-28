@@ -229,6 +229,11 @@ impl<'a> Rows<'a> {
         Rows { table, string_pool, rows, next_row_index: 0 }
     }
 
+    /// Returns the list of columns for these rows.
+    pub fn columns(&self) -> &[Column] {
+        self.table.columns()
+    }
+
     pub(crate) fn into_table_and_values(
         self,
     ) -> (Rc<Table>, Vec<Vec<ValueRef>>) {

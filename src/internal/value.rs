@@ -90,6 +90,12 @@ impl fmt::Display for Value {
     }
 }
 
+impl From<bool> for Value {
+    fn from(boolean: bool) -> Value {
+        Value::from_bool(boolean)
+    }
+}
+
 impl From<i16> for Value {
     fn from(integer: i16) -> Value {
         Value::Int(integer as i32)
@@ -222,6 +228,8 @@ mod tests {
 
     #[test]
     fn value_from() {
+        assert_eq!(Value::from(false), Value::Int(0));
+        assert_eq!(Value::from(true), Value::Int(1));
         assert_eq!(Value::from(-47i16), Value::Int(-47i32));
         assert_eq!(Value::from(47u16), Value::Int(47i32));
         assert_eq!(Value::from("foobar"), Value::Str("foobar".to_string()));

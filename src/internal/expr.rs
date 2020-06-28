@@ -13,11 +13,23 @@ pub struct Expr {
 
 impl Expr {
     fn unop(op: UnOp, ast: Ast) -> Expr {
-        Expr { ast: Ast::UnOp(op, Box::new(ast)) }
+        Expr {
+            ast: match ast {
+                Ast::Literal(value) => Ast::Literal(op.eval(value)),
+                ast => Ast::UnOp(op, Box::new(ast)),
+            },
+        }
     }
 
     fn binop(op: BinOp, ast1: Ast, ast2: Ast) -> Expr {
-        Expr { ast: Ast::BinOp(op, Box::new(ast1), Box::new(ast2)) }
+        Expr {
+            ast: match (ast1, ast2) {
+                (Ast::Literal(value1), Ast::Literal(value2)) => {
+                    Ast::Literal(op.eval(value1, value2))
+                }
+                (ast1, ast2) => Ast::BinOp(op, Box::new(ast1), Box::new(ast2)),
+            },
+        }
     }
 
     /// Returns an expression that evaluates to the value of the specified
@@ -344,7 +356,7 @@ impl Ast {
                     BinOp::Shl => formatter.write_str(" << ")?,
                     BinOp::Shr => formatter.write_str(" >> ")?,
                 }
-                arg2.format_with_precedence(formatter, op_prec)?;
+                arg2.format_with_precedence(formatter, op_prec + 1)?;
                 if op_prec < parent_prec {
                     formatter.write_str(")")?;
                 }
@@ -357,7 +369,7 @@ impl Ast {
                 }
                 arg1.format_with_precedence(formatter, op_prec)?;
                 formatter.write_str(" AND ")?;
-                arg2.format_with_precedence(formatter, op_prec)?;
+                arg2.format_with_precedence(formatter, op_prec + 1)?;
                 if op_prec < parent_prec {
                     formatter.write_str(")")?;
                 }
@@ -370,7 +382,7 @@ impl Ast {
                 }
                 arg1.format_with_precedence(formatter, op_prec)?;
                 formatter.write_str(" OR ")?;
-                arg2.format_with_precedence(formatter, op_prec)?;
+                arg2.format_with_precedence(formatter, op_prec + 1)?;
                 if op_prec < parent_prec {
                     formatter.write_str(")")?;
                 }
@@ -608,18 +620,42 @@ mod tests {
             .le(Expr::col("Bar"))
             .or(Expr::col("Baz").ge(Expr::col("Foo")));
         assert_eq!(
-            format!("{}", expr),
+            expr.to_string(),
             "Foo / 10 <= Bar OR Baz >= Foo".to_string()
         );
 
         let expr = Expr::col("Foo") * (Expr::integer(10) + Expr::col("Bar"));
-        assert_eq!(format!("{}", expr), "Foo * (10 + Bar)".to_string());
+        assert_eq!(expr.to_string(), "Foo * (10 + Bar)".to_string());
+
+        let expr = (Expr::col("Foo") + Expr::integer(10)) * Expr::col("Bar");
+        assert_eq!(expr.to_string(), "(Foo + 10) * Bar".to_string());
 
         let expr = Expr::col("Foo").and(Expr::col("Bar")).or(Expr::col("Baz"));
-        assert_eq!(format!("{}", expr), "Foo AND Bar OR Baz".to_string());
+        assert_eq!(expr.to_string(), "Foo AND Bar OR Baz".to_string());
 
         let expr = Expr::col("Foo").or(Expr::col("Bar")).and(Expr::col("Baz"));
-        assert_eq!(format!("{}", expr), "(Foo OR Bar) AND Baz".to_string());
+        assert_eq!(expr.to_string(), "(Foo OR Bar) AND Baz".to_string());
+
+        let expr = Expr::col("Foo") - Expr::col("Bar") - Expr::col("Baz");
+        assert_eq!(expr.to_string(), "Foo - Bar - Baz".to_string());
+
+        let expr = Expr::col("Foo") - (Expr::col("Bar") - Expr::col("Baz"));
+        assert_eq!(expr.to_string(), "Foo - (Bar - Baz)".to_string());
+
+        let expr = Expr::col("Foo").or(Expr::col("Bar")).or(Expr::col("Baz"));
+        assert_eq!(expr.to_string(), "Foo OR Bar OR Baz".to_string());
+
+        let expr = Expr::col("Foo").or(Expr::col("Bar").or(Expr::col("Baz")));
+        assert_eq!(expr.to_string(), "Foo OR (Bar OR Baz)".to_string());
+    }
+
+    #[test]
+    fn constant_folding() {
+        let expr = -Expr::integer(-5) + Expr::col("Foo");
+        assert_eq!(expr.to_string(), "5 + Foo".to_string());
+
+        let expr = Expr::integer(3) * Expr::integer(4) - Expr::integer(2);
+        assert_eq!(expr.to_string(), "10".to_string());
     }
 }
 
