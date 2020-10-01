@@ -108,7 +108,7 @@ impl StringPoolBuilder {
             let mut refcount = reader.read_u16::<LittleEndian>()?;
             if length == 0 && refcount > 0 {
                 length = ((refcount as u32) << 16)
-                    & (reader.read_u16::<LittleEndian>()? as u32);
+                    | (reader.read_u16::<LittleEndian>()? as u32);
                 refcount = reader.read_u16::<LittleEndian>()?;
             }
             lengths_and_refcounts.push((length, refcount));
@@ -422,6 +422,31 @@ mod tests {
         assert_eq!(string_pool.refcount(StringRef(1)), 2);
         assert_eq!(string_pool.get(StringRef(2)), "Foo");
         assert_eq!(string_pool.refcount(StringRef(2)), 7);
+    }
+
+    #[test]
+    fn string_over_64k() {
+        let pool: &[u8] = b"\xe9\xfd\x00\x00\x00\x00\x01\x00\x70\x11\x01\x00";
+
+        let mut rustmsi_x10000: [u8; 70000] = [0; 70000];
+        for i in 0..10000 {
+            rustmsi_x10000[7 * i + 0] = b'r';
+            rustmsi_x10000[7 * i + 1] = b'u';
+            rustmsi_x10000[7 * i + 2] = b's';
+            rustmsi_x10000[7 * i + 3] = b't';
+            rustmsi_x10000[7 * i + 4] = b'm';
+            rustmsi_x10000[7 * i + 5] = b's';
+            rustmsi_x10000[7 * i + 6] = b'i';
+        }
+        let data: &[u8] = &rustmsi_x10000;
+        assert_eq!(data.len(), 70000);
+        let builder = StringPoolBuilder::read_from_pool(pool).expect("pool");
+        let string_pool = builder.build_from_data(data).expect("data");
+        assert_eq!(string_pool.codepage(), CodePage::Utf8);
+        assert!(!string_pool.long_string_refs());
+        assert_eq!(string_pool.num_strings(), 1);
+        assert_eq!(string_pool.get(StringRef(1)), "rustmsi".repeat(10000));
+        assert_eq!(string_pool.refcount(StringRef(1)), 1);
     }
 
     #[test]
