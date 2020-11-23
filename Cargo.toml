@@ -1,6 +1,6 @@
 [package]
 name = "msi"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Matthew D. Steele <mdsteele@alum.mit.edu>"]
 description = "Read/write Windows Installer (MSI) files"
 repository = "https://github.com/mdsteele/rust-msi"
