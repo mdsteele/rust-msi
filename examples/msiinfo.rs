@@ -41,7 +41,7 @@ fn print_summary_info(
         println!("      Author: {}", author);
     }
     if let Some(uuid) = summary_info.uuid() {
-        println!("        UUID: {}", uuid.hyphenated());
+        println!("        UUID: {}", uuid.to_hyphenated());
     }
     if let Some(arch) = summary_info.arch() {
         println!("        Arch: {}", arch);

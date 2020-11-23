@@ -148,7 +148,7 @@ impl<'a> From<&'a [Language]> for Value {
 /// column with the `Guid` category.
 impl From<Uuid> for Value {
     fn from(uuid: Uuid) -> Value {
-        let mut string = format!("{{{}}}", uuid.hyphenated());
+        let mut string = format!("{{{}}}", uuid.to_hyphenated());
         string.make_ascii_uppercase();
         Value::Str(string)
     }
