@@ -310,9 +310,6 @@ impl<F: Read + Seek> Package<F> {
                     names.insert(table_name);
                 }
             }
-            if !names.contains(VALIDATION_TABLE_NAME) {
-                invalid_data!("Missing {:?} table", VALIDATION_TABLE_NAME);
-            }
             all_tables.insert(table.name().to_string(), table);
             names
         };
