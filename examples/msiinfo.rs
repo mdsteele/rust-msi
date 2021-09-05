@@ -24,11 +24,10 @@ fn pad(mut string: String, fill: char, width: usize) -> String {
     string
 }
 
-fn print_summary_info(
-    package_type: msi::PackageType,
-    summary_info: &msi::SummaryInfo,
-) {
-    println!("Package type: {:?}", package_type);
+fn print_summary_info<F>(package: &msi::Package<F>) {
+    println!("Package type: {:?}", package.package_type());
+    let is_signed = package.has_digital_signature();
+    let summary_info = package.summary_info();
     let codepage = summary_info.codepage();
     println!("   Code page: {} ({})", codepage.id(), codepage.name());
     if let Some(title) = summary_info.title() {
@@ -58,6 +57,7 @@ fn print_summary_info(
     if let Some(app_name) = summary_info.creating_application() {
         println!("Created with: {}", app_name);
     }
+    println!("      Signed: {}", if is_signed { "yes" } else { "no" });
     if let Some(comments) = summary_info.comments() {
         println!("Comments:");
         for line in comments.lines() {
@@ -203,7 +203,7 @@ fn main() {
     } else if let Some(submatches) = matches.subcommand_matches("summary") {
         let path = submatches.value_of("path").unwrap();
         let package = msi::open(path).expect("open package");
-        print_summary_info(package.package_type(), package.summary_info());
+        print_summary_info(&package);
     } else if let Some(submatches) = matches.subcommand_matches("tables") {
         let path = submatches.value_of("path").unwrap();
         let package = msi::open(path).expect("open package");

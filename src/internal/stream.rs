@@ -1,4 +1,7 @@
-use crate::internal::streamname::{self, SUMMARY_INFO_STREAM_NAME};
+use crate::internal::streamname::{
+    self, DIGITAL_SIGNATURE_STREAM_NAME, MSI_DIGITAL_SIGNATURE_EX_STREAM_NAME,
+    SUMMARY_INFO_STREAM_NAME,
+};
 use cfb;
 use std::io::{self, Read, Seek, SeekFrom, Write};
 
@@ -80,7 +83,11 @@ impl<'a> Iterator for Streams<'a> {
                 Some(entry) => entry,
                 None => return None,
             };
-            if !entry.is_stream() || entry.name() == SUMMARY_INFO_STREAM_NAME {
+            if !entry.is_stream()
+                || entry.name() == DIGITAL_SIGNATURE_STREAM_NAME
+                || entry.name() == MSI_DIGITAL_SIGNATURE_EX_STREAM_NAME
+                || entry.name() == SUMMARY_INFO_STREAM_NAME
+            {
                 continue;
             }
             let (name, is_table) = streamname::decode(entry.name());

@@ -4,7 +4,10 @@ use crate::internal::column::Column;
 use crate::internal::expr::Expr;
 use crate::internal::query::{Delete, Insert, Select, Update};
 use crate::internal::stream::{StreamReader, StreamWriter, Streams};
-use crate::internal::streamname::{self, SUMMARY_INFO_STREAM_NAME};
+use crate::internal::streamname::{
+    self, DIGITAL_SIGNATURE_STREAM_NAME, MSI_DIGITAL_SIGNATURE_EX_STREAM_NAME,
+    SUMMARY_INFO_STREAM_NAME,
+};
 use crate::internal::stringpool::{StringPool, StringPoolBuilder};
 use crate::internal::summary::SummaryInfo;
 use crate::internal::table::{Rows, Table};
@@ -227,7 +230,7 @@ impl<F> Package<F> {
         Tables { iter: self.tables.values() }
     }
 
-    /// Returns true if the database has an embedded binary stream with the
+    /// Returns true if the package has an embedded binary stream with the
     /// given name.
     pub fn has_stream(&self, stream_name: &str) -> bool {
         self.comp().is_stream(&streamname::encode(stream_name, false))
@@ -237,6 +240,13 @@ impl<F> Package<F> {
     pub fn streams(&self) -> Streams {
         // Reading the root storage always succeeds.
         Streams::new(self.comp().read_storage("/").expect("read root"))
+    }
+
+    /// Returns true if the package has been digitally signed.  Note that this
+    /// method only checks whether a signature is present; it does *not* verify
+    /// that the signature is actually valid.
+    pub fn has_digital_signature(&self) -> bool {
+        self.comp().is_stream(DIGITAL_SIGNATURE_STREAM_NAME)
     }
 
     /// Consumes the `Package` object, returning the underlying reader/writer.
@@ -486,6 +496,8 @@ impl<F: Read + Seek> Package<F> {
         }
         Ok(StreamReader::new(self.comp_mut().open_stream(&encoded_name)?))
     }
+
+    // TODO: pub fn has_valid_digital_signature(&mut self) -> io::Result<bool>
 }
 
 impl<F: Read + Write + Seek> Package<F> {
@@ -753,6 +765,22 @@ impl<F: Read + Write + Seek> Package<F> {
             not_found!("Stream {:?} does not exist", stream_name);
         }
         self.comp_mut().remove_stream(&encoded_name)
+    }
+
+    // TODO: pub fn add_digital_signature(&mut self, ...) -> io::Result<()>
+
+    /// Removes any existing digital signature from the package.  This can be
+    /// useful if you need to modify a signed package (which will invalidate
+    /// the signature).
+    pub fn remove_digital_signature(&mut self) -> io::Result<()> {
+        if self.comp().is_stream(DIGITAL_SIGNATURE_STREAM_NAME) {
+            self.comp_mut().remove_stream(DIGITAL_SIGNATURE_STREAM_NAME)?;
+        }
+        if self.comp().is_stream(MSI_DIGITAL_SIGNATURE_EX_STREAM_NAME) {
+            self.comp_mut()
+                .remove_stream(MSI_DIGITAL_SIGNATURE_EX_STREAM_NAME)?;
+        }
+        Ok(())
     }
 
     /// Flushes any buffered changes to the underlying writer.
