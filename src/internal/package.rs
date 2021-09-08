@@ -238,8 +238,7 @@ impl<F> Package<F> {
 
     /// Returns an iterator over the embedded binary streams in this package.
     pub fn streams(&self) -> Streams {
-        // Reading the root storage always succeeds.
-        Streams::new(self.comp().read_storage("/").expect("read root"))
+        Streams::new(self.comp().read_root_storage())
     }
 
     /// Returns true if the package has been digitally signed.  Note that this
