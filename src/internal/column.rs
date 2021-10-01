@@ -38,10 +38,15 @@ impl ColumnType {
         let field_size = (type_bits & COL_FIELD_SIZE_MASK) as usize;
         if (type_bits & COL_STRING_BIT) != 0 {
             Ok(ColumnType::Str(field_size))
-        } else if field_size == 2 {
-            Ok(ColumnType::Int16)
         } else if field_size == 4 {
             Ok(ColumnType::Int32)
+        } else if field_size == 2 {
+            Ok(ColumnType::Int16)
+        } else if field_size == 1 {
+            // Some implementations seem to set the integer field size to 1 for
+            // certain columns, but still store the data with 2 bytes?  See
+            // https://github.com/mdsteele/rust-msi/issues/8.
+            Ok(ColumnType::Int16)
         } else {
             invalid_data!(
                 "Invalid field size for integer column ({})",

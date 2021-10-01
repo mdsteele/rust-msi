@@ -354,8 +354,8 @@ impl<F: Read + Seek> Package<F> {
                         cols.insert(col_index, (col_name, type_bits));
                     } else {
                         invalid_data!(
-                            "_Columns mentions table {:?}, which \
-                                       isn't in _Tables",
+                            "_Columns mentions table {:?}, which isn't in \
+                             _Tables",
                             table_name
                         );
                     }
@@ -406,8 +406,7 @@ impl<F: Read + Seek> Package<F> {
                 || column_specs.keys().next_back() != Some(&num_columns)
             {
                 invalid_data!(
-                    "Table {:?} does not have a complete set \
-                               of columns",
+                    "Table {:?} does not have a complete set of columns",
                     table_name
                 );
             }
@@ -581,8 +580,7 @@ impl<F: Read + Write + Seek> Package<F> {
         }
         if !columns.iter().any(Column::is_primary_key) {
             invalid_input!(
-                "Cannot create a table without at least one \
-                            primary key column"
+                "Cannot create a table without at least one primary key column"
             );
         }
         {
@@ -594,8 +592,8 @@ impl<F: Read + Write + Seek> Package<F> {
                 }
                 if column_names.contains(name) {
                     invalid_input!(
-                        "Cannot create a table with multiple \
-                                    columns with the same name ({:?})",
+                        "Cannot create a table with multiple columns with the \
+                         same name ({:?})",
                         name
                     );
                 }

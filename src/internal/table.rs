@@ -282,9 +282,8 @@ mod tests {
         assert!(!Table::is_valid_name(""));
         assert!(!Table::is_valid_name("99Bottles"));
         assert!(!Table::is_valid_name(
-            "ThisStringIsWayTooLongToBeATableName\
-                                       IMeanSeriouslyWhoWouldTryToUseAName\
-                                       ThatIsThisLongItWouldBePrettySilly"
+            "ThisStringIsWayTooLongToBeATableNameIMeanSeriouslyWhoWouldTryTo\
+             UseANameThatIsThisLongItWouldBePrettySilly"
         ));
     }
 }
