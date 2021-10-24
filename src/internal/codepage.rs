@@ -12,6 +12,16 @@ use encoding::{self, DecoderTrap, EncoderTrap, Encoding};
 /// list of valid code pages.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum CodePage {
+    /// [Windows-932 (Japanese Shift JIS)](https://en.wikipedia.org/wiki/Code_page_932_(Microsoft_Windows))
+    Windows932,
+    /// [Windows-936 (Chinese (simplified) GBK)](https://en.wikipedia.org/wiki/Code_page_936_(Microsoft_Windows))
+    Windows936,
+    /// [Windows-949 (Korean Unified Hangul Code)](https://en.wikipedia.org/wiki/Unified_Hangul_Code)
+    Windows949,
+    /// [Windows-950 (Chinese (traditional) Big5)](https://en.wikipedia.org/wiki/Code_page_950)
+    Windows950,
+    /// [Windows-951 (Chinese (traditional) Big5-HKSCS)](https://en.wikipedia.org/wiki/Hong_Kong_Supplementary_Character_Set#Microsoft_Windows)
+    Windows951,
     /// [Windows-1250 (Latin 2)](https://en.wikipedia.org/wiki/Windows-1250)
     Windows1250,
     /// [Windows-1251 (Cyrillic)](https://en.wikipedia.org/wiki/Windows-1251)
@@ -62,6 +72,11 @@ impl CodePage {
     pub fn from_id(id: i32) -> Option<CodePage> {
         match id {
             0 => Some(CodePage::default()),
+            932 => Some(CodePage::Windows932),
+            936 => Some(CodePage::Windows936),
+            949 => Some(CodePage::Windows949),
+            950 => Some(CodePage::Windows950),
+            951 => Some(CodePage::Windows951),
             1250 => Some(CodePage::Windows1250),
             1251 => Some(CodePage::Windows1251),
             1252 => Some(CodePage::Windows1252),
@@ -90,6 +105,11 @@ impl CodePage {
     /// Returns the ID number used within Windows to represent this code page.
     pub fn id(&self) -> i32 {
         match *self {
+            CodePage::Windows932 => 932,
+            CodePage::Windows936 => 936,
+            CodePage::Windows949 => 949,
+            CodePage::Windows950 => 950,
+            CodePage::Windows951 => 951,
             CodePage::Windows1250 => 1250,
             CodePage::Windows1251 => 1251,
             CodePage::Windows1252 => 1252,
@@ -117,6 +137,11 @@ impl CodePage {
     /// Returns a human-readable name for this code page.
     pub fn name(&self) -> &str {
         match *self {
+            CodePage::Windows932 => "Windows Japanese Shift JIS",
+            CodePage::Windows936 => "Windows Chinese (simplified) GBK",
+            CodePage::Windows949 => "Windows Korean Unified Hangul Code",
+            CodePage::Windows950 => "Windows Chinese (traditional) Big5",
+            CodePage::Windows951 => "Windows Chinese (traditional) Big5-HKSCS",
             CodePage::Windows1250 => "Windows Latin 2",
             CodePage::Windows1251 => "Windows Cyrillic",
             CodePage::Windows1252 => "Windows Latin 1",
@@ -158,6 +183,12 @@ impl CodePage {
 
     fn encoding(&self) -> &dyn Encoding {
         match *self {
+            CodePage::Windows932 => encoding::all::EUC_JP,
+            CodePage::Windows936 => encoding::all::GBK,
+            CodePage::Windows949 => encoding::all::WINDOWS_949,
+            CodePage::Windows950 | CodePage::Windows951 => {
+                encoding::all::BIG5_2003
+            }
             CodePage::Windows1250 => encoding::all::WINDOWS_1250,
             CodePage::Windows1251 => encoding::all::WINDOWS_1251,
             CodePage::Windows1252 => encoding::all::WINDOWS_1252,
@@ -198,6 +229,11 @@ mod tests {
     #[test]
     fn id_round_trip() {
         let codepages = &[
+            CodePage::Windows932,
+            CodePage::Windows936,
+            CodePage::Windows949,
+            CodePage::Windows950,
+            CodePage::Windows951,
             CodePage::Windows1250,
             CodePage::Windows1251,
             CodePage::Windows1252,
