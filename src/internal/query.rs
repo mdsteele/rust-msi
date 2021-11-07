@@ -153,8 +153,8 @@ impl Insert {
         for values in self.new_rows.iter() {
             if values.len() != table.columns().len() {
                 invalid_input!(
-                    "Table {:?} has {} columns, but a row with {} \
-                                values was provided",
+                    "Table {:?} has {} columns, but a row with {} values was \
+                     provided",
                     self.table_name,
                     table.columns().len(),
                     values.len()
@@ -184,8 +184,8 @@ impl Insert {
                     .collect();
                 if rows_map.contains_key(&keys) {
                     invalid_data!(
-                        "Malformed table {:?} contains \
-                                   multiple rows with key {:?}",
+                        "Malformed table {:?} contains multiple rows with \
+                         key {:?}",
                         self.table_name,
                         keys
                     );
@@ -203,8 +203,7 @@ impl Insert {
                 .collect();
             if rows_map.contains_key(&keys) {
                 already_exists!(
-                    "Table {:?} already contains a row with \
-                                 key {:?}",
+                    "Table {:?} already contains a row with key {:?}",
                     self.table_name,
                     keys
                 );
@@ -320,7 +319,7 @@ impl Join {
                         }))
                         .collect();
                 let table = Table::new(
-                    "<InnerJoin>".to_string(),
+                    String::new(),
                     columns,
                     string_pool.long_string_refs(),
                 );
@@ -360,7 +359,7 @@ impl Join {
                     }))
                     .collect();
                 let table = Table::new(
-                    "<LeftJoin>".to_string(),
+                    String::new(),
                     columns,
                     string_pool.long_string_refs(),
                 );
@@ -547,11 +546,8 @@ impl Select {
                 .iter()
                 .map(|&index| table.columns()[index].clone())
                 .collect();
-            table = Table::new(
-                "<Select>".to_string(),
-                columns,
-                table.long_string_refs(),
-            );
+            table =
+                Table::new(String::new(), columns, table.long_string_refs());
             for value_refs in rows.iter_mut() {
                 *value_refs = column_indices
                     .iter()

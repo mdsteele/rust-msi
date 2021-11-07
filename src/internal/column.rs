@@ -195,16 +195,20 @@ impl Column {
     }
 
     pub(crate) fn with_name_prefix(&self, prefix: &str) -> Column {
-        Column {
-            name: format!("{}.{}", prefix, self.name),
-            coltype: self.coltype,
-            is_localizable: self.is_localizable,
-            is_nullable: self.is_nullable,
-            is_primary_key: self.is_primary_key,
-            value_range: self.value_range,
-            foreign_key: self.foreign_key.clone(),
-            category: self.category,
-            enum_values: self.enum_values.clone(),
+        if prefix.is_empty() {
+            self.clone()
+        } else {
+            Column {
+                name: format!("{}.{}", prefix, self.name),
+                coltype: self.coltype,
+                is_localizable: self.is_localizable,
+                is_nullable: self.is_nullable,
+                is_primary_key: self.is_primary_key,
+                value_range: self.value_range,
+                foreign_key: self.foreign_key.clone(),
+                category: self.category,
+                enum_values: self.enum_values.clone(),
+            }
         }
     }
 

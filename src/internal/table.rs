@@ -181,6 +181,12 @@ impl Index<usize> for Row {
         debug_assert_eq!(self.values.len(), self.table.columns().len());
         if index < self.values.len() {
             &self.values[index]
+        } else if self.table.name.is_empty() {
+            panic!(
+                "Anonymous table has only {} columns (index was {})",
+                self.values.len(),
+                index
+            );
         } else {
             panic!(
                 "Table {:?} has only {} columns (index was {})",
@@ -201,10 +207,17 @@ impl<'a> Index<&'a str> for Row {
         match self.table.index_for_column_name(column_name) {
             Some(index) => &self.values[index],
             None => {
-                panic!(
-                    "Table {:?} has no column named {:?}",
-                    self.table.name, column_name
-                );
+                if self.table.name.is_empty() {
+                    panic!(
+                        "Anonymous table has no column named {:?}",
+                        column_name
+                    );
+                } else {
+                    panic!(
+                        "Table {:?} has no column named {:?}",
+                        self.table.name, column_name
+                    );
+                }
             }
         }
     }
