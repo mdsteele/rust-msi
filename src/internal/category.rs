@@ -6,9 +6,17 @@ use uuid::Uuid;
 // ========================================================================= //
 
 /// Indicates the format of a string-typed database column.
+///
+/// This list of categories comes from the [column data
+/// types](https://docs.microsoft.com/en-us/windows/win32/msi/column-data-types)
+/// listed in the MSI docs.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum Category {
     /// An unrestricted text string.
+    ///
+    /// For more details, see the [MSI
+    /// docs](https://docs.microsoft.com/en-us/windows/win32/msi/text) for this
+    /// data type.
     ///
     /// # Examples
     ///
@@ -17,6 +25,10 @@ pub enum Category {
     /// ```
     Text,
     /// A text string containing no lowercase letters.
+    ///
+    /// For more details, see the [MSI
+    /// docs](https://docs.microsoft.com/en-us/windows/win32/msi/uppercase) for
+    /// this data type.
     ///
     /// # Examples
     ///
@@ -29,6 +41,10 @@ pub enum Category {
     UpperCase,
     /// A text string containing no uppercase letters.
     ///
+    /// For more details, see the [MSI
+    /// docs](https://docs.microsoft.com/en-us/windows/win32/msi/lowercase) for
+    /// this data type.
+    ///
     /// # Examples
     ///
     /// ```
@@ -39,6 +55,10 @@ pub enum Category {
     /// ```
     LowerCase,
     /// A signed 16-bit integer.
+    ///
+    /// For more details, see the [MSI
+    /// docs](https://docs.microsoft.com/en-us/windows/win32/msi/integer) for
+    /// this data type.
     ///
     /// # Examples
     ///
@@ -52,6 +72,10 @@ pub enum Category {
     Integer,
     /// A signed 32-bit integer.
     ///
+    /// For more details, see the [MSI
+    /// docs](https://docs.microsoft.com/en-us/windows/win32/msi/doubleinteger)
+    /// for this data type.
+    ///
     /// # Examples
     ///
     /// ```
@@ -62,9 +86,19 @@ pub enum Category {
     /// assert!(!msi::Category::DoubleInteger.validate("3000000000"));
     /// ```
     DoubleInteger,
+    /// Stores a civil datetime, with a 2-second resolution.
+    ///
+    /// For more details, see the [MSI
+    /// docs](https://docs.microsoft.com/en-us/windows/win32/msi/time-date) for
+    /// this data type.
+    TimeDate,
     /// A string identifier (such as a table or column name).  May only contain
     /// alphanumerics, underscores, and periods, and must start with a letter
     /// or underscore.
+    ///
+    /// For more details, see the [MSI
+    /// docs](https://docs.microsoft.com/en-us/windows/win32/msi/identifier)
+    /// for this data type.
     ///
     /// # Examples
     ///
@@ -81,6 +115,10 @@ pub enum Category {
     /// environment variable (which consists of a `%` character followed by an
     /// identifier).
     ///
+    /// For more details, see the [MSI
+    /// docs](https://docs.microsoft.com/en-us/windows/win32/msi/property) for
+    /// this data type.
+    ///
     /// # Examples
     ///
     /// ```
@@ -93,29 +131,79 @@ pub enum Category {
     /// ```
     Property,
     /// The name of a file or directory.
+    ///
+    /// For more details, see the [MSI
+    /// docs](https://docs.microsoft.com/en-us/windows/win32/msi/filename) for
+    /// this data type.
     Filename,
     /// A filename that can contain shell glob wildcards.
+    ///
+    /// For more details, see the [MSI
+    /// docs](https://docs.microsoft.com/en-us/windows/win32/msi/wildcardfilename)
+    /// for this data type.
     WildCardFilename,
     /// A string containing an absolute filepath.
+    ///
+    /// For more details, see the [MSI
+    /// docs](https://docs.microsoft.com/en-us/windows/win32/msi/path) for this
+    /// data type.
     Path,
     /// A string containing a semicolon-separated list of absolute filepaths.
+    ///
+    /// For more details, see the [MSI
+    /// docs](https://docs.microsoft.com/en-us/windows/win32/msi/paths) for
+    /// this data type.
     Paths,
     /// A string containing an absolute or relative filepath.
+    ///
+    /// For more details, see the [MSI
+    /// docs](https://docs.microsoft.com/en-us/windows/win32/msi/anypath) for
+    /// this data type.
     AnyPath,
     /// A string containing either a filename or an identifier.
+    ///
+    /// For more details, see the [MSI
+    /// docs](https://docs.microsoft.com/en-us/windows/win32/msi/defaultdir)
+    /// for this data type.
     DefaultDir,
     /// A string containing a registry path.
+    ///
+    /// For more details, see the [MSI
+    /// docs](https://docs.microsoft.com/en-us/windows/win32/msi/regpath) for
+    /// this data type.
     RegPath,
     /// A string containing special formatting escapes, such as environment
     /// variables.
+    ///
+    /// For more details, see the [MSI
+    /// docs](https://docs.microsoft.com/en-us/windows/win32/msi/formatted) for
+    /// this data type.
     Formatted,
-    /// Unknown.
-    KeyFormatted,
+    /// A security descriptor definition language (SDDL) text string written in
+    /// valid [Security Descriptor String
+    /// Format](https://docs.microsoft.com/en-us/windows/win32/secauthz/security-descriptor-string-format).
+    ///
+    /// For more details, see the [MSI
+    /// docs](https://docs.microsoft.com/en-us/windows/win32/msi/formattedsddltext)
+    /// for this data type.
+    FormattedSddlText,
     /// Like `Formatted`, but allows additional escapes.
+    ///
+    /// For more details, see the [MSI
+    /// docs](https://docs.microsoft.com/en-us/windows/win32/msi/template) for
+    /// this data type.
     Template,
     /// A string represeting a boolean predicate.
+    ///
+    /// For more details, see the [MSI
+    /// docs](https://docs.microsoft.com/en-us/windows/win32/msi/condition) for
+    /// this data type.
     Condition,
     /// A hyphenated, uppercase GUID string, enclosed in curly braces.
+    ///
+    /// For more details, see the [MSI
+    /// docs](https://docs.microsoft.com/en-us/windows/win32/msi/guid) for
+    /// this data type.
     ///
     /// # Examples
     ///
@@ -138,6 +226,10 @@ pub enum Category {
     /// most four period-separated numbers, with the value of each number being
     /// at most 65535.
     ///
+    /// For more details, see the [MSI
+    /// docs](https://docs.microsoft.com/en-us/windows/win32/msi/version) for
+    /// this data type.
+    ///
     /// # Examples
     ///
     /// ```
@@ -155,6 +247,10 @@ pub enum Category {
     /// A string containing a comma-separated list of decimal language ID
     /// numbers.
     ///
+    /// For more details, see the [MSI
+    /// docs](https://docs.microsoft.com/en-us/windows/win32/msi/language) for
+    /// this data type.
+    ///
     /// # Examples
     ///
     /// ```
@@ -169,14 +265,26 @@ pub enum Category {
     /// ```
     Language,
     /// A string that refers to a binary data stream.
+    ///
+    /// For more details, see the [MSI
+    /// docs](https://docs.microsoft.com/en-us/windows/win32/msi/binary) for
+    /// this data type.
     Binary,
     /// A string that refers to a custom source.
+    ///
+    /// For more details, see the [MSI
+    /// docs](https://docs.microsoft.com/en-us/windows/win32/msi/customsource)
+    /// for this data type.
     CustomSource,
     /// A string that refers to a cabinet.  If it starts with a `#` character,
     /// then the rest of the string is an identifier (see above) indicating a
     /// data stream in the package where the cabinet is stored.  Otherwise, the
     /// string is a short filename (at most eight characters, a period, and a
     /// three-character extension).
+    ///
+    /// For more details, see the [MSI
+    /// docs](https://docs.microsoft.com/en-us/windows/win32/msi/cabinet) for
+    /// this data type.
     ///
     /// # Examples
     ///
@@ -190,9 +298,11 @@ pub enum Category {
     /// ```
     Cabinet,
     /// A string that refers to a shortcut.
+    ///
+    /// For more details, see the [MSI
+    /// docs](https://docs.microsoft.com/en-us/windows/win32/msi/shortcut) for
+    /// this data type.
     Shortcut,
-    /// A string containing a URL.
-    Url,
 }
 
 impl Category {
@@ -203,6 +313,7 @@ impl Category {
             Category::LowerCase,
             Category::Integer,
             Category::DoubleInteger,
+            Category::TimeDate,
             Category::Identifier,
             Category::Property,
             Category::Filename,
@@ -213,7 +324,7 @@ impl Category {
             Category::DefaultDir,
             Category::RegPath,
             Category::Formatted,
-            Category::KeyFormatted,
+            Category::FormattedSddlText,
             Category::Template,
             Category::Condition,
             Category::Guid,
@@ -223,7 +334,6 @@ impl Category {
             Category::CustomSource,
             Category::Cabinet,
             Category::Shortcut,
-            Category::Url,
         ]
     }
 
@@ -238,10 +348,10 @@ impl Category {
             Category::DoubleInteger => "DoubleInteger",
             Category::Filename => "Filename",
             Category::Formatted => "Formatted",
+            Category::FormattedSddlText => "FormattedSDDLText",
             Category::Guid => "GUID",
             Category::Identifier => "Identifier",
             Category::Integer => "Integer",
-            Category::KeyFormatted => "KeyFormatted",
             Category::Language => "Language",
             Category::LowerCase => "LowerCase",
             Category::Path => "Path",
@@ -251,8 +361,8 @@ impl Category {
             Category::Shortcut => "Shortcut",
             Category::Template => "Template",
             Category::Text => "Text",
+            Category::TimeDate => "TimeDate",
             Category::UpperCase => "UpperCase",
-            Category::Url => "URL",
             Category::Version => "Version",
             Category::WildCardFilename => "WildCardFilename",
         }
@@ -347,11 +457,12 @@ impl str::FromStr for Category {
             "DoubleInteger" => Ok(Category::DoubleInteger),
             "Filename" => Ok(Category::Filename),
             "Formatted" => Ok(Category::Formatted),
+            "FormattedSDDLText" => Ok(Category::FormattedSddlText),
+            "FormattedSddlText" => Ok(Category::FormattedSddlText),
             "GUID" => Ok(Category::Guid),
             "Guid" => Ok(Category::Guid),
             "Identifier" => Ok(Category::Identifier),
             "Integer" => Ok(Category::Integer),
-            "KeyFormatted" => Ok(Category::KeyFormatted),
             "Language" => Ok(Category::Language),
             "LowerCase" => Ok(Category::LowerCase),
             "Path" => Ok(Category::Path),
@@ -361,9 +472,8 @@ impl str::FromStr for Category {
             "Shortcut" => Ok(Category::Shortcut),
             "Template" => Ok(Category::Template),
             "Text" => Ok(Category::Text),
+            "TimeDate" => Ok(Category::TimeDate),
             "UpperCase" => Ok(Category::UpperCase),
-            "URL" => Ok(Category::Url),
-            "Url" => Ok(Category::Url),
             "Version" => Ok(Category::Version),
             "WildCardFilename" => Ok(Category::WildCardFilename),
             _ => invalid_data!("Invalid category: {:?}", string),
