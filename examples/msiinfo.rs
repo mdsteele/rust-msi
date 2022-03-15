@@ -1,7 +1,3 @@
-extern crate chrono;
-extern crate clap;
-extern crate msi;
-
 use chrono::{DateTime, NaiveDateTime, Utc};
 use clap::{App, Arg, SubCommand};
 use std::cmp;

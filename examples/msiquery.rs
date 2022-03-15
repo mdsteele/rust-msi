@@ -1,9 +1,4 @@
-extern crate clap;
-extern crate msi;
-extern crate pest;
-#[macro_use]
-extern crate pest_derive;
-
+use std::ops::Not;
 use clap::{App, Arg};
 use msi::{Delete, Expr, Insert, Select, Update, Value};
 use pest::Parser;
