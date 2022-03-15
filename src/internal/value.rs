@@ -62,8 +62,8 @@ impl Value {
 
     /// Coerces the `Value` to a boolean.  Returns false for null, zero, and
     /// empty string; returns true for all other values.
-    pub(crate) fn to_bool(self) -> bool {
-        match self {
+    pub(crate) fn to_bool(&self) -> bool {
+        match *self {
             Value::Null => false,
             Value::Int(number) => number != 0,
             Value::Str(ref string) => !string.is_empty(),

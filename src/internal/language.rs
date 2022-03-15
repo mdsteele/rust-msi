@@ -112,8 +112,9 @@ impl Language {
 
 // ========================================================================= //
 
+type SubLanguage = (u16, &'static str);
 // TODO: This table is incomplete.
-const LANGUAGES: &[(u16, &str, &[(u16, &str)])] = &[
+const LANGUAGES: &[(u16, &str, &[SubLanguage])] = &[
     (
         0x01,
         "ar",

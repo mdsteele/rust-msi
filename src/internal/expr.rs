@@ -120,15 +120,6 @@ impl Expr {
         Expr { ast: Ast::Or(Box::new(self.ast), Box::new(rhs.ast)) }
     }
 
-    /// Returns an expression that evaluates to true if the subexpression
-    /// evaluates to false.
-    ///
-    /// This method exists instead of the `std::ops::Not` trait to distinguish
-    /// it from the (bitwise) `bitinv()` method.
-    pub fn not(self) -> Expr {
-        Expr::unop(UnOp::BoolNot, self.ast)
-    }
-
     /// Evaluates the expression against the given row.  Any errors in the
     /// expression (such as dividing a number by zero, or applying a bitwise
     /// operator to a string) will result in a null value.
@@ -144,13 +135,26 @@ impl Expr {
     }
 }
 
+/// Returns an expression that evaluates to true if the subexpression
+/// evaluates to false.
+///
+/// This method exists instead of the `std::ops::Not` trait to distinguish
+/// it from the (bitwise) `bitinv()` method.
+impl ops::Not for Expr {
+    type Output = Expr; 
+
+    fn not(self) -> Self::Output {
+        Expr::unop(UnOp::BoolNot, self.ast)
+    }
+}
+
 /// Produces an expression that evaluates to the negative of the subexpression.
 /// If the subexpression evaluates to a non-number, the result will be a null
 /// value.
 impl ops::Neg for Expr {
     type Output = Expr;
 
-    fn neg(self) -> Expr {
+    fn neg(self) -> Self::Output {
         Expr::unop(UnOp::Neg, self.ast)
     }
 }
@@ -162,7 +166,7 @@ impl ops::Neg for Expr {
 impl ops::Add for Expr {
     type Output = Expr;
 
-    fn add(self, rhs: Expr) -> Expr {
+    fn add(self, rhs: Expr) -> Self::Output {
         Expr::binop(BinOp::Add, self.ast, rhs.ast)
     }
 }
@@ -173,7 +177,7 @@ impl ops::Add for Expr {
 impl ops::Sub for Expr {
     type Output = Expr;
 
-    fn sub(self, rhs: Expr) -> Expr {
+    fn sub(self, rhs: Expr) -> Self::Output {
         Expr::binop(BinOp::Sub, self.ast, rhs.ast)
     }
 }
@@ -184,7 +188,7 @@ impl ops::Sub for Expr {
 impl ops::Mul for Expr {
     type Output = Expr;
 
-    fn mul(self, rhs: Expr) -> Expr {
+    fn mul(self, rhs: Expr) -> Self::Output {
         Expr::binop(BinOp::Mul, self.ast, rhs.ast)
     }
 }
@@ -195,7 +199,7 @@ impl ops::Mul for Expr {
 impl ops::Div for Expr {
     type Output = Expr;
 
-    fn div(self, rhs: Expr) -> Expr {
+    fn div(self, rhs: Expr) -> Self::Output {
         Expr::binop(BinOp::Div, self.ast, rhs.ast)
     }
 }
@@ -206,7 +210,7 @@ impl ops::Div for Expr {
 impl ops::BitAnd for Expr {
     type Output = Expr;
 
-    fn bitand(self, rhs: Expr) -> Expr {
+    fn bitand(self, rhs: Expr) -> Self::Output {
         Expr::binop(BinOp::BitAnd, self.ast, rhs.ast)
     }
 }
@@ -217,7 +221,7 @@ impl ops::BitAnd for Expr {
 impl ops::BitOr for Expr {
     type Output = Expr;
 
-    fn bitor(self, rhs: Expr) -> Expr {
+    fn bitor(self, rhs: Expr) -> Self::Output {
         Expr::binop(BinOp::BitOr, self.ast, rhs.ast)
     }
 }
@@ -228,7 +232,7 @@ impl ops::BitOr for Expr {
 impl ops::BitXor for Expr {
     type Output = Expr;
 
-    fn bitxor(self, rhs: Expr) -> Expr {
+    fn bitxor(self, rhs: Expr) -> Self::Output {
         Expr::binop(BinOp::BitXor, self.ast, rhs.ast)
     }
 }
@@ -240,7 +244,7 @@ impl ops::BitXor for Expr {
 impl ops::Shl<Expr> for Expr {
     type Output = Expr;
 
-    fn shl(self, rhs: Expr) -> Expr {
+    fn shl(self, rhs: Expr) -> Self::Output {
         Expr::binop(BinOp::Shl, self.ast, rhs.ast)
     }
 }
@@ -252,7 +256,7 @@ impl ops::Shl<Expr> for Expr {
 impl ops::Shr<Expr> for Expr {
     type Output = Expr;
 
-    fn shr(self, rhs: Expr) -> Expr {
+    fn shr(self, rhs: Expr) -> Self::Output {
         Expr::binop(BinOp::Shr, self.ast, rhs.ast)
     }
 }

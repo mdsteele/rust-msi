@@ -64,9 +64,7 @@ pub fn encode(name: &str, is_table: bool) -> String {
 
 /// Determines if a name will work as CFB stream name once encoded.
 pub fn is_valid(name: &str, is_table: bool) -> bool {
-    if name.is_empty() {
-        false
-    } else if !is_table && name.starts_with(TABLE_PREFIX) {
+    if name.is_empty() || (!is_table && name.starts_with(TABLE_PREFIX)) {
         false
     } else {
         encode(name, is_table).encode_utf16().count() <= 31
