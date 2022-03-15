@@ -61,7 +61,8 @@ impl SummaryInfo {
     pub fn arch(&self) -> Option<&str> {
         match self.properties.get(PROPERTY_TEMPLATE) {
             Some(&PropertyValue::LpStr(ref template)) => {
-                let arch = template.split_once(';').map_or(&**template, |x| x.0); 
+                let arch =
+                    template.split_once(';').map_or(&**template, |x| x.0);
                 if arch.is_empty() {
                     None
                 } else {
@@ -218,9 +219,10 @@ impl SummaryInfo {
     /// Sets the list of languages in the "template" property.
     pub fn set_languages(&mut self, languages: &[Language]) {
         let mut template = match self.properties.get(PROPERTY_TEMPLATE) {
-            Some(&PropertyValue::LpStr(ref template)) => {
-                template.split_once(';').map_or(&**template, |x| x.0).to_string()
-            }
+            Some(&PropertyValue::LpStr(ref template)) => template
+                .split_once(';')
+                .map_or(&**template, |x| x.0)
+                .to_string(),
             _ => String::new(),
         };
         template.push(';');

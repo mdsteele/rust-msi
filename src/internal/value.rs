@@ -28,7 +28,7 @@ impl Value {
 
     /// Returns true if this is an integer value.
     pub fn is_int(&self) -> bool {
-        matches!(*self, Value::Int(_)) 
+        matches!(*self, Value::Int(_))
     }
 
     /// Extracts the integer value if it is an integer.
