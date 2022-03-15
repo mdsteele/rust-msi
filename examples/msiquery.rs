@@ -1,7 +1,7 @@
-use std::ops::Not;
 use clap::{App, Arg};
 use msi::{Delete, Expr, Insert, Select, Update, Value};
 use pest::Parser;
+use std::ops::Not;
 
 #[derive(Parser)]
 #[grammar = "../examples/msiquery.pest"]
