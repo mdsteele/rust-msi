@@ -147,15 +147,15 @@ impl PropertyValue {
     /// written by the `write()` method.  Always returns a multiple of four.
     fn size_including_padding(&self) -> u32 {
         match self {
-            &PropertyValue::Empty => 4,
-            &PropertyValue::Null => 4,
-            &PropertyValue::I1(_) => 8,
-            &PropertyValue::I2(_) => 8,
-            &PropertyValue::I4(_) => 8,
-            &PropertyValue::LpStr(ref string) => {
+            PropertyValue::Empty => 4,
+            PropertyValue::Null => 4,
+            PropertyValue::I1(_) => 8,
+            PropertyValue::I2(_) => 8,
+            PropertyValue::I4(_) => 8,
+            PropertyValue::LpStr(ref string) => {
                 ((12 + string.len() as u32) >> 2) << 2
             }
-            &PropertyValue::FileTime(_) => 12,
+            PropertyValue::FileTime(_) => 12,
         }
     }
 

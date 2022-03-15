@@ -736,7 +736,7 @@ impl fmt::Display for Update {
             } else {
                 comma = true;
             }
-            formatter.write_str(&column_name)?;
+            formatter.write_str(column_name)?;
             formatter.write_str(" = ")?;
             value.fmt(formatter)?;
         }
