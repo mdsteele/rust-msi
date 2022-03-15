@@ -100,28 +100,28 @@ impl PropertyValue {
         codepage: CodePage,
     ) -> io::Result<()> {
         match self {
-            &PropertyValue::Empty => {
+            PropertyValue::Empty => {
                 writer.write_u32::<LittleEndian>(0)?;
             }
-            &PropertyValue::Null => {
+            PropertyValue::Null => {
                 writer.write_u32::<LittleEndian>(1)?;
             }
-            &PropertyValue::I1(value) => {
+            PropertyValue::I1(value) => {
                 writer.write_u32::<LittleEndian>(16)?;
                 writer.write_i8(value)?;
                 writer.write_u8(0)?; // Padding
                 writer.write_u16::<LittleEndian>(0)?; // Padding
             }
-            &PropertyValue::I2(value) => {
+            PropertyValue::I2(value) => {
                 writer.write_u32::<LittleEndian>(2)?;
                 writer.write_i16::<LittleEndian>(value)?;
                 writer.write_u16::<LittleEndian>(0)?; // Padding
             }
-            &PropertyValue::I4(value) => {
+            PropertyValue::I4(value) => {
                 writer.write_u32::<LittleEndian>(3)?;
                 writer.write_i32::<LittleEndian>(value)?;
             }
-            &PropertyValue::LpStr(ref string) => {
+            PropertyValue::LpStr(ref string) => {
                 writer.write_u32::<LittleEndian>(30)?;
                 let bytes = codepage.encode(string.as_str());
                 let length = (bytes.len() + 1) as u32;
@@ -133,7 +133,7 @@ impl PropertyValue {
                     writer.write_u8(0)?;
                 }
             }
-            &PropertyValue::FileTime(timestamp) => {
+            PropertyValue::FileTime(timestamp) => {
                 let value =
                     internal::time::filetime_from_system_time(timestamp);
                 writer.write_u32::<LittleEndian>(64)?;
@@ -171,13 +171,13 @@ impl PropertyValue {
     /// Returns a human-readable name for this value's data type.
     fn type_name(&self) -> &str {
         match self {
-            &PropertyValue::Empty => "EMPTY",
-            &PropertyValue::Null => "NULL",
-            &PropertyValue::I1(_) => "I1",
-            &PropertyValue::I2(_) => "I2",
-            &PropertyValue::I4(_) => "I4",
-            &PropertyValue::LpStr(_) => "LPSTR",
-            &PropertyValue::FileTime(_) => "FILETIME",
+            PropertyValue::Empty => "EMPTY",
+            PropertyValue::Null => "NULL",
+            PropertyValue::I1(_) => "I1",
+            PropertyValue::I2(_) => "I2",
+            PropertyValue::I4(_) => "I4",
+            PropertyValue::LpStr(_) => "LPSTR",
+            PropertyValue::FileTime(_) => "FILETIME",
         }
     }
 }

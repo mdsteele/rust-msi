@@ -28,10 +28,7 @@ impl Value {
 
     /// Returns true if this is an integer value.
     pub fn is_int(&self) -> bool {
-        match *self {
-            Value::Int(_) => true,
-            _ => false,
-        }
+        matches!(*self, Value::Int(_)) 
     }
 
     /// Extracts the integer value if it is an integer.
@@ -45,10 +42,7 @@ impl Value {
 
     /// Returns true if this is a string value.
     pub fn is_str(&self) -> bool {
-        match *self {
-            Value::Str(_) => true,
-            _ => false,
-        }
+        matches!(*self, Value::Str(_))
     }
 
     /// Extracts the string value if it is a string.
@@ -71,8 +65,8 @@ impl Value {
 
     /// Coerces the `Value` to a boolean.  Returns false for null, zero, and
     /// empty string; returns true for all other values.
-    pub(crate) fn to_bool(&self) -> bool {
-        match *self {
+    pub(crate) fn to_bool(self) -> bool {
+        match self {
             Value::Null => false,
             Value::Int(number) => number != 0,
             Value::Str(ref string) => !string.is_empty(),

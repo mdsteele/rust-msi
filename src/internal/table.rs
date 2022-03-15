@@ -161,6 +161,10 @@ impl Row {
         self.values.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Returns the list of columns in this row.
     pub fn columns(&self) -> &[Column] {
         self.table.columns()

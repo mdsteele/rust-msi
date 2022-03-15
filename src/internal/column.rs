@@ -318,7 +318,7 @@ impl Column {
                 ColumnType::Int16 | ColumnType::Int32 => false,
                 ColumnType::Str(max_len) => {
                     if let Some(category) = self.category {
-                        if !category.validate(&string) {
+                        if !category.validate(string) {
                             return false;
                         }
                     }

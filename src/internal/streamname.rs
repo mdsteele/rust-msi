@@ -23,11 +23,11 @@ pub fn decode(name: &str) -> (String, bool) {
     }
     for chr in chars {
         let value = chr as u32;
-        if value >= 0x3800 && value < 0x4800 {
+        if (0x3800..0x4800).contains(&value) {
             let value = value - 0x3800;
             output.push(from_b64(value & 0x3f));
             output.push(from_b64(value >> 6));
-        } else if value >= 0x4800 && value < 0x4840 {
+        } else if (0x4800..0x4840).contains(&value) {
             output.push(from_b64(value - 0x4800));
         } else {
             output.push(chr);
@@ -91,11 +91,11 @@ fn from_b64(value: u32) -> char {
 }
 
 fn to_b64(ch: char) -> Option<u32> {
-    if ch >= '0' && ch <= '9' {
+    if ('0'..='9').contains(&ch) {
         Some(ch as u32 - '0' as u32)
-    } else if ch >= 'A' && ch <= 'Z' {
+    } else if ('A'..='Z').contains(&ch) {
         Some(10 + ch as u32 - 'A' as u32)
-    } else if ch >= 'a' && ch <= 'z' {
+    } else if ('a'..='z').contains(&ch) {
         Some(36 + ch as u32 - 'a' as u32)
     } else if ch == '.' {
         Some(62)

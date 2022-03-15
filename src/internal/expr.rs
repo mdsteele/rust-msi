@@ -323,9 +323,9 @@ impl Ast {
         parent_prec: i32,
     ) -> Result<(), fmt::Error> {
         match self {
-            &Ast::Literal(ref value) => fmt::Display::fmt(value, formatter),
-            &Ast::Column(ref name) => formatter.write_str(name.as_str()),
-            &Ast::UnOp(op, ref arg) => {
+            Ast::Literal(ref value) => fmt::Display::fmt(value, formatter),
+            Ast::Column(ref name) => formatter.write_str(name.as_str()),
+            Ast::UnOp(op, ref arg) => {
                 match op {
                     UnOp::Neg => formatter.write_str("-")?,
                     UnOp::BitNot => formatter.write_str("~")?,
@@ -333,7 +333,7 @@ impl Ast {
                 }
                 arg.format_with_precedence(formatter, 10)
             }
-            &Ast::BinOp(op, ref arg1, ref arg2) => {
+            Ast::BinOp(op, ref arg1, ref arg2) => {
                 let op_prec = op.precedence();
                 if op_prec < parent_prec {
                     formatter.write_str("(")?;
@@ -362,7 +362,7 @@ impl Ast {
                 }
                 Ok(())
             }
-            &Ast::And(ref arg1, ref arg2) => {
+            Ast::And(ref arg1, ref arg2) => {
                 let op_prec = 2;
                 if op_prec < parent_prec {
                     formatter.write_str("(")?;
@@ -375,7 +375,7 @@ impl Ast {
                 }
                 Ok(())
             }
-            &Ast::Or(ref arg1, ref arg2) => {
+            Ast::Or(ref arg1, ref arg2) => {
                 let op_prec = 1;
                 if op_prec < parent_prec {
                     formatter.write_str("(")?;
