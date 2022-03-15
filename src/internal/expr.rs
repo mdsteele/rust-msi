@@ -141,7 +141,7 @@ impl Expr {
 /// This method exists instead of the `std::ops::Not` trait to distinguish
 /// it from the (bitwise) `bitinv()` method.
 impl ops::Not for Expr {
-    type Output = Expr; 
+    type Output = Expr;
 
     fn not(self) -> Self::Output {
         Expr::unop(UnOp::BoolNot, self.ast)
