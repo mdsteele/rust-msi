@@ -108,18 +108,18 @@ impl PropertyValue {
             }
             PropertyValue::I1(value) => {
                 writer.write_u32::<LittleEndian>(16)?;
-                writer.write_i8(value)?;
+                writer.write_i8(*value)?;
                 writer.write_u8(0)?; // Padding
                 writer.write_u16::<LittleEndian>(0)?; // Padding
             }
             PropertyValue::I2(value) => {
                 writer.write_u32::<LittleEndian>(2)?;
-                writer.write_i16::<LittleEndian>(value)?;
+                writer.write_i16::<LittleEndian>(*value)?;
                 writer.write_u16::<LittleEndian>(0)?; // Padding
             }
             PropertyValue::I4(value) => {
                 writer.write_u32::<LittleEndian>(3)?;
-                writer.write_i32::<LittleEndian>(value)?;
+                writer.write_i32::<LittleEndian>(*value)?;
             }
             PropertyValue::LpStr(ref string) => {
                 writer.write_u32::<LittleEndian>(30)?;
@@ -135,7 +135,7 @@ impl PropertyValue {
             }
             PropertyValue::FileTime(timestamp) => {
                 let value =
-                    internal::time::filetime_from_system_time(timestamp);
+                    internal::time::filetime_from_system_time(*timestamp);
                 writer.write_u32::<LittleEndian>(64)?;
                 writer.write_u64::<LittleEndian>(value)?;
             }

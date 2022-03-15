@@ -161,6 +161,7 @@ impl Row {
         self.values.len()
     }
 
+    /// Returns values in the row is empty
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
