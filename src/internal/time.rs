@@ -40,7 +40,7 @@ mod tests {
         let sat_2017_mar_18_at_18_46_36_gmt =
             UNIX_EPOCH + Duration::from_secs(1489862796);
         assert_eq!(
-            system_time_from_filetime(131343363960000000),
+            system_time_from_filetime(13134336396000000000),
             sat_2017_mar_18_at_18_46_36_gmt
         );
     }
@@ -51,7 +51,7 @@ mod tests {
             UNIX_EPOCH + Duration::from_secs(1489862796);
         assert_eq!(
             filetime_from_system_time(sat_2017_mar_18_at_18_46_36_gmt),
-            131343363960000000
+            13134336396000000000
         );
     }
 }

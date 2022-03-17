@@ -435,7 +435,7 @@ mod tests {
 
         let sat_2017_mar_18_at_18_46_36_gmt =
             UNIX_EPOCH + Duration::from_secs(1489862796);
-        let input: &[u8] = &[64, 0, 0, 0, 0, 206, 112, 248, 23, 160, 210, 1];
+        let input: &[u8] = &[64, 0, 0, 0, 0, 120, 16, 12, 93, 137, 70, 182];
         assert_eq!(
             PropertyValue::read(input, CodePage::Utf8).unwrap(),
             PropertyValue::FileTime(sat_2017_mar_18_at_18_46_36_gmt)
@@ -479,7 +479,7 @@ mod tests {
         value.write(&mut output, CodePage::Utf8).unwrap();
         assert_eq!(
             &output as &[u8],
-            &[64, 0, 0, 0, 0, 206, 112, 248, 23, 160, 210, 1]
+            &[64, 0, 0, 0, 0, 120, 16, 12, 93, 137, 70, 182]
         );
     }
 
