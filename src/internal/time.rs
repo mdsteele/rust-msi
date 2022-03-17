@@ -6,7 +6,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 pub fn filetime_from_system_time(timestamp: SystemTime) -> u64 {
     match timestamp.duration_since(filetime_epoch()) {
         Ok(delta) => {
-            delta.as_secs() * 10_000_000 + (delta.subsec_nanos() / 100) as u64
+            delta.as_secs() * 1_000_000_000 + delta.subsec_nanos() as u64
         }
         Err(_) => 0,
     }
@@ -15,8 +15,8 @@ pub fn filetime_from_system_time(timestamp: SystemTime) -> u64 {
 /// Converts a Windows `FILETIME` to a `SystemTime`.
 pub fn system_time_from_filetime(timestamp: u64) -> SystemTime {
     let delta = Duration::new(
-        timestamp / 10_000_000,
-        (timestamp % 10_000_000) as u32 * 100,
+        timestamp / 1_000_000_000,
+        (timestamp % 1_000_000_000) as u32,
     );
     filetime_epoch() + delta
 }
