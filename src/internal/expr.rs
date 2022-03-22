@@ -124,7 +124,7 @@ impl Expr {
     /// Returns an expression that evaluates to true if the subexpression
     /// evaluates to false.
     ///
-    /// this method exists instead of the `std::ops::not` trait to distinguish
+    /// This method exists instead of the `std::ops::Not` trait to distinguish
     /// it from the (bitwise) `bitinv()` method.
     pub fn not(self) -> Expr {
         Expr::unop(UnOp::BoolNot, self.ast)
