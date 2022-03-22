@@ -11,6 +11,7 @@ pub struct Expr {
     ast: Ast,
 }
 
+#[allow(clippy::should_implement_trait)]
 impl Expr {
     fn unop(op: UnOp, ast: Ast) -> Expr {
         Expr {
@@ -120,6 +121,15 @@ impl Expr {
         Expr { ast: Ast::Or(Box::new(self.ast), Box::new(rhs.ast)) }
     }
 
+    /// Returns an expression that evaluates to true if the subexpression
+    /// evaluates to false.
+    ///
+    /// this method exists instead of the `std::ops::not` trait to distinguish
+    /// it from the (bitwise) `bitinv()` method.
+    pub fn not(self) -> Expr {
+        Expr::unop(UnOp::BoolNot, self.ast)
+    }
+
     /// Evaluates the expression against the given row.  Any errors in the
     /// expression (such as dividing a number by zero, or applying a bitwise
     /// operator to a string) will result in a null value.
@@ -132,19 +142,6 @@ impl Expr {
         let mut names = HashSet::new();
         self.ast.populate_column_names(&mut names);
         names
-    }
-}
-
-/// Returns an expression that evaluates to true if the subexpression
-/// evaluates to false.
-///
-/// This method exists instead of the `std::ops::Not` trait to distinguish
-/// it from the (bitwise) `bitinv()` method.
-impl ops::Not for Expr {
-    type Output = Expr;
-
-    fn not(self) -> Self::Output {
-        Expr::unop(UnOp::BoolNot, self.ast)
     }
 }
 
