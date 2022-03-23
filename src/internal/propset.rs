@@ -398,7 +398,7 @@ mod tests {
     use super::{OperatingSystem, PropertySet, PropertyValue};
     use crate::internal::codepage::CodePage;
     use std::io::Cursor;
-    use std::time::{Duration, SystemTime, UNIX_EPOCH};
+    use std::time::{Duration, UNIX_EPOCH};
 
     #[test]
     fn read_property_value() {
@@ -435,7 +435,7 @@ mod tests {
 
         let sat_2017_mar_18_at_18_46_36_gmt =
             UNIX_EPOCH + Duration::from_secs(1489862796);
-        let input: &[u8] = &[64, 0, 0, 0, 0, 120, 16, 12, 93, 137, 70, 182];
+        let input: &[u8] = &[64, 0, 0, 0, 0, 206, 112, 248, 23, 160, 210, 1];
         assert_eq!(
             PropertyValue::read(input, CodePage::Utf8).unwrap(),
             PropertyValue::FileTime(sat_2017_mar_18_at_18_46_36_gmt)
@@ -479,12 +479,15 @@ mod tests {
         value.write(&mut output, CodePage::Utf8).unwrap();
         assert_eq!(
             &output as &[u8],
-            &[64, 0, 0, 0, 0, 120, 16, 12, 93, 137, 70, 182]
+            &[64, 0, 0, 0, 0, 206, 112, 248, 23, 160, 210, 1]
         );
     }
 
     #[test]
     fn property_value_round_trip() {
+        let sat_2017_mar_18_at_18_46_36_gmt =
+            UNIX_EPOCH + Duration::from_secs(1489862796);
+
         let values = &[
             PropertyValue::Empty,
             PropertyValue::Null,
@@ -497,7 +500,7 @@ mod tests {
             PropertyValue::LpStr("".to_string()),
             PropertyValue::LpStr("foo".to_string()),
             PropertyValue::LpStr("foobar".to_string()),
-            PropertyValue::FileTime(SystemTime::now()),
+            PropertyValue::FileTime(sat_2017_mar_18_at_18_46_36_gmt),
         ];
         let codepage = CodePage::Utf8;
         for value in values.iter() {
