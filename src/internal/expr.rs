@@ -11,6 +11,7 @@ pub struct Expr {
     ast: Ast,
 }
 
+#[allow(clippy::should_implement_trait)]
 impl Expr {
     fn unop(op: UnOp, ast: Ast) -> Expr {
         Expr {
@@ -150,7 +151,7 @@ impl Expr {
 impl ops::Neg for Expr {
     type Output = Expr;
 
-    fn neg(self) -> Expr {
+    fn neg(self) -> Self::Output {
         Expr::unop(UnOp::Neg, self.ast)
     }
 }
@@ -162,7 +163,7 @@ impl ops::Neg for Expr {
 impl ops::Add for Expr {
     type Output = Expr;
 
-    fn add(self, rhs: Expr) -> Expr {
+    fn add(self, rhs: Expr) -> Self::Output {
         Expr::binop(BinOp::Add, self.ast, rhs.ast)
     }
 }
@@ -173,7 +174,7 @@ impl ops::Add for Expr {
 impl ops::Sub for Expr {
     type Output = Expr;
 
-    fn sub(self, rhs: Expr) -> Expr {
+    fn sub(self, rhs: Expr) -> Self::Output {
         Expr::binop(BinOp::Sub, self.ast, rhs.ast)
     }
 }
@@ -184,7 +185,7 @@ impl ops::Sub for Expr {
 impl ops::Mul for Expr {
     type Output = Expr;
 
-    fn mul(self, rhs: Expr) -> Expr {
+    fn mul(self, rhs: Expr) -> Self::Output {
         Expr::binop(BinOp::Mul, self.ast, rhs.ast)
     }
 }
@@ -195,7 +196,7 @@ impl ops::Mul for Expr {
 impl ops::Div for Expr {
     type Output = Expr;
 
-    fn div(self, rhs: Expr) -> Expr {
+    fn div(self, rhs: Expr) -> Self::Output {
         Expr::binop(BinOp::Div, self.ast, rhs.ast)
     }
 }
@@ -206,7 +207,7 @@ impl ops::Div for Expr {
 impl ops::BitAnd for Expr {
     type Output = Expr;
 
-    fn bitand(self, rhs: Expr) -> Expr {
+    fn bitand(self, rhs: Expr) -> Self::Output {
         Expr::binop(BinOp::BitAnd, self.ast, rhs.ast)
     }
 }
@@ -217,7 +218,7 @@ impl ops::BitAnd for Expr {
 impl ops::BitOr for Expr {
     type Output = Expr;
 
-    fn bitor(self, rhs: Expr) -> Expr {
+    fn bitor(self, rhs: Expr) -> Self::Output {
         Expr::binop(BinOp::BitOr, self.ast, rhs.ast)
     }
 }
@@ -228,7 +229,7 @@ impl ops::BitOr for Expr {
 impl ops::BitXor for Expr {
     type Output = Expr;
 
-    fn bitxor(self, rhs: Expr) -> Expr {
+    fn bitxor(self, rhs: Expr) -> Self::Output {
         Expr::binop(BinOp::BitXor, self.ast, rhs.ast)
     }
 }
@@ -240,7 +241,7 @@ impl ops::BitXor for Expr {
 impl ops::Shl<Expr> for Expr {
     type Output = Expr;
 
-    fn shl(self, rhs: Expr) -> Expr {
+    fn shl(self, rhs: Expr) -> Self::Output {
         Expr::binop(BinOp::Shl, self.ast, rhs.ast)
     }
 }
@@ -252,7 +253,7 @@ impl ops::Shl<Expr> for Expr {
 impl ops::Shr<Expr> for Expr {
     type Output = Expr;
 
-    fn shr(self, rhs: Expr) -> Expr {
+    fn shr(self, rhs: Expr) -> Self::Output {
         Expr::binop(BinOp::Shr, self.ast, rhs.ast)
     }
 }
@@ -323,9 +324,9 @@ impl Ast {
         parent_prec: i32,
     ) -> Result<(), fmt::Error> {
         match self {
-            &Ast::Literal(ref value) => fmt::Display::fmt(value, formatter),
-            &Ast::Column(ref name) => formatter.write_str(name.as_str()),
-            &Ast::UnOp(op, ref arg) => {
+            Ast::Literal(ref value) => fmt::Display::fmt(value, formatter),
+            Ast::Column(ref name) => formatter.write_str(name.as_str()),
+            Ast::UnOp(op, ref arg) => {
                 match op {
                     UnOp::Neg => formatter.write_str("-")?,
                     UnOp::BitNot => formatter.write_str("~")?,
@@ -333,7 +334,7 @@ impl Ast {
                 }
                 arg.format_with_precedence(formatter, 10)
             }
-            &Ast::BinOp(op, ref arg1, ref arg2) => {
+            Ast::BinOp(op, ref arg1, ref arg2) => {
                 let op_prec = op.precedence();
                 if op_prec < parent_prec {
                     formatter.write_str("(")?;
@@ -362,7 +363,7 @@ impl Ast {
                 }
                 Ok(())
             }
-            &Ast::And(ref arg1, ref arg2) => {
+            Ast::And(ref arg1, ref arg2) => {
                 let op_prec = 2;
                 if op_prec < parent_prec {
                     formatter.write_str("(")?;
@@ -375,7 +376,7 @@ impl Ast {
                 }
                 Ok(())
             }
-            &Ast::Or(ref arg1, ref arg2) => {
+            Ast::Or(ref arg1, ref arg2) => {
                 let op_prec = 1;
                 if op_prec < parent_prec {
                     formatter.write_str("(")?;

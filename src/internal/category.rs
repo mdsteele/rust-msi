@@ -374,29 +374,29 @@ impl Category {
         match *self {
             Category::Text => true,
             Category::UpperCase => {
-                !string.chars().any(|chr| chr >= 'a' && chr <= 'z')
+                !string.chars().any(|chr| ('a'..='z').contains(&chr))
             }
             Category::LowerCase => {
-                !string.chars().any(|chr| chr >= 'A' && chr <= 'Z')
+                !string.chars().any(|chr| ('A'..='Z').contains(&chr))
             }
             Category::Integer => string.parse::<i16>().is_ok(),
             Category::DoubleInteger => string.parse::<i32>().is_ok(),
             Category::Identifier => {
                 string.starts_with(|chr| {
-                    chr >= 'A' && chr <= 'Z'
-                        || chr >= 'a' && chr <= 'z'
+                    ('A'..='Z').contains(&chr)
+                        || ('a'..='z').contains(&chr)
                         || chr == '_'
                 }) && !string.contains(|chr| {
-                    !(chr >= 'A' && chr <= 'Z'
-                        || chr >= 'a' && chr <= 'z'
-                        || chr >= '0' && chr <= '9'
+                    !(('A'..='Z').contains(&chr)
+                        || ('a'..='z').contains(&chr)
+                        || ('0'..='9').contains(&chr)
                         || chr == '_'
                         || chr == '.')
                 })
             }
             Category::Property => {
-                let substr = if string.starts_with('%') {
-                    &string[1..]
+                let substr = if let Some(substr) = string.strip_prefix('%') {
+                    substr
                 } else {
                     string
                 };
@@ -406,7 +406,7 @@ impl Category {
                 string.len() == 38
                     && string.starts_with('{')
                     && string.ends_with('}')
-                    && !string.chars().any(|chr| chr >= 'a' && chr <= 'z')
+                    && !string.chars().any(|chr| ('a'..='z').contains(&chr))
                     && Uuid::parse_str(&string[1..37]).is_ok()
             }
             Category::Version => {
@@ -419,14 +419,14 @@ impl Category {
                 parts.all(|part| part.parse::<u16>().is_ok())
             }
             Category::Cabinet => {
-                if string.starts_with('#') {
-                    Category::Identifier.validate(&string[1..])
+                if let Some(substr) = string.strip_prefix('#') {
+                    Category::Identifier.validate(substr)
                 } else {
                     let mut parts: Vec<&str> =
                         string.rsplitn(2, '.').collect();
                     parts.reverse();
-                    parts.len() > 0
-                        && parts[0].len() > 0
+                    !parts.is_empty()
+                        && !parts[0].is_empty()
                         && parts[0].len() <= 8
                         && (parts.len() < 2 || parts[1].len() <= 3)
                 }

@@ -100,28 +100,28 @@ impl PropertyValue {
         codepage: CodePage,
     ) -> io::Result<()> {
         match self {
-            &PropertyValue::Empty => {
+            PropertyValue::Empty => {
                 writer.write_u32::<LittleEndian>(0)?;
             }
-            &PropertyValue::Null => {
+            PropertyValue::Null => {
                 writer.write_u32::<LittleEndian>(1)?;
             }
-            &PropertyValue::I1(value) => {
+            PropertyValue::I1(value) => {
                 writer.write_u32::<LittleEndian>(16)?;
-                writer.write_i8(value)?;
+                writer.write_i8(*value)?;
                 writer.write_u8(0)?; // Padding
                 writer.write_u16::<LittleEndian>(0)?; // Padding
             }
-            &PropertyValue::I2(value) => {
+            PropertyValue::I2(value) => {
                 writer.write_u32::<LittleEndian>(2)?;
-                writer.write_i16::<LittleEndian>(value)?;
+                writer.write_i16::<LittleEndian>(*value)?;
                 writer.write_u16::<LittleEndian>(0)?; // Padding
             }
-            &PropertyValue::I4(value) => {
+            PropertyValue::I4(value) => {
                 writer.write_u32::<LittleEndian>(3)?;
-                writer.write_i32::<LittleEndian>(value)?;
+                writer.write_i32::<LittleEndian>(*value)?;
             }
-            &PropertyValue::LpStr(ref string) => {
+            PropertyValue::LpStr(ref string) => {
                 writer.write_u32::<LittleEndian>(30)?;
                 let bytes = codepage.encode(string.as_str());
                 let length = (bytes.len() + 1) as u32;
@@ -133,9 +133,9 @@ impl PropertyValue {
                     writer.write_u8(0)?;
                 }
             }
-            &PropertyValue::FileTime(timestamp) => {
+            PropertyValue::FileTime(timestamp) => {
                 let value =
-                    internal::time::filetime_from_system_time(timestamp);
+                    internal::time::filetime_from_system_time(*timestamp);
                 writer.write_u32::<LittleEndian>(64)?;
                 writer.write_u64::<LittleEndian>(value)?;
             }
@@ -147,15 +147,15 @@ impl PropertyValue {
     /// written by the `write()` method.  Always returns a multiple of four.
     fn size_including_padding(&self) -> u32 {
         match self {
-            &PropertyValue::Empty => 4,
-            &PropertyValue::Null => 4,
-            &PropertyValue::I1(_) => 8,
-            &PropertyValue::I2(_) => 8,
-            &PropertyValue::I4(_) => 8,
-            &PropertyValue::LpStr(ref string) => {
+            PropertyValue::Empty => 4,
+            PropertyValue::Null => 4,
+            PropertyValue::I1(_) => 8,
+            PropertyValue::I2(_) => 8,
+            PropertyValue::I4(_) => 8,
+            PropertyValue::LpStr(ref string) => {
                 ((12 + string.len() as u32) >> 2) << 2
             }
-            &PropertyValue::FileTime(_) => 12,
+            PropertyValue::FileTime(_) => 12,
         }
     }
 
@@ -171,13 +171,13 @@ impl PropertyValue {
     /// Returns a human-readable name for this value's data type.
     fn type_name(&self) -> &str {
         match self {
-            &PropertyValue::Empty => "EMPTY",
-            &PropertyValue::Null => "NULL",
-            &PropertyValue::I1(_) => "I1",
-            &PropertyValue::I2(_) => "I2",
-            &PropertyValue::I4(_) => "I4",
-            &PropertyValue::LpStr(_) => "LPSTR",
-            &PropertyValue::FileTime(_) => "FILETIME",
+            PropertyValue::Empty => "EMPTY",
+            PropertyValue::Null => "NULL",
+            PropertyValue::I1(_) => "I1",
+            PropertyValue::I2(_) => "I2",
+            PropertyValue::I4(_) => "I4",
+            PropertyValue::LpStr(_) => "LPSTR",
+            PropertyValue::FileTime(_) => "FILETIME",
         }
     }
 }
@@ -398,7 +398,7 @@ mod tests {
     use super::{OperatingSystem, PropertySet, PropertyValue};
     use crate::internal::codepage::CodePage;
     use std::io::Cursor;
-    use std::time::{Duration, SystemTime, UNIX_EPOCH};
+    use std::time::{Duration, UNIX_EPOCH};
 
     #[test]
     fn read_property_value() {
@@ -485,6 +485,9 @@ mod tests {
 
     #[test]
     fn property_value_round_trip() {
+        let sat_2017_mar_18_at_18_46_36_gmt =
+            UNIX_EPOCH + Duration::from_secs(1489862796);
+
         let values = &[
             PropertyValue::Empty,
             PropertyValue::Null,
@@ -497,7 +500,7 @@ mod tests {
             PropertyValue::LpStr("".to_string()),
             PropertyValue::LpStr("foo".to_string()),
             PropertyValue::LpStr("foobar".to_string()),
-            PropertyValue::FileTime(SystemTime::now()),
+            PropertyValue::FileTime(sat_2017_mar_18_at_18_46_36_gmt),
         ];
         let codepage = CodePage::Utf8;
         for value in values.iter() {

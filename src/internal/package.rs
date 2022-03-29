@@ -445,7 +445,7 @@ impl<F: Read + Seek> Package<F> {
                     let enum_values = value_refs[8].to_value(&string_pool);
                     if !enum_values.is_null() {
                         let enum_values: Vec<&str> =
-                            enum_values.as_str().unwrap().split(";").collect();
+                            enum_values.as_str().unwrap().split(';').collect();
                         builder = builder.enum_values(&enum_values);
                     }
                 }

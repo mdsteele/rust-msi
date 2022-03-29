@@ -34,6 +34,7 @@ pub enum ColumnType {
 }
 
 impl ColumnType {
+    #[allow(clippy::if_same_then_else)]
     fn from_bitfield(type_bits: i32) -> io::Result<ColumnType> {
         let field_size = (type_bits & COL_FIELD_SIZE_MASK) as usize;
         if (type_bits & COL_STRING_BIT) != 0 {
@@ -318,7 +319,7 @@ impl Column {
                 ColumnType::Int16 | ColumnType::Int32 => false,
                 ColumnType::Str(max_len) => {
                     if let Some(category) = self.category {
-                        if !category.validate(&string) {
+                        if !category.validate(string) {
                             return false;
                         }
                     }

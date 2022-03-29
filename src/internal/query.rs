@@ -405,8 +405,8 @@ impl Join {
 impl fmt::Display for Join {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self {
-            &Join::Table(ref table_name) => table_name.fmt(formatter),
-            &Join::Inner(ref lhs, ref rhs, ref on) => {
+            Join::Table(ref table_name) => table_name.fmt(formatter),
+            Join::Inner(ref lhs, ref rhs, ref on) => {
                 lhs.format_for_join(formatter)?;
                 formatter.write_str(" INNER JOIN ")?;
                 rhs.format_for_join(formatter)?;
@@ -414,7 +414,7 @@ impl fmt::Display for Join {
                 on.fmt(formatter)?;
                 Ok(())
             }
-            &Join::Left(ref lhs, ref rhs, ref on) => {
+            Join::Left(ref lhs, ref rhs, ref on) => {
                 lhs.format_for_join(formatter)?;
                 formatter.write_str(" LEFT JOIN ")?;
                 rhs.format_for_join(formatter)?;
@@ -587,7 +587,7 @@ impl fmt::Display for Select {
                 } else {
                     comma = true;
                 }
-                formatter.write_str(&column_name)?;
+                formatter.write_str(column_name)?;
             }
         }
         formatter.write_str(" FROM ")?;
@@ -736,7 +736,7 @@ impl fmt::Display for Update {
             } else {
                 comma = true;
             }
-            formatter.write_str(&column_name)?;
+            formatter.write_str(column_name)?;
             formatter.write_str(" = ")?;
             value.fmt(formatter)?;
         }

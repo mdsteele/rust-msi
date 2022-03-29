@@ -20,18 +20,12 @@ pub enum Value {
 impl Value {
     /// Returns true if this is a null value.
     pub fn is_null(&self) -> bool {
-        match *self {
-            Value::Null => true,
-            _ => false,
-        }
+        matches!(*self, Value::Null)
     }
 
     /// Returns true if this is an integer value.
     pub fn is_int(&self) -> bool {
-        match *self {
-            Value::Int(_) => true,
-            _ => false,
-        }
+        matches!(*self, Value::Int(_))
     }
 
     /// Extracts the integer value if it is an integer.
@@ -45,10 +39,7 @@ impl Value {
 
     /// Returns true if this is a string value.
     pub fn is_str(&self) -> bool {
-        match *self {
-            Value::Str(_) => true,
-            _ => false,
-        }
+        matches!(*self, Value::Str(_))
     }
 
     /// Extracts the string value if it is a string.
@@ -187,8 +178,8 @@ impl ValueRef {
     }
 
     /// Dereferences the `ValueRef` into a `Value`.
-    pub fn to_value(&self, string_pool: &StringPool) -> Value {
-        match *self {
+    pub fn to_value(self, string_pool: &StringPool) -> Value {
+        match self {
             ValueRef::Null => Value::Null,
             ValueRef::Int(number) => Value::Int(number),
             ValueRef::Str(string_ref) => {

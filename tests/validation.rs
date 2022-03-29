@@ -1,5 +1,3 @@
-extern crate msi;
-
 #[macro_use]
 mod testutil;
 
