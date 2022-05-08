@@ -298,7 +298,7 @@ impl SummaryInfo {
 
     /// Sets the "UUID" property.
     pub fn set_uuid(&mut self, uuid: Uuid) {
-        let mut string = format!("{{{}}}", uuid.to_hyphenated());
+        let mut string = format!("{{{}}}", uuid.hyphenated());
         string.make_ascii_uppercase();
         self.properties.set(PROPERTY_UUID, PropertyValue::LpStr(string));
     }

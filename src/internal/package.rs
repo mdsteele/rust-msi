@@ -278,7 +278,7 @@ impl<F: Read + Seek> Package<F> {
                 Some(ptype) => ptype,
                 None => invalid_data!(
                     "Unrecognized package CLSID ({})",
-                    clsid.to_hyphenated()
+                    clsid.hyphenated()
                 ),
             }
         };

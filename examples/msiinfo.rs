@@ -26,7 +26,7 @@ fn print_summary_info<F>(package: &msi::Package<F>) {
         println!("      Author: {}", author);
     }
     if let Some(uuid) = summary_info.uuid() {
-        println!("        UUID: {}", uuid.to_hyphenated());
+        println!("        UUID: {}", uuid.hyphenated());
     }
     if let Some(arch) = summary_info.arch() {
         println!("        Arch: {}", arch);
