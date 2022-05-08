@@ -1,17 +1,7 @@
-use chrono::{DateTime, NaiveDateTime, Utc};
 use clap::{App, Arg, SubCommand};
 use std::cmp;
 use std::io::{self, Read, Seek};
-use std::time::{SystemTime, UNIX_EPOCH};
-
-fn to_datetime(timestamp: SystemTime) -> DateTime<Utc> {
-    let delta = timestamp.duration_since(UNIX_EPOCH).expect("duration_since");
-    let naive = NaiveDateTime::from_timestamp(
-        delta.as_secs() as i64,
-        delta.subsec_nanos(),
-    );
-    DateTime::<Utc>::from_utc(naive, Utc)
-}
+use time::OffsetDateTime;
 
 fn pad(mut string: String, fill: char, width: usize) -> String {
     while string.len() < width {
@@ -48,7 +38,7 @@ fn print_summary_info<F>(package: &msi::Package<F>) {
         println!("    Language: {}", tags.join(", "));
     }
     if let Some(timestamp) = summary_info.creation_time() {
-        println!("  Created at: {}", to_datetime(timestamp));
+        println!("  Created at: {}", OffsetDateTime::from(timestamp));
     }
     if let Some(app_name) = summary_info.creating_application() {
         println!("Created with: {}", app_name);

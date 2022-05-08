@@ -16,7 +16,7 @@ encoding = "0.2"
 uuid = "0.8.1"
 
 [dev-dependencies]
-chrono = "0.4"
 clap = "2.27"
 pest = "2.1"
 pest_derive = "2.1"
+time = "0.3"
