@@ -11,7 +11,7 @@
 
 extern crate byteorder;
 extern crate cfb;
-extern crate encoding;
+extern crate encoding_rs;
 extern crate uuid;
 
 mod internal;

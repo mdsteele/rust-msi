@@ -1,4 +1,4 @@
-use encoding::{self, DecoderTrap, EncoderTrap, Encoding};
+use encoding_rs::{EncoderResult, Encoding};
 
 // ========================================================================= //
 
@@ -170,7 +170,11 @@ impl CodePage {
     /// characters will be replaced with a Unicode replacement character
     /// (U+FFFD).
     pub fn decode(&self, bytes: &[u8]) -> String {
-        self.encoding().decode(bytes, DecoderTrap::Replace).unwrap()
+        if *self == CodePage::UsAscii {
+            ascii_decode(bytes)
+        } else {
+            self.encoding().decode(bytes).0.into_owned()
+        }
     }
 
     /// Encodes a string into a byte array, using this code page.  For
@@ -178,38 +182,65 @@ impl CodePage {
     /// be replaced with a code-page-specific replacement character (typically
     /// `'?'`).
     pub fn encode(&self, string: &str) -> Vec<u8> {
-        self.encoding().encode(string, EncoderTrap::Replace).unwrap()
+        if *self == CodePage::UsAscii {
+            ascii_encode(string)
+        } else {
+            let mut encoder = self.encoding().new_encoder();
+            let mut bytes = Vec::new();
+            let mut buffer = [0; 1024];
+            let mut total_read = 0;
+            loop {
+                let (result, read, written) = encoder
+                    .encode_from_utf8_without_replacement(
+                        &string[total_read..],
+                        &mut buffer[..],
+                        true,
+                    );
+                total_read += read;
+                bytes.extend_from_slice(&buffer[..written]);
+                match result {
+                    EncoderResult::InputEmpty => {
+                        break;
+                    }
+                    EncoderResult::OutputFull => {
+                        continue;
+                    }
+                    EncoderResult::Unmappable(_) => {
+                        bytes.push(b'?');
+                    }
+                }
+            }
+            bytes
+        }
     }
 
-    fn encoding(&self) -> &dyn Encoding {
+    fn encoding(&self) -> &'static Encoding {
         match *self {
-            CodePage::Windows932 => encoding::all::EUC_JP,
-            CodePage::Windows936 => encoding::all::GBK,
-            CodePage::Windows949 => encoding::all::WINDOWS_949,
-            CodePage::Windows950 | CodePage::Windows951 => {
-                encoding::all::BIG5_2003
-            }
-            CodePage::Windows1250 => encoding::all::WINDOWS_1250,
-            CodePage::Windows1251 => encoding::all::WINDOWS_1251,
-            CodePage::Windows1252 => encoding::all::WINDOWS_1252,
-            CodePage::Windows1253 => encoding::all::WINDOWS_1253,
-            CodePage::Windows1254 => encoding::all::WINDOWS_1254,
-            CodePage::Windows1255 => encoding::all::WINDOWS_1255,
-            CodePage::Windows1256 => encoding::all::WINDOWS_1256,
-            CodePage::Windows1257 => encoding::all::WINDOWS_1257,
-            CodePage::Windows1258 => encoding::all::WINDOWS_1258,
-            CodePage::MacintoshRoman => encoding::all::MAC_ROMAN,
-            CodePage::MacintoshCyrillic => encoding::all::MAC_CYRILLIC,
-            CodePage::UsAscii => encoding::all::ASCII,
-            CodePage::Iso88591 => encoding::all::ISO_8859_1,
-            CodePage::Iso88592 => encoding::all::ISO_8859_2,
-            CodePage::Iso88593 => encoding::all::ISO_8859_3,
-            CodePage::Iso88594 => encoding::all::ISO_8859_4,
-            CodePage::Iso88595 => encoding::all::ISO_8859_5,
-            CodePage::Iso88596 => encoding::all::ISO_8859_6,
-            CodePage::Iso88597 => encoding::all::ISO_8859_7,
-            CodePage::Iso88598 => encoding::all::ISO_8859_8,
-            CodePage::Utf8 => encoding::all::UTF_8,
+            CodePage::Windows932 => encoding_rs::EUC_JP,
+            CodePage::Windows936 => encoding_rs::BIG5,
+            CodePage::Windows949 => encoding_rs::EUC_KR,
+            CodePage::Windows950 | CodePage::Windows951 => encoding_rs::BIG5,
+            CodePage::Windows1250 => encoding_rs::WINDOWS_1250,
+            CodePage::Windows1251 => encoding_rs::WINDOWS_1251,
+            CodePage::Windows1252 => encoding_rs::WINDOWS_1252,
+            CodePage::Windows1253 => encoding_rs::WINDOWS_1253,
+            CodePage::Windows1254 => encoding_rs::WINDOWS_1254,
+            CodePage::Windows1255 => encoding_rs::WINDOWS_1255,
+            CodePage::Windows1256 => encoding_rs::WINDOWS_1256,
+            CodePage::Windows1257 => encoding_rs::WINDOWS_1257,
+            CodePage::Windows1258 => encoding_rs::WINDOWS_1258,
+            CodePage::MacintoshRoman => &encoding_rs::MACINTOSH_INIT,
+            CodePage::MacintoshCyrillic => &encoding_rs::X_MAC_CYRILLIC_INIT,
+            CodePage::Iso88591 => encoding_rs::WINDOWS_1252,
+            CodePage::Iso88592 => encoding_rs::ISO_8859_2,
+            CodePage::Iso88593 => encoding_rs::ISO_8859_3,
+            CodePage::Iso88594 => encoding_rs::ISO_8859_4,
+            CodePage::Iso88595 => encoding_rs::ISO_8859_5,
+            CodePage::Iso88596 => encoding_rs::ISO_8859_6,
+            CodePage::Iso88597 => encoding_rs::ISO_8859_7,
+            CodePage::Iso88598 => encoding_rs::ISO_8859_8,
+            CodePage::Utf8 => encoding_rs::UTF_8,
+            CodePage::UsAscii => unreachable!(), // handled in encode/decode methods
         }
     }
 }
@@ -218,6 +249,30 @@ impl Default for CodePage {
     fn default() -> CodePage {
         CodePage::Utf8
     }
+}
+
+fn ascii_encode(string: &str) -> Vec<u8> {
+    let mut bytes = Vec::with_capacity(string.len());
+    for ch in string.chars() {
+        if ch.is_ascii() {
+            bytes.push(ch as u8);
+        } else {
+            bytes.push(b'?');
+        }
+    }
+    bytes
+}
+
+fn ascii_decode(bytes: &[u8]) -> String {
+    let mut chars = Vec::new();
+    for ch in bytes {
+        if ch.is_ascii() {
+            chars.push(*ch as char);
+        } else {
+            chars.push('\u{FFFD}');
+        }
+    }
+    chars.into_iter().collect()
 }
 
 // ========================================================================= //
