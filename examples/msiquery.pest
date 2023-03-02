@@ -1,4 +1,4 @@
-////////// Grammar Rules //////////
+// Grammar Rules //
 
 QueryList = _{ SOI ~ Query ~ (OpSemicolon ~ Query)* ~ OpSemicolon? ~ EOI }
 
@@ -48,7 +48,7 @@ ExprParens = _{ OpParenL ~ Expr ~ OpParenR }
 
 Literal = _{ KwNull | KwFalse | KwTrue | Integer | String }
 
-////////// Lexical Tokens //////////
+// Lexical Tokens //
 
 CompoundIdent = @{ Ident ~ ("." ~ Ident)* }
 Ident = @{ !Keyword ~ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
