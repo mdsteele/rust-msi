@@ -335,8 +335,7 @@ mod tests {
         for &(lang_code, _, _) in LANGUAGES.iter() {
             assert!(
                 !codes.contains(&lang_code),
-                "Language table repeats lang code 0x{:02x}",
-                lang_code
+                "Language table repeats lang code 0x{lang_code:02x}"
             );
             codes.insert(lang_code);
         }
@@ -348,8 +347,7 @@ mod tests {
         for &(_, lang_tag, _) in LANGUAGES.iter() {
             assert!(
                 !tags.contains(&lang_tag),
-                "Language table repeats lang tag {:?}",
-                lang_tag
+                "Language table repeats lang tag {lang_tag:?}"
             );
             tags.insert(lang_tag);
         }
@@ -361,8 +359,8 @@ mod tests {
         for &(lang_code, _, _) in LANGUAGES.iter() {
             assert!(
                 lang_code >= prev_code,
-                "LANGUAGES table is not sorted, 0x{:02x} is out of place",
-                lang_code
+                "LANGUAGES table is not sorted, 0x{lang_code:02x} is out of \
+                 place"
             );
             prev_code = lang_code;
         }
@@ -375,11 +373,8 @@ mod tests {
             for &(sublang_code, _) in sublangs.iter() {
                 assert!(
                     !codes.contains(&sublang_code),
-                    "Sublanguage table for 0x{:02x} ({}) \
-                         repeats sublang code 0x{:02x}",
-                    lang_code,
-                    lang_tag,
-                    sublang_code
+                    "Sublanguage table for 0x{lang_code:02x} ({lang_tag}) \
+                     repeats sublang code 0x{sublang_code:02x}"
                 );
                 codes.insert(sublang_code);
             }
@@ -393,11 +388,8 @@ mod tests {
             for &(_, sublang_tag) in sublangs.iter() {
                 assert!(
                     !tags.contains(&sublang_tag),
-                    "Sublanguage table for 0x{:02x} ({}) \
-                         repeats sublang tag {:?}",
-                    lang_code,
-                    lang_tag,
-                    sublang_tag
+                    "Sublanguage table for 0x{lang_code:02x} ({lang_tag}) \
+                     repeats sublang tag {sublang_tag:?}"
                 );
                 tags.insert(sublang_tag);
             }
@@ -411,12 +403,9 @@ mod tests {
             for &(sublang_code, sublang_tag) in sublangs.iter() {
                 assert!(
                     sublang_code >= prev_code,
-                    "Sublanguage table for 0x{:02x} ({}) \
-                         is not sorted; 0x{:02x} ({}) is out of place",
-                    lang_code,
-                    lang_tag,
-                    sublang_code,
-                    sublang_tag
+                    "Sublanguage table for 0x{lang_code:02x} ({lang_tag}) \
+                     is not sorted; 0x{sublang_code:02x} ({sublang_tag}) is \
+                     out of place"
                 );
                 prev_code = sublang_code;
             }
@@ -428,10 +417,8 @@ mod tests {
         for &(_, lang_tag, sublangs) in LANGUAGES.iter() {
             for &(_, sublang_tag) in sublangs.iter() {
                 assert!(
-                    sublang_tag.starts_with(&format!("{}-", lang_tag)),
-                    "{:?} is not a sublanguage of {:?}",
-                    sublang_tag,
-                    lang_tag
+                    sublang_tag.starts_with(&format!("{lang_tag}-")),
+                    "{sublang_tag:?} is not a sublanguage of {lang_tag:?}"
                 );
             }
         }

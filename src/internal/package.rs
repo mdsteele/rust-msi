@@ -233,7 +233,7 @@ impl<F> Package<F> {
     /// Returns true if the package has an embedded binary stream with the
     /// given name.
     pub fn has_stream(&self, stream_name: &str) -> bool {
-        self.comp().is_stream(&streamname::encode(stream_name, false))
+        self.comp().is_stream(streamname::encode(stream_name, false))
     }
 
     /// Returns an iterator over the embedded binary streams in this package.

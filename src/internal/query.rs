@@ -229,8 +229,7 @@ impl Insert {
             rows_map.insert(keys, row);
         }
         // Write the table back out to the file.
-        let rows: Vec<Vec<ValueRef>> =
-            rows_map.into_iter().map(|(_, row)| row).collect();
+        let rows: Vec<Vec<ValueRef>> = rows_map.into_values().collect();
         let stream = comp.create_stream(&stream_name)?;
         table.write_rows(stream, rows)?;
         Ok(())
@@ -656,7 +655,7 @@ impl Update {
             None => not_found!("Table {:?} does not exist", self.table_name),
         };
         // Validate the updates.
-        for &(ref column_name, ref value) in self.updates.iter() {
+        for (column_name, value) in self.updates.iter() {
             if !table.has_column(column_name.as_str()) {
                 invalid_input!(
                     "Table {:?} has no column named {:?}",
@@ -708,7 +707,7 @@ impl Update {
                 None => true,
             };
             if should_update {
-                for &(ref column_name, ref value) in self.updates.iter() {
+                for (column_name, value) in self.updates.iter() {
                     let index =
                         table.index_for_column_name(column_name).unwrap();
                     let value_ref = &mut value_refs[index];
@@ -730,7 +729,7 @@ impl fmt::Display for Update {
         formatter.write_str(&self.table_name)?;
         formatter.write_str(" SET ")?;
         let mut comma = false;
-        for &(ref column_name, ref value) in self.updates.iter() {
+        for (column_name, value) in self.updates.iter() {
             if comma {
                 formatter.write_str(", ")?;
             } else {
@@ -759,12 +758,12 @@ mod tests {
     #[test]
     fn display_delete() {
         let query = Delete::from("Foobar");
-        assert_eq!(format!("{}", query), "DELETE FROM Foobar".to_string());
+        assert_eq!(format!("{query}"), "DELETE FROM Foobar".to_string());
 
         let query = Delete::from("Foobar")
             .with(Expr::col("Foo").lt(Expr::integer(17)));
         assert_eq!(
-            format!("{}", query),
+            format!("{query}"),
             "DELETE FROM Foobar WHERE Foo < 17".to_string()
         );
     }
@@ -772,12 +771,12 @@ mod tests {
     #[test]
     fn display_insert() {
         let query = Insert::into("Foobar");
-        assert_eq!(format!("{}", query), "INSERT INTO Foobar".to_string());
+        assert_eq!(format!("{query}"), "INSERT INTO Foobar".to_string());
 
         let query =
             Insert::into("Foobar").row(vec![Value::from("Foo"), Value::Null]);
         assert_eq!(
-            format!("{}", query),
+            format!("{query}"),
             "INSERT INTO Foobar VALUES (\"Foo\", NULL)".to_string()
         );
 
@@ -789,7 +788,7 @@ mod tests {
             ])
             .row(vec![Value::Int(7), Value::Int(8)]);
         assert_eq!(
-            format!("{}", query),
+            format!("{query}"),
             "INSERT INTO Foobar VALUES (1, 2), (3, 4), (5, 6), (7, 8)"
                 .to_string()
         );
@@ -798,13 +797,13 @@ mod tests {
     #[test]
     fn display_select() {
         let query = Select::table("Foobar");
-        assert_eq!(format!("{}", query), "SELECT * FROM Foobar".to_string());
+        assert_eq!(format!("{query}"), "SELECT * FROM Foobar".to_string());
 
         let query = Select::table("Foobar")
             .columns(&["Foo", "Bar"])
             .with(Expr::col("Foo").lt(Expr::integer(17)));
         assert_eq!(
-            format!("{}", query),
+            format!("{query}"),
             "SELECT Foo, Bar FROM Foobar WHERE Foo < 17".to_string()
         );
 
@@ -815,7 +814,7 @@ mod tests {
             )
             .columns(&["Foobar.Foo", "Quux.Baz"]);
         assert_eq!(
-            format!("{}", query),
+            format!("{query}"),
             "SELECT Foobar.Foo, Quux.Baz FROM Foobar INNER JOIN \
                     Quux ON Foobar.Key = Quux.Quay"
                 .to_string()
@@ -829,7 +828,7 @@ mod tests {
             )
             .columns(&["Foobar.Foo", "Quux.Baz"]);
         assert_eq!(
-            format!("{}", query),
+            format!("{query}"),
             "SELECT Foobar.Foo, Quux.Baz \
                     FROM Foobar \
                     INNER JOIN (SELECT * FROM Quux WHERE Quay > 42) \
@@ -842,7 +841,7 @@ mod tests {
     fn display_update() {
         let query = Update::table("Foobar").set("Foo", Value::Int(17));
         assert_eq!(
-            format!("{}", query),
+            format!("{query}"),
             "UPDATE Foobar SET Foo = 17".to_string()
         );
 
@@ -852,7 +851,7 @@ mod tests {
             .set("Baz", Value::from("quux"))
             .with(Expr::col("Foo").lt(Expr::integer(17)));
         assert_eq!(
-            format!("{}", query),
+            format!("{query}"),
             "UPDATE Foobar SET Foo = 17, Bar = NULL, Baz = \"quux\" \
                     WHERE Foo < 17"
                 .to_string()

@@ -285,7 +285,7 @@ impl StringPool {
 
     /// Writes to the `_StringData` table.
     pub fn write_data<W: Write>(&self, mut writer: W) -> io::Result<()> {
-        for &(ref string, _) in self.strings.iter() {
+        for (string, _) in self.strings.iter() {
             writer.write_all(&self.codepage.encode(string.as_str()))?;
         }
         Ok(())
@@ -425,7 +425,7 @@ mod tests {
 
         let mut rustmsi_x10000: [u8; 70000] = [0; 70000];
         for i in 0..10000 {
-            rustmsi_x10000[7 * i + 0] = b'r';
+            rustmsi_x10000[7 * i] = b'r';
             rustmsi_x10000[7 * i + 1] = b'u';
             rustmsi_x10000[7 * i + 2] = b's';
             rustmsi_x10000[7 * i + 3] = b't';

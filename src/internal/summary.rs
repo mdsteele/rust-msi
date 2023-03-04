@@ -60,7 +60,7 @@ impl SummaryInfo {
     /// intended for (e.g. `"x64"`).
     pub fn arch(&self) -> Option<&str> {
         match self.properties.get(PROPERTY_TEMPLATE) {
-            Some(&PropertyValue::LpStr(ref template)) => {
+            Some(PropertyValue::LpStr(template)) => {
                 let arch =
                     template.split_once(';').map_or(&**template, |x| x.0);
                 if arch.is_empty() {
@@ -76,7 +76,7 @@ impl SummaryInfo {
     /// Sets the architecture string in the "template" property.
     pub fn set_arch<S: Into<String>>(&mut self, arch: S) {
         let langs = match self.properties.get(PROPERTY_TEMPLATE) {
-            Some(&PropertyValue::LpStr(ref template)) => {
+            Some(PropertyValue::LpStr(template)) => {
                 let parts: Vec<&str> = template.splitn(2, ';').collect();
                 if parts.len() > 1 {
                     parts[1].to_string()
@@ -99,7 +99,7 @@ impl SummaryInfo {
     /// the person or company that created the package.
     pub fn author(&self) -> Option<&str> {
         match self.properties.get(PROPERTY_AUTHOR) {
-            Some(&PropertyValue::LpStr(ref author)) => Some(author.as_str()),
+            Some(PropertyValue::LpStr(author)) => Some(author.as_str()),
             _ => None,
         }
     }
@@ -130,9 +130,7 @@ impl SummaryInfo {
     /// the package.
     pub fn comments(&self) -> Option<&str> {
         match self.properties.get(PROPERTY_COMMENTS) {
-            Some(&PropertyValue::LpStr(ref comments)) => {
-                Some(comments.as_str())
-            }
+            Some(PropertyValue::LpStr(comments)) => Some(comments.as_str()),
             _ => None,
         }
     }
@@ -153,9 +151,7 @@ impl SummaryInfo {
     /// create the package.
     pub fn creating_application(&self) -> Option<&str> {
         match self.properties.get(PROPERTY_CREATING_APP) {
-            Some(&PropertyValue::LpStr(ref app_name)) => {
-                Some(app_name.as_str())
-            }
+            Some(PropertyValue::LpStr(app_name)) => Some(app_name.as_str()),
             _ => None,
         }
     }
@@ -200,7 +196,7 @@ impl SummaryInfo {
     /// This indicates the languages that this package supports.
     pub fn languages(&self) -> Vec<Language> {
         match self.properties.get(PROPERTY_TEMPLATE) {
-            Some(&PropertyValue::LpStr(ref template)) => {
+            Some(PropertyValue::LpStr(template)) => {
                 let parts: Vec<&str> = template.splitn(2, ';').collect();
                 if parts.len() > 1 {
                     parts[1]
@@ -219,7 +215,7 @@ impl SummaryInfo {
     /// Sets the list of languages in the "template" property.
     pub fn set_languages(&mut self, languages: &[Language]) {
         let mut template = match self.properties.get(PROPERTY_TEMPLATE) {
-            Some(&PropertyValue::LpStr(ref template)) => template
+            Some(PropertyValue::LpStr(template)) => template
                 .split_once(';')
                 .map_or(&**template, |x| x.0)
                 .to_string(),
@@ -248,7 +244,7 @@ impl SummaryInfo {
     /// package.
     pub fn subject(&self) -> Option<&str> {
         match self.properties.get(PROPERTY_SUBJECT) {
-            Some(&PropertyValue::LpStr(ref subject)) => Some(subject.as_str()),
+            Some(PropertyValue::LpStr(subject)) => Some(subject.as_str()),
             _ => None,
         }
     }
@@ -268,7 +264,7 @@ impl SummaryInfo {
     /// the installer package (e.g. "Installation Database" or "Patch").
     pub fn title(&self) -> Option<&str> {
         match self.properties.get(PROPERTY_TITLE) {
-            Some(&PropertyValue::LpStr(ref title)) => Some(title.as_str()),
+            Some(PropertyValue::LpStr(title)) => Some(title.as_str()),
             _ => None,
         }
     }
@@ -287,7 +283,7 @@ impl SummaryInfo {
     /// Gets the "UUID" property, if one is set.
     pub fn uuid(&self) -> Option<Uuid> {
         match self.properties.get(PROPERTY_UUID) {
-            Some(&PropertyValue::LpStr(ref string)) => {
+            Some(PropertyValue::LpStr(string)) => {
                 let trimmed =
                     string.trim_start_matches('{').trim_end_matches('}');
                 Uuid::parse_str(trimmed).ok()

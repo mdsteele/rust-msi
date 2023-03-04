@@ -55,7 +55,7 @@ fn process_insert_query(pair: Pair, package: &mut Package) {
 
 fn process_select_query(pair: Pair, package: &mut Package) {
     let query = parse_select_query(pair);
-    println!("{}", query);
+    println!("{query}");
     let rows = package.select_rows(query).unwrap();
     let columns = rows.columns().to_vec();
     let mut col_widths: Vec<usize> =
@@ -79,7 +79,7 @@ fn process_select_query(pair: Pair, package: &mut Package) {
             line.push_str(&string);
             line.push_str("  ");
         }
-        println!("{}", line);
+        println!("{line}");
     }
     {
         let mut line = String::new();
@@ -88,7 +88,7 @@ fn process_select_query(pair: Pair, package: &mut Package) {
             line.push_str(&string);
             line.push_str("  ");
         }
-        println!("{}", line);
+        println!("{line}");
     }
     for row in row_strings.into_iter() {
         let mut line = String::new();
@@ -97,7 +97,7 @@ fn process_select_query(pair: Pair, package: &mut Package) {
             line.push_str(&string);
             line.push_str("  ");
         }
-        println!("{}", line);
+        println!("{line}");
     }
 }
 
@@ -481,7 +481,7 @@ fn print_pairs(pairs: Pairs, indent: &str) {
 
 fn print_pair(pair: Pair, indent: &str) {
     println!("{}{:?}", indent, pair.as_rule());
-    print_pairs(pair.into_inner(), &format!("{}  ", indent));
+    print_pairs(pair.into_inner(), &format!("{indent}  "));
 }
 
 fn pad(mut string: String, fill: char, width: usize) -> String {

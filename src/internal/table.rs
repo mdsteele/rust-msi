@@ -100,7 +100,7 @@ impl Table {
         mut reader: R,
     ) -> io::Result<Vec<Vec<ValueRef>>> {
         let data_length = reader.seek(SeekFrom::End(0))?;
-        reader.seek(SeekFrom::Start(0))?;
+        reader.rewind()?;
         let row_size = self
             .columns
             .iter()
@@ -188,16 +188,14 @@ impl Index<usize> for Row {
             &self.values[index]
         } else if self.table.name.is_empty() {
             panic!(
-                "Anonymous table has only {} columns (index was {})",
-                self.values.len(),
-                index
+                "Anonymous table has only {} columns (index was {index})",
+                self.values.len()
             );
         } else {
             panic!(
-                "Table {:?} has only {} columns (index was {})",
+                "Table {:?} has only {} columns (index was {index})",
                 self.table.name,
-                self.values.len(),
-                index
+                self.values.len()
             );
         }
     }
@@ -214,13 +212,12 @@ impl<'a> Index<&'a str> for Row {
             None => {
                 if self.table.name.is_empty() {
                     panic!(
-                        "Anonymous table has no column named {:?}",
-                        column_name
+                        "Anonymous table has no column named {column_name:?}"
                     );
                 } else {
                     panic!(
-                        "Table {:?} has no column named {:?}",
-                        self.table.name, column_name
+                        "Table {:?} has no column named {column_name:?}",
+                        self.table.name
                     );
                 }
             }

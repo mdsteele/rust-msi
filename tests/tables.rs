@@ -185,7 +185,7 @@ fn drop_valid_table() {
         Column::build("Number").primary_key().range(0, 100).int16(),
         Column::build("Word").nullable().string(50),
     ];
-    package.create_table(table_name, columns.clone()).unwrap();
+    package.create_table(table_name, columns).unwrap();
     assert!(package.has_table(table_name));
     let query = Select::table("_Tables")
         .with(Expr::col("Name").eq(Expr::string(table_name)));

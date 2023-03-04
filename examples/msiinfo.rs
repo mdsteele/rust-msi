@@ -17,19 +17,19 @@ fn print_summary_info<F>(package: &msi::Package<F>) {
     let codepage = summary_info.codepage();
     println!("   Code page: {} ({})", codepage.id(), codepage.name());
     if let Some(title) = summary_info.title() {
-        println!("       Title: {}", title);
+        println!("       Title: {title}");
     }
     if let Some(subject) = summary_info.subject() {
-        println!("     Subject: {}", subject);
+        println!("     Subject: {subject}");
     }
     if let Some(author) = summary_info.author() {
-        println!("      Author: {}", author);
+        println!("      Author: {author}");
     }
     if let Some(uuid) = summary_info.uuid() {
         println!("        UUID: {}", uuid.hyphenated());
     }
     if let Some(arch) = summary_info.arch() {
-        println!("        Arch: {}", arch);
+        println!("        Arch: {arch}");
     }
     let languages = summary_info.languages();
     if !languages.is_empty() {
@@ -41,13 +41,13 @@ fn print_summary_info<F>(package: &msi::Package<F>) {
         println!("  Created at: {}", OffsetDateTime::from(timestamp));
     }
     if let Some(app_name) = summary_info.creating_application() {
-        println!("Created with: {}", app_name);
+        println!("Created with: {app_name}");
     }
     println!("      Signed: {}", if is_signed { "yes" } else { "no" });
     if let Some(comments) = summary_info.comments() {
         println!("Comments:");
         for line in comments.lines() {
-            println!("  {}", line);
+            println!("  {line}");
         }
     }
 }
@@ -99,7 +99,7 @@ fn print_table_contents<F: Read + Seek>(
             line.push_str(&string);
             line.push_str("  ");
         }
-        println!("{}", line);
+        println!("{line}");
     }
     {
         let mut line = String::new();
@@ -108,7 +108,7 @@ fn print_table_contents<F: Read + Seek>(
             line.push_str(&string);
             line.push_str("  ");
         }
-        println!("{}", line);
+        println!("{line}");
     }
     for row in rows.into_iter() {
         let mut line = String::new();
@@ -117,7 +117,7 @@ fn print_table_contents<F: Read + Seek>(
             line.push_str(&string);
             line.push_str("  ");
         }
-        println!("{}", line);
+        println!("{line}");
     }
 }
 
@@ -167,7 +167,7 @@ fn main() {
         if let Some(table) = package.get_table(table_name) {
             print_table_description(table);
         } else {
-            println!("No table {:?} exists in the database.", table_name);
+            println!("No table {table_name:?} exists in the database.");
         }
     } else if let Some(submatches) = matches.subcommand_matches("export") {
         let path = submatches.value_of("path").unwrap();
@@ -178,13 +178,13 @@ fn main() {
         let path = submatches.value_of("path").unwrap();
         let stream_name = submatches.value_of("stream").unwrap();
         let mut package = msi::open(path).expect("open package");
-        let mut stream = package.read_stream(&stream_name).expect("read");
+        let mut stream = package.read_stream(stream_name).expect("read");
         io::copy(&mut stream, &mut io::stdout()).expect("extract");
     } else if let Some(submatches) = matches.subcommand_matches("streams") {
         let path = submatches.value_of("path").unwrap();
         let package = msi::open(path).expect("open package");
         for stream_name in package.streams() {
-            println!("{}", stream_name);
+            println!("{stream_name}");
         }
     } else if let Some(submatches) = matches.subcommand_matches("summary") {
         let path = submatches.value_of("path").unwrap();

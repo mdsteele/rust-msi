@@ -76,7 +76,7 @@ impl fmt::Display for Value {
         match *self {
             Value::Null => "NULL".fmt(formatter),
             Value::Int(number) => number.fmt(formatter),
-            Value::Str(ref string) => format!("{:?}", string).fmt(formatter),
+            Value::Str(ref string) => format!("{string:?}").fmt(formatter),
         }
     }
 }
