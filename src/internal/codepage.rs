@@ -10,7 +10,7 @@ use encoding_rs::{EncoderResult, Encoding};
 /// Not all Windows code pages are supported by this library yet.  See
 /// [Wikipedia](https://en.wikipedia.org/wiki/Windows_code_page) for a complete
 /// list of valid code pages.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub enum CodePage {
     /// [Windows-932 (Japanese Shift JIS)](https://en.wikipedia.org/wiki/Code_page_932_(Microsoft_Windows))
     Windows932,
@@ -64,6 +64,7 @@ pub enum CodePage {
     /// [ISO-8859-8 (Hebrew)](https://en.wikipedia.org/wiki/ISO-8859-8)
     Iso88598,
     /// [UTF-8](https://en.wikipedia.org/wiki/UTF-8)
+    #[default]
     Utf8,
 }
 
@@ -242,12 +243,6 @@ impl CodePage {
             CodePage::Utf8 => encoding_rs::UTF_8,
             CodePage::UsAscii => unreachable!(), // handled in encode/decode methods
         }
-    }
-}
-
-impl Default for CodePage {
-    fn default() -> CodePage {
-        CodePage::Utf8
     }
 }
 

@@ -374,24 +374,18 @@ impl Category {
         match *self {
             Category::Text => true,
             Category::UpperCase => {
-                !string.chars().any(|chr| ('a'..='z').contains(&chr))
+                !string.chars().any(|chr| chr.is_ascii_lowercase())
             }
             Category::LowerCase => {
-                !string.chars().any(|chr| ('A'..='Z').contains(&chr))
+                !string.chars().any(|chr| chr.is_ascii_uppercase())
             }
             Category::Integer => string.parse::<i16>().is_ok(),
             Category::DoubleInteger => string.parse::<i32>().is_ok(),
             Category::Identifier => {
-                string.starts_with(|chr| {
-                    ('A'..='Z').contains(&chr)
-                        || ('a'..='z').contains(&chr)
-                        || chr == '_'
-                }) && !string.contains(|chr| {
-                    !(('A'..='Z').contains(&chr)
-                        || ('a'..='z').contains(&chr)
-                        || ('0'..='9').contains(&chr)
-                        || chr == '_'
-                        || chr == '.')
+                string.starts_with(|chr: char| {
+                    chr.is_ascii_alphabetic() || chr == '_'
+                }) && !string.contains(|chr: char| {
+                    !(chr.is_ascii_alphanumeric() || chr == '_' || chr == '.')
                 })
             }
             Category::Property => {
@@ -406,7 +400,7 @@ impl Category {
                 string.len() == 38
                     && string.starts_with('{')
                     && string.ends_with('}')
-                    && !string.chars().any(|chr| ('a'..='z').contains(&chr))
+                    && !string.chars().any(|chr| chr.is_ascii_lowercase())
                     && Uuid::parse_str(&string[1..37]).is_ok()
             }
             Category::Version => {

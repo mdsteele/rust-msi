@@ -89,11 +89,11 @@ fn from_b64(value: u32) -> char {
 }
 
 fn to_b64(ch: char) -> Option<u32> {
-    if ('0'..='9').contains(&ch) {
+    if ch.is_ascii_digit() {
         Some(ch as u32 - '0' as u32)
-    } else if ('A'..='Z').contains(&ch) {
+    } else if ch.is_ascii_uppercase() {
         Some(10 + ch as u32 - 'A' as u32)
-    } else if ('a'..='z').contains(&ch) {
+    } else if ch.is_ascii_lowercase() {
         Some(36 + ch as u32 - 'a' as u32)
     } else if ch == '.' {
         Some(62)
