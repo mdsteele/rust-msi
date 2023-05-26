@@ -25,6 +25,7 @@ const PROPERTY_COMMENTS: u32 = 6;
 const PROPERTY_TEMPLATE: u32 = 7;
 const PROPERTY_UUID: u32 = 9;
 const PROPERTY_CREATION_TIME: u32 = 12;
+const PROPERTY_WORD_COUNT: u32 = 15;
 const PROPERTY_CREATING_APP: u32 = 18;
 
 // ========================================================================= //
@@ -302,6 +303,24 @@ impl SummaryInfo {
     /// Clears the "UUID" property.
     pub fn clear_uuid(&mut self) {
         self.properties.remove(PROPERTY_UUID);
+    }
+
+    /// Gets the "Word Count" property, if one is set.
+    pub fn word_count(&self) -> Option<i32> {
+        match self.properties.get(PROPERTY_WORD_COUNT) {
+            Some(PropertyValue::I4(word_count)) => Some(*word_count),
+            _ => None,
+        }
+    }
+
+    /// Sets the "Word Count" property.
+    pub fn set_word_count(&mut self, word_count: i32) {
+        self.properties.set(PROPERTY_WORD_COUNT, PropertyValue::I4(word_count));
+    }
+
+    /// Clears the "Word Count" property.
+    pub fn clear_word_count(&mut self) {
+        self.properties.remove(PROPERTY_WORD_COUNT);
     }
 }
 
