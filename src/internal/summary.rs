@@ -315,7 +315,8 @@ impl SummaryInfo {
 
     /// Sets the "Word Count" property.
     pub fn set_word_count(&mut self, word_count: i32) {
-        self.properties.set(PROPERTY_WORD_COUNT, PropertyValue::I4(word_count));
+        self.properties
+            .set(PROPERTY_WORD_COUNT, PropertyValue::I4(word_count));
     }
 
     /// Clears the "Word Count" property.
@@ -355,6 +356,7 @@ mod tests {
         summary_info.set_subject("My Great App");
         summary_info.set_title("Installation Package");
         summary_info.set_uuid(uuid);
+        summary_info.set_word_count(2);
 
         assert_eq!(summary_info.arch(), Some("x64"));
         assert_eq!(summary_info.author(), Some("Jane Doe"));
@@ -365,6 +367,7 @@ mod tests {
         assert_eq!(summary_info.subject(), Some("My Great App"));
         assert_eq!(summary_info.title(), Some("Installation Package"));
         assert_eq!(summary_info.uuid(), Some(uuid));
+        assert_eq!(summary_info.word_count(), Some(2));
 
         summary_info.clear_arch();
         assert_eq!(summary_info.arch(), None);
@@ -384,6 +387,8 @@ mod tests {
         assert_eq!(summary_info.title(), None);
         summary_info.clear_uuid();
         assert_eq!(summary_info.uuid(), None);
+        summary_info.clear_word_count();
+        assert_eq!(summary_info.word_count(), None);
     }
 
     #[test]
