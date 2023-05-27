@@ -25,6 +25,7 @@ const PROPERTY_COMMENTS: u32 = 6;
 const PROPERTY_TEMPLATE: u32 = 7;
 const PROPERTY_UUID: u32 = 9;
 const PROPERTY_CREATION_TIME: u32 = 12;
+const PROPERTY_WORD_COUNT: u32 = 15;
 const PROPERTY_CREATING_APP: u32 = 18;
 
 // ========================================================================= //
@@ -303,6 +304,25 @@ impl SummaryInfo {
     pub fn clear_uuid(&mut self) {
         self.properties.remove(PROPERTY_UUID);
     }
+
+    /// Gets the "Word Count" property, if one is set.
+    pub fn word_count(&self) -> Option<i32> {
+        match self.properties.get(PROPERTY_WORD_COUNT) {
+            Some(PropertyValue::I4(word_count)) => Some(*word_count),
+            _ => None,
+        }
+    }
+
+    /// Sets the "Word Count" property.
+    pub fn set_word_count(&mut self, word_count: i32) {
+        self.properties
+            .set(PROPERTY_WORD_COUNT, PropertyValue::I4(word_count));
+    }
+
+    /// Clears the "Word Count" property.
+    pub fn clear_word_count(&mut self) {
+        self.properties.remove(PROPERTY_WORD_COUNT);
+    }
 }
 
 // ========================================================================= //
@@ -336,6 +356,7 @@ mod tests {
         summary_info.set_subject("My Great App");
         summary_info.set_title("Installation Package");
         summary_info.set_uuid(uuid);
+        summary_info.set_word_count(2);
 
         assert_eq!(summary_info.arch(), Some("x64"));
         assert_eq!(summary_info.author(), Some("Jane Doe"));
@@ -346,6 +367,7 @@ mod tests {
         assert_eq!(summary_info.subject(), Some("My Great App"));
         assert_eq!(summary_info.title(), Some("Installation Package"));
         assert_eq!(summary_info.uuid(), Some(uuid));
+        assert_eq!(summary_info.word_count(), Some(2));
 
         summary_info.clear_arch();
         assert_eq!(summary_info.arch(), None);
@@ -365,6 +387,8 @@ mod tests {
         assert_eq!(summary_info.title(), None);
         summary_info.clear_uuid();
         assert_eq!(summary_info.uuid(), None);
+        summary_info.clear_word_count();
+        assert_eq!(summary_info.word_count(), None);
     }
 
     #[test]
