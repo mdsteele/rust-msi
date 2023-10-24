@@ -237,7 +237,7 @@ impl<F> Package<F> {
     }
 
     /// Returns an iterator over the embedded binary streams in this package.
-    pub fn streams(&self) -> Streams {
+    pub fn streams(&self) -> Streams<F> {
         Streams::new(self.comp().read_root_storage())
     }
 

@@ -8,23 +8,23 @@ use std::io::{self, Read, Seek, SeekFrom, Write};
 // ========================================================================= //
 
 /// An IO reader for an embedded binary stream in a package.
-pub struct StreamReader<'a, F: 'a> {
-    stream: cfb::Stream<'a, F>,
+pub struct StreamReader<F> {
+    stream: cfb::Stream<F>,
 }
 
-impl<'a, F> StreamReader<'a, F> {
-    pub(crate) fn new(stream: cfb::Stream<'a, F>) -> StreamReader<'a, F> {
+impl<F> StreamReader<F> {
+    pub(crate) fn new(stream: cfb::Stream<F>) -> StreamReader<F> {
         StreamReader { stream }
     }
 }
 
-impl<'a, F: Read + Seek> Read for StreamReader<'a, F> {
+impl<F: Read + Seek> Read for StreamReader<F> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         self.stream.read(buf)
     }
 }
 
-impl<'a, F: Read + Seek> Seek for StreamReader<'a, F> {
+impl<F: Read + Seek> Seek for StreamReader<F> {
     fn seek(&mut self, from: SeekFrom) -> io::Result<u64> {
         self.stream.seek(from)
     }
@@ -33,17 +33,17 @@ impl<'a, F: Read + Seek> Seek for StreamReader<'a, F> {
 // ========================================================================= //
 
 /// An IO writer for an embedded binary stream in a package.
-pub struct StreamWriter<'a, F: 'a> {
-    stream: cfb::Stream<'a, F>,
+pub struct StreamWriter<F> {
+    stream: cfb::Stream<F>,
 }
 
-impl<'a, F> StreamWriter<'a, F> {
-    pub(crate) fn new(stream: cfb::Stream<'a, F>) -> StreamWriter<'a, F> {
+impl<F> StreamWriter<F> {
+    pub(crate) fn new(stream: cfb::Stream<F>) -> StreamWriter<F> {
         StreamWriter { stream }
     }
 }
 
-impl<'a, F: Read + Seek + Write> Write for StreamWriter<'a, F> {
+impl<F: Read + Seek + Write> Write for StreamWriter<F> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         self.stream.write(buf)
     }
@@ -53,7 +53,7 @@ impl<'a, F: Read + Seek + Write> Write for StreamWriter<'a, F> {
     }
 }
 
-impl<'a, F: Read + Seek + Write> Seek for StreamWriter<'a, F> {
+impl<F: Read + Seek + Write> Seek for StreamWriter<F> {
     fn seek(&mut self, from: SeekFrom) -> io::Result<u64> {
         self.stream.seek(from)
     }
@@ -64,17 +64,17 @@ impl<'a, F: Read + Seek + Write> Seek for StreamWriter<'a, F> {
 /// An iterator over the names of the binary streams in a package.
 ///
 /// No guarantees are made about the order in which items are returned.
-pub struct Streams<'a> {
-    entries: cfb::Entries<'a>,
+pub struct Streams<'a, F: 'a> {
+    entries: cfb::Entries<'a, F>,
 }
 
-impl<'a> Streams<'a> {
-    pub(crate) fn new(entries: cfb::Entries<'a>) -> Streams<'a> {
+impl<'a, F: 'a> Streams<'a, F> {
+    pub(crate) fn new(entries: cfb::Entries<'a, F>) -> Streams<'a, F> {
         Streams { entries }
     }
 }
 
-impl<'a> Iterator for Streams<'a> {
+impl<'a, F: 'a> Iterator for Streams<'a, F> {
     type Item = String;
 
     fn next(&mut self) -> Option<String> {

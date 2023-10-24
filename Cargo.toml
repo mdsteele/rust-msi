@@ -11,7 +11,7 @@ edition = "2021"
 
 [dependencies]
 byteorder = "1"
-cfb = "0.7"
+cfb = "0.9"
 encoding_rs = "0.8"
 uuid = "1"
 
