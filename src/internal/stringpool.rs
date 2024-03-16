@@ -102,7 +102,7 @@ impl StringPoolBuilder {
             let mut length = length as u32;
             let mut refcount = reader.read_u16::<LittleEndian>()?;
             if length == 0 && refcount > 0 {
-                let lsb   = reader.read_u16::<LittleEndian>()? as u32;
+                let lsb = reader.read_u16::<LittleEndian>()? as u32;
                 refcount = reader.read_u16::<LittleEndian>()?;
                 length = (((refcount) as u32) << 16) | lsb;
             }
