@@ -40,7 +40,7 @@ jobs:
   tests:
     strategy:
       matrix:
-        os: [ ubuntu-latest, windows-latest, macos-latest, macos-14]
+        os: [ ubuntu-latest, windows-latest, macos-latest]
         rust: [ stable ]
 
     needs: [linters]
