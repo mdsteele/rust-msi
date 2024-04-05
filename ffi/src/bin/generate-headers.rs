@@ -4,7 +4,12 @@ fn main() -> ::std::io::Result<()> {
     if let Some(lang) = ::std::env::args_os().nth(1) {
         msi_ffi::generate_headers(
             lang.to_str().unwrap(),
-            ::std::env::args_os().nth(2).unwrap_or_default().to_str().unwrap().to_string(),
+            ::std::env::args_os()
+                .nth(2)
+                .unwrap_or_default()
+                .to_str()
+                .unwrap()
+                .to_string(),
         )
     } else {
         println!("No language specified.");
