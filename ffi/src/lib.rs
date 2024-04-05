@@ -7,8 +7,7 @@
 use chrono::prelude::{DateTime, Utc};
 use msi::{Package, Select};
 use safer_ffi::prelude::*;
-use std::io;
-use std::path::Path;
+use std::{io, path::Path};
 
 // ========================================================================= //
 
@@ -50,77 +49,97 @@ pub struct MsiInformation {
 #[ffi_export]
 fn get_information(path: char_p::Ref<'_>) -> MsiInformation {
     let file_handle = std::fs::File::open(Path::new(path.to_str())).unwrap();
-    let package = Package::open(file_handle).unwrap();
+    if let Ok(package) = Package::open(file_handle) {
+        MsiInformation {
+            arch: package
+                .summary_info()
+                .arch()
+                .unwrap_or_default()
+                .to_string()
+                .into(),
+            author: package
+                .summary_info()
+                .author()
+                .unwrap_or_default()
+                .to_string()
+                .into(),
+            comments: package
+                .summary_info()
+                .comments()
+                .unwrap_or_default()
+                .to_string()
+                .into(),
+            creating_application: package
+                .summary_info()
+                .creating_application()
+                .unwrap_or_default()
+                .to_string()
+                .into(),
+            creation_time: {
+                if let Some(time) = package.summary_info().creation_time() {
+                    let datetime: DateTime<Utc> = time.into();
+                    datetime.to_rfc2822().into()
+                } else {
+                    "".into()
+                }
+            },
+            languages: {
+                let mut langs: Vec<repr_c::String> = Vec::new();
+                for language in package.summary_info().languages() {
+                    langs.push(language.code().to_string().into());
+                }
+                langs.into()
+            },
+            subject: package
+                .summary_info()
+                .subject()
+                .unwrap_or_default()
+                .to_string()
+                .into(),
+            title: package
+                .summary_info()
+                .title()
+                .unwrap_or_default()
+                .to_string()
+                .into(),
+            uuid: package
+                .summary_info()
+                .uuid()
+                .unwrap_or_default()
+                .to_string()
+                .into(),
+            word_count: package
+                .summary_info()
+                .word_count()
+                .unwrap_or_default(),
 
-    MsiInformation {
-        arch: package
-            .summary_info()
-            .arch()
-            .unwrap_or_default()
-            .to_string()
-            .into(),
-        author: package
-            .summary_info()
-            .author()
-            .unwrap_or_default()
-            .to_string()
-            .into(),
-        comments: package
-            .summary_info()
-            .comments()
-            .unwrap_or_default()
-            .to_string()
-            .into(),
-        creating_application: package
-            .summary_info()
-            .creating_application()
-            .unwrap_or_default()
-            .to_string()
-            .into(),
-        creation_time: {
-            if let Some(time) = package.summary_info().creation_time() {
-                let datetime: DateTime<Utc> = time.into();
-                datetime.to_rfc2822().into()
-            } else {
-                "".into()
-            }
-        },
-        languages: {
-            let mut langs: Vec<repr_c::String> = Vec::new();
-            for language in package.summary_info().languages() {
-                langs.push(language.code().to_string().into());
-            }
-            langs.into()
-        },
-        subject: package
-            .summary_info()
-            .subject()
-            .unwrap_or_default()
-            .to_string()
-            .into(),
-        title: package
-            .summary_info()
-            .title()
-            .unwrap_or_default()
-            .to_string()
-            .into(),
-        uuid: package
-            .summary_info()
-            .uuid()
-            .unwrap_or_default()
-            .to_string()
-            .into(),
-        word_count: package.summary_info().word_count().unwrap_or_default(),
+            has_digital_signature: package.has_digital_signature(),
 
-        has_digital_signature: package.has_digital_signature(),
+            table_names: {
+                let mut names: Vec<repr_c::String> = Vec::new();
+                for table in package.tables() {
+                    names.push(table.name().to_string().into());
+                }
+                names.into()
+            },
+        }
+    } else {
+        MsiInformation {
+            arch: "".into(),
+            author: "".into(),
+            comments: "".into(),
+            creating_application: "".into(),
+            creation_time: "".into(),
+            languages: Vec::new().into(),
+            subject: "".into(),
+            title: "".into(),
+            uuid: "".into(),
+            word_count: 0,
 
-        table_names: {
-            let mut names: Vec<repr_c::String> = Vec::new();
-            for table in package.tables() {
-                names.push(table.name().to_string().into());
-            }
-            names.into()
-        },
+            has_digital_signature: false,
+
+            table_names: Vec::new().into(),
+        }
     }
 }
 
@@ -137,37 +156,40 @@ fn get_table(
     table_name: char_p::Ref<'_>,
 ) -> repr_c::Vec<repr_c::Vec<repr_c::String>> {
     let file_handle = std::fs::File::open(Path::new(path.to_str())).unwrap();
-    let mut package = Package::open(file_handle).unwrap();
 
-    let mut result: Vec<repr_c::Vec<repr_c::String>> = Vec::new();
+    if let Ok(mut package) = Package::open(file_handle) {
+        let mut result: Vec<repr_c::Vec<repr_c::String>> = Vec::new();
 
-    if !package.has_table(table_name.to_str()) {
-        return Vec::new().into();
+        if !package.has_table(table_name.to_str()) {
+            return Vec::new().into();
+        }
+
+        let table = package.get_table(table_name.to_str()).unwrap();
+
+        // first, we add column names
+        let mut columns: Vec<repr_c::String> = Vec::new();
+        for column in table.columns() {
+            columns.push(column.name().to_string().into());
+        }
+        result.push(columns.into());
+
+        // then, we add the rows
+        package
+            .select_rows(Select::table(table_name.to_str()))
+            .expect("select")
+            .for_each(|row| {
+                let mut row_data: Vec<repr_c::String> =
+                    Vec::with_capacity(row.len());
+                for index in 0..row.len() {
+                    row_data.push(row[index].to_string().into());
+                }
+                result.push(row_data.into());
+            });
+
+        result.into()
+    } else {
+        Vec::new().into()
     }
-
-    let table = package.get_table(table_name.to_str()).unwrap();
-
-    // first, we add column names
-    let mut columns: Vec<repr_c::String> = Vec::new();
-    for column in table.columns() {
-        columns.push(column.name().to_string().into());
-    }
-    result.push(columns.into());
-
-    // then, we add the rows
-    package
-        .select_rows(Select::table(table_name.to_str()))
-        .expect("select")
-        .for_each(|row| {
-            let mut row_data: Vec<repr_c::String> =
-                Vec::with_capacity(row.len());
-            for index in 0..row.len() {
-                row_data.push(row[index].to_string().into());
-            }
-            result.push(row_data.into());
-        });
-
-    result.into()
 }
 
 /// Frees the memory of the get_table result.
@@ -177,10 +199,48 @@ fn free_table(table: repr_c::Vec<repr_c::Vec<repr_c::String>>) {
 }
 
 /// Generate headers/bindings for get_information() function.
-pub fn generate_headers() -> io::Result<()> {
-    ::safer_ffi::headers::builder()
-        .with_language(::safer_ffi::headers::Language::CSharp)
-        .to_file("generated.cs")?
+pub fn generate_headers(lang: &str, filename: String) -> io::Result<()> {
+    let file_extension;
+    let language = match lang.to_lowercase().as_str() {
+        "c" => {
+            println!("Selected language: C");
+            file_extension = "h";
+            safer_ffi::headers::Language::C
+        }
+        "cs" | "c#" | "csharp" => {
+            println!("Selected language: CSharp (C#)");
+            file_extension = "cs";
+            safer_ffi::headers::Language::CSharp
+        }
+        "py" | "python" => {
+            println!("Selected language: Python (py)");
+            file_extension = "cffi";
+            safer_ffi::headers::Language::Python
+        }
+        _ => {
+            println!("Unsupported language: {}", lang);
+            println!("Defaulting to C language.");
+            file_extension = "h";
+            safer_ffi::headers::Language::C
+        }
+    };
+    safer_ffi::headers::builder()
+        .with_language(language)
+        .to_file({
+            if filename.is_empty() {
+                println!(
+                    "No filename specified. Defaulting to msi_ffi.{}",
+                    file_extension
+                );
+                format!("msi_ffi.{}", file_extension)
+            } else if filename
+                .ends_with(format!(".{}", file_extension).as_str())
+            {
+                filename
+            } else {
+                format!("{}.{}", filename, file_extension)
+            }
+        })?
         .generate()
 }
 
