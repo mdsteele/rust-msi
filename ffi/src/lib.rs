@@ -11,6 +11,10 @@ use std::{io, path::Path};
 
 // ========================================================================= //
 
+trait MsiInformationDefault {
+    fn default() -> Self;
+}
+
 /// Information about an MSI file.
 #[derive_ReprC]
 #[repr(C)]
@@ -43,94 +47,15 @@ pub struct MsiInformation {
     table_names: repr_c::Vec<repr_c::String>,
 }
 
-// ========================================================================= //
-
-/// Gets the information of an MSI file at the given path.
-#[ffi_export]
-fn get_information(path: char_p::Ref<'_>) -> MsiInformation {
-    let file_handle = std::fs::File::open(Path::new(path.to_str())).unwrap();
-    if let Ok(package) = Package::open(file_handle) {
-        MsiInformation {
-            arch: package
-                .summary_info()
-                .arch()
-                .unwrap_or_default()
-                .to_string()
-                .into(),
-            author: package
-                .summary_info()
-                .author()
-                .unwrap_or_default()
-                .to_string()
-                .into(),
-            comments: package
-                .summary_info()
-                .comments()
-                .unwrap_or_default()
-                .to_string()
-                .into(),
-            creating_application: package
-                .summary_info()
-                .creating_application()
-                .unwrap_or_default()
-                .to_string()
-                .into(),
-            creation_time: {
-                if let Some(time) = package.summary_info().creation_time() {
-                    let datetime: DateTime<Utc> = time.into();
-                    datetime.to_rfc2822().into()
-                } else {
-                    "".into()
-                }
-            },
-            languages: {
-                let mut langs: Vec<repr_c::String> = Vec::new();
-                for language in package.summary_info().languages() {
-                    langs.push(language.code().to_string().into());
-                }
-                langs.into()
-            },
-            subject: package
-                .summary_info()
-                .subject()
-                .unwrap_or_default()
-                .to_string()
-                .into(),
-            title: package
-                .summary_info()
-                .title()
-                .unwrap_or_default()
-                .to_string()
-                .into(),
-            uuid: package
-                .summary_info()
-                .uuid()
-                .unwrap_or_default()
-                .to_string()
-                .into(),
-            word_count: package
-                .summary_info()
-                .word_count()
-                .unwrap_or_default(),
-
-            has_digital_signature: package.has_digital_signature(),
-
-            table_names: {
-                let mut names: Vec<repr_c::String> = Vec::new();
-                for table in package.tables() {
-                    names.push(table.name().to_string().into());
-                }
-                names.into()
-            },
-        }
-    } else {
-        MsiInformation {
+impl MsiInformationDefault for MsiInformation {
+    fn default() -> Self {
+        Self {
             arch: "".into(),
             author: "".into(),
             comments: "".into(),
             creating_application: "".into(),
             creation_time: "".into(),
-            languages: Vec::new().into(),
+            languages: repr_c::Vec::EMPTY,
             subject: "".into(),
             title: "".into(),
             uuid: "".into(),
@@ -138,8 +63,95 @@ fn get_information(path: char_p::Ref<'_>) -> MsiInformation {
 
             has_digital_signature: false,
 
-            table_names: Vec::new().into(),
+            table_names: repr_c::Vec::EMPTY,
         }
+    }
+}
+
+// ========================================================================= //
+
+/// Gets the information of an MSI file at the given path.
+#[ffi_export]
+fn get_information(path: char_p::Ref<'_>) -> MsiInformation {
+    match std::fs::File::open(Path::new(path.to_str())) {
+        Ok(file_handle) => match Package::open(file_handle) {
+            Ok(package) => MsiInformation {
+                arch: package
+                    .summary_info()
+                    .arch()
+                    .unwrap_or_default()
+                    .to_string()
+                    .into(),
+                author: package
+                    .summary_info()
+                    .author()
+                    .unwrap_or_default()
+                    .to_string()
+                    .into(),
+                comments: package
+                    .summary_info()
+                    .comments()
+                    .unwrap_or_default()
+                    .to_string()
+                    .into(),
+                creating_application: package
+                    .summary_info()
+                    .creating_application()
+                    .unwrap_or_default()
+                    .to_string()
+                    .into(),
+                creation_time: {
+                    if let Some(time) = package.summary_info().creation_time()
+                    {
+                        let datetime: DateTime<Utc> = time.into();
+                        datetime.to_rfc2822().into()
+                    } else {
+                        "".into()
+                    }
+                },
+                languages: {
+                    let mut langs: Vec<repr_c::String> = Vec::new();
+                    for language in package.summary_info().languages() {
+                        langs.push(language.code().to_string().into());
+                    }
+                    langs.into()
+                },
+                subject: package
+                    .summary_info()
+                    .subject()
+                    .unwrap_or_default()
+                    .to_string()
+                    .into(),
+                title: package
+                    .summary_info()
+                    .title()
+                    .unwrap_or_default()
+                    .to_string()
+                    .into(),
+                uuid: package
+                    .summary_info()
+                    .uuid()
+                    .unwrap_or_default()
+                    .to_string()
+                    .into(),
+                word_count: package
+                    .summary_info()
+                    .word_count()
+                    .unwrap_or_default(),
+
+                has_digital_signature: package.has_digital_signature(),
+
+                table_names: {
+                    let mut names: Vec<repr_c::String> = Vec::new();
+                    for table in package.tables() {
+                        names.push(table.name().to_string().into());
+                    }
+                    names.into()
+                },
+            },
+            _ => MsiInformation::default(),
+        },
+        _ => MsiInformation::default(),
     }
 }
 
@@ -155,40 +167,40 @@ fn get_table(
     path: char_p::Ref<'_>,
     table_name: char_p::Ref<'_>,
 ) -> repr_c::Vec<repr_c::Vec<repr_c::String>> {
-    let file_handle = std::fs::File::open(Path::new(path.to_str())).unwrap();
+    match std::fs::File::open(Path::new(path.to_str())) {
+        Ok(file_handle) => match Package::open(file_handle) {
+            Ok(mut package) => match package.get_table(table_name.to_str()) {
+                Some(table) => {
+                    let mut result: Vec<repr_c::Vec<repr_c::String>> =
+                        Vec::new();
 
-    if let Ok(mut package) = Package::open(file_handle) {
-        let mut result: Vec<repr_c::Vec<repr_c::String>> = Vec::new();
+                    // first, we add column names
+                    let mut columns: Vec<repr_c::String> = Vec::new();
+                    for column in table.columns() {
+                        columns.push(column.name().to_string().into());
+                    }
+                    result.push(columns.into());
 
-        if !package.has_table(table_name.to_str()) {
-            return Vec::new().into();
-        }
+                    // then, we add the rows
+                    package
+                        .select_rows(Select::table(table_name.to_str()))
+                        .expect("select")
+                        .for_each(|row| {
+                            let mut row_data: Vec<repr_c::String> =
+                                Vec::with_capacity(row.len());
+                            for index in 0..row.len() {
+                                row_data.push(row[index].to_string().into());
+                            }
+                            result.push(row_data.into());
+                        });
 
-        let table = package.get_table(table_name.to_str()).unwrap();
-
-        // first, we add column names
-        let mut columns: Vec<repr_c::String> = Vec::new();
-        for column in table.columns() {
-            columns.push(column.name().to_string().into());
-        }
-        result.push(columns.into());
-
-        // then, we add the rows
-        package
-            .select_rows(Select::table(table_name.to_str()))
-            .expect("select")
-            .for_each(|row| {
-                let mut row_data: Vec<repr_c::String> =
-                    Vec::with_capacity(row.len());
-                for index in 0..row.len() {
-                    row_data.push(row[index].to_string().into());
+                    result.into()
                 }
-                result.push(row_data.into());
-            });
-
-        result.into()
-    } else {
-        Vec::new().into()
+                None => repr_c::Vec::EMPTY,
+            },
+            _ => repr_c::Vec::EMPTY,
+        },
+        _ => repr_c::Vec::EMPTY,
     }
 }
 
