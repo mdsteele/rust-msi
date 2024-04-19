@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           submodules: true
       - name: Install rust toolchain
@@ -40,13 +40,12 @@ jobs:
   tests:
     strategy:
       matrix:
-        os: [ ubuntu-latest, windows-latest, macos-latest, macos-14]
+        os: [ ubuntu-latest, windows-latest, macos-latest]
         rust: [ stable ]
 
-    needs: [linters]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           submodules: true
       - name: Install rust toolchain
@@ -59,5 +58,4 @@ jobs:
         with:
           command: test
           toolchain: ${{ matrix.rust }}
-          args: --verbose 
-
+          args: --verbose
