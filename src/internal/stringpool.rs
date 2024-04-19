@@ -100,11 +100,9 @@ impl StringPoolBuilder {
         let mut lengths_and_refcounts = Vec::<(u32, u16)>::new();
         while let Ok(length) = reader.read_u16::<LittleEndian>() {
             let mut length = length as u32;
-            let mut refcount = reader.read_u16::<LittleEndian>()?;
+            let refcount = reader.read_u16::<LittleEndian>()?;
             if length == 0 && refcount > 0 {
-                let lsb = reader.read_u16::<LittleEndian>()? as u32;
-                refcount = reader.read_u16::<LittleEndian>()?;
-                length = (((refcount) as u32) << 16) | lsb;
+                length = reader.read_u32::<LittleEndian>()?;
             }
             lengths_and_refcounts.push((length, refcount));
         }
