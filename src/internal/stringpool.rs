@@ -1,7 +1,6 @@
 use crate::internal::codepage::CodePage;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use std::io::{self, Read, Write};
-use std::u16;
 
 // ========================================================================= //
 

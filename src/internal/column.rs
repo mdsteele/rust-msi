@@ -2,9 +2,9 @@ use crate::internal::category::Category;
 use crate::internal::stringpool::StringRef;
 use crate::internal::value::{Value, ValueRef};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use std::fmt;
 use std::io::{self, Read, Write};
 use std::str;
-use std::{fmt, i16, i32};
 
 // ========================================================================= //
 
