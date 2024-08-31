@@ -1,6 +1,7 @@
 use crate::internal::codepage::CodePage;
 use crate::internal::language::Language;
 use crate::internal::propset::{OperatingSystem, PropertySet, PropertyValue};
+use crate::internal::timestamp::Timestamp;
 use std::io::{self, Read, Seek, Write};
 use std::time::SystemTime;
 use uuid::Uuid;
@@ -172,15 +173,19 @@ impl SummaryInfo {
     /// date/time when the package was created.
     pub fn creation_time(&self) -> Option<SystemTime> {
         match self.properties.get(PROPERTY_CREATION_TIME) {
-            Some(&PropertyValue::FileTime(timestamp)) => Some(timestamp),
+            Some(&PropertyValue::FileTime(timestamp)) => {
+                Some(timestamp.to_system_time())
+            }
             _ => None,
         }
     }
 
     /// Sets the "creation time" property.
     pub fn set_creation_time(&mut self, timestamp: SystemTime) {
-        self.properties
-            .set(PROPERTY_CREATION_TIME, PropertyValue::FileTime(timestamp));
+        self.properties.set(
+            PROPERTY_CREATION_TIME,
+            PropertyValue::FileTime(Timestamp::from_system_time(timestamp)),
+        );
     }
 
     /// Sets the "creation time" property to the current time.
