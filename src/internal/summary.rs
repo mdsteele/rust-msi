@@ -336,7 +336,7 @@ impl SummaryInfo {
 mod tests {
     use super::SummaryInfo;
     use crate::internal::language::Language;
-    use std::time::SystemTime;
+    use std::time::{Duration, UNIX_EPOCH};
     use uuid::Uuid;
 
     #[test]
@@ -347,7 +347,7 @@ mod tests {
             Language::from_tag("en-US"),
             Language::from_tag("es-MX"),
         ];
-        let timestamp = SystemTime::now();
+        let timestamp = UNIX_EPOCH + Duration::from_secs(12345678);
         let uuid =
             Uuid::parse_str("0000002a-000c-0005-0c03-0938362b0809").unwrap();
 
