@@ -109,6 +109,12 @@ impl Table {
         let num_columns = self.columns.len();
         let num_rows =
             if row_size > 0 { (data_length / row_size) as usize } else { 0 };
+        if num_rows > 65536 {
+            invalid_data!(
+                "Number of rows is too large ({} > 65536)",
+                num_rows
+            );
+        }
         let mut rows =
             vec![Vec::<ValueRef>::with_capacity(num_columns); num_rows];
         for column in self.columns.iter() {
