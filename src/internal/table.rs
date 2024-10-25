@@ -109,6 +109,8 @@ impl Table {
         let num_columns = self.columns.len();
         let num_rows =
             if row_size > 0 { (data_length / row_size) as usize } else { 0 };
+        // The number of rows cannot exceed 65536, according to this FAQ:
+        // http://www.installsite.org/pages/en/msifaq/a/1043.htm
         if num_rows > 65536 {
             invalid_data!(
                 "Number of rows is too large ({} > 65536)",
