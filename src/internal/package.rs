@@ -439,8 +439,11 @@ impl<F: Read + Seek> Package<F> {
                         let category = category_value
                             .as_str()
                             .unwrap()
-                            .parse::<Category>()?;
-                        builder = builder.category(category);
+                            .parse::<Category>()
+                            .ok();
+                        if let Some(category) = category {
+                            builder = builder.category(category);
+                        }
                     }
                     let enum_values = value_refs[8].to_value(&string_pool);
                     if !enum_values.is_null() {

@@ -1,6 +1,6 @@
 use crate::internal::streamname::{
-    self, DIGITAL_SIGNATURE_STREAM_NAME, MSI_DIGITAL_SIGNATURE_EX_STREAM_NAME,
-    SUMMARY_INFO_STREAM_NAME,
+    self, DIGITAL_SIGNATURE_STREAM_NAME, DOCUMENT_SUMMARY_INFO_STREAM_NAME,
+    MSI_DIGITAL_SIGNATURE_EX_STREAM_NAME, SUMMARY_INFO_STREAM_NAME,
 };
 use cfb;
 use std::io::{self, Read, Seek, SeekFrom, Write};
@@ -87,6 +87,7 @@ impl<'a, F: 'a> Iterator for Streams<'a, F> {
                 || entry.name() == DIGITAL_SIGNATURE_STREAM_NAME
                 || entry.name() == MSI_DIGITAL_SIGNATURE_EX_STREAM_NAME
                 || entry.name() == SUMMARY_INFO_STREAM_NAME
+                || entry.name() == DOCUMENT_SUMMARY_INFO_STREAM_NAME
             {
                 continue;
             }

@@ -6,6 +6,8 @@ pub const DIGITAL_SIGNATURE_STREAM_NAME: &str = "\u{5}DigitalSignature";
 pub const MSI_DIGITAL_SIGNATURE_EX_STREAM_NAME: &str =
     "\u{5}MsiDigitalSignatureEx";
 pub const SUMMARY_INFO_STREAM_NAME: &str = "\u{5}SummaryInformation";
+pub const DOCUMENT_SUMMARY_INFO_STREAM_NAME: &str =
+    "\u{5}DocumentSummaryInformation";
 
 const TABLE_PREFIX: char = '\u{4840}';
 

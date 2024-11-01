@@ -3,13 +3,12 @@
 //     https://msdn.microsoft.com/en-us/library/windows/desktop/
 //     aa380367(v=vs.85).aspx
 
-use crate::internal;
 use crate::internal::codepage::CodePage;
+use crate::internal::timestamp::Timestamp;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use std::cmp;
 use std::collections::BTreeMap;
 use std::io::{self, Read, Seek, SeekFrom, Write};
-use std::time::SystemTime;
 
 // ========================================================================= //
 
@@ -52,7 +51,7 @@ pub enum PropertyValue {
     I2(i16),
     I4(i32),
     LpStr(String),
-    FileTime(SystemTime),
+    FileTime(Timestamp),
 }
 
 impl PropertyValue {
@@ -80,9 +79,7 @@ impl PropertyValue {
                 Ok(PropertyValue::LpStr(codepage.decode(&bytes)))
             }
             64 => {
-                let value = reader.read_u64::<LittleEndian>()?;
-                let timestamp =
-                    internal::time::system_time_from_filetime(value);
+                let timestamp = Timestamp::read_from(&mut reader)?;
                 Ok(PropertyValue::FileTime(timestamp))
             }
             _ => {
@@ -134,10 +131,8 @@ impl PropertyValue {
                 }
             }
             PropertyValue::FileTime(timestamp) => {
-                let value =
-                    internal::time::filetime_from_system_time(*timestamp);
                 writer.write_u32::<LittleEndian>(64)?;
-                writer.write_u64::<LittleEndian>(value)?;
+                timestamp.write_to(&mut writer)?;
             }
         }
         Ok(())
@@ -397,6 +392,7 @@ impl PropertySet {
 mod tests {
     use super::{OperatingSystem, PropertySet, PropertyValue};
     use crate::internal::codepage::CodePage;
+    use crate::internal::timestamp::Timestamp;
     use std::io::Cursor;
     use std::time::{Duration, UNIX_EPOCH};
 
@@ -433,8 +429,9 @@ mod tests {
             PropertyValue::LpStr("Hello, world!".to_string())
         );
 
-        let sat_2017_mar_18_at_18_46_36_gmt =
-            UNIX_EPOCH + Duration::from_secs(1489862796);
+        let sat_2017_mar_18_at_18_46_36_gmt = Timestamp::from_system_time(
+            UNIX_EPOCH + Duration::from_secs(1489862796),
+        );
         let input: &[u8] = &[64, 0, 0, 0, 0, 206, 112, 248, 23, 160, 210, 1];
         assert_eq!(
             PropertyValue::read(input, CodePage::Utf8).unwrap(),
@@ -472,8 +469,9 @@ mod tests {
             b"\x1e\x00\x00\x00\x0e\x00\x00\x00Hello, world!\x00\x00\x00"
         );
 
-        let sat_2017_mar_18_at_18_46_36_gmt =
-            UNIX_EPOCH + Duration::from_secs(1489862796);
+        let sat_2017_mar_18_at_18_46_36_gmt = Timestamp::from_system_time(
+            UNIX_EPOCH + Duration::from_secs(1489862796),
+        );
         let value = PropertyValue::FileTime(sat_2017_mar_18_at_18_46_36_gmt);
         let mut output = Vec::<u8>::new();
         value.write(&mut output, CodePage::Utf8).unwrap();
@@ -485,8 +483,9 @@ mod tests {
 
     #[test]
     fn property_value_round_trip() {
-        let sat_2017_mar_18_at_18_46_36_gmt =
-            UNIX_EPOCH + Duration::from_secs(1489862796);
+        let sat_2017_mar_18_at_18_46_36_gmt = Timestamp::from_system_time(
+            UNIX_EPOCH + Duration::from_secs(1489862796),
+        );
 
         let values = &[
             PropertyValue::Empty,
