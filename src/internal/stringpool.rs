@@ -432,10 +432,13 @@ mod tests {
         }
 
         // Deserialize the pool header
-        let builder = StringPoolBuilder::read_from_pool(pool).expect("Failed to read pool metadata");
+        let builder = StringPoolBuilder::read_from_pool(pool)
+            .expect("Failed to read pool metadata");
 
         // Rebuild the pool from the raw string data
-        let string_pool = builder.build_from_data(&rustmsi_70kb[..]).expect("Failed to build pool");
+        let string_pool = builder
+            .build_from_data(&rustmsi_70kb[..])
+            .expect("Failed to build pool");
 
         // Verify pool metadata and content
         assert_eq!(string_pool.codepage(), CodePage::Utf8);
@@ -457,7 +460,8 @@ mod tests {
 
         // Serialize the pool into binary format
         let mut pool_output = Vec::new();
-        pool.write_pool(&mut pool_output).expect("Failed to write string pool");
+        pool.write_pool(&mut pool_output)
+            .expect("Failed to write string pool");
 
         // Deserialize the pool header from the binary output
         let builder = StringPoolBuilder::read_from_pool(&*pool_output)
