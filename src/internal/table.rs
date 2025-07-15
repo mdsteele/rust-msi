@@ -211,7 +211,7 @@ impl Index<usize> for Row {
 
 /// Gets the value of the column with the given name.  Panics if
 /// `!self.has_column(column_name)`.
-impl<'a> Index<&'a str> for Row {
+impl Index<&str> for Row {
     type Output = Value;
 
     fn index(&self, column_name: &str) -> &Value {
