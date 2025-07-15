@@ -230,7 +230,7 @@ pub fn generate_headers(lang: &str, filename: String) -> io::Result<()> {
             safer_ffi::headers::Language::Python
         }
         _ => {
-            println!("Unsupported language: {}", lang);
+            println!("Unsupported language: {lang}");
             println!("Defaulting to C language.");
             file_extension = "h";
             safer_ffi::headers::Language::C
@@ -241,16 +241,15 @@ pub fn generate_headers(lang: &str, filename: String) -> io::Result<()> {
         .to_file({
             if filename.is_empty() {
                 println!(
-                    "No filename specified. Defaulting to msi_ffi.{}",
-                    file_extension
+                    "No filename specified. Defaulting to msi_ffi.{file_extension}"
                 );
-                format!("msi_ffi.{}", file_extension)
+                format!("msi_ffi.{file_extension}")
             } else if filename
-                .ends_with(format!(".{}", file_extension).as_str())
+                .ends_with(format!(".{file_extension}").as_str())
             {
                 filename
             } else {
-                format!("{}.{}", filename, file_extension)
+                format!("{filename}.{file_extension}")
             }
         })?
         .generate()

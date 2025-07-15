@@ -99,11 +99,9 @@ impl StringPoolBuilder {
         let mut lengths_and_refcounts = Vec::<(u32, u16)>::new();
         while let Ok(length) = reader.read_u16::<LittleEndian>() {
             let mut length = length as u32;
-            let mut refcount = reader.read_u16::<LittleEndian>()?;
+            let refcount = reader.read_u16::<LittleEndian>()?;
             if length == 0 && refcount > 0 {
-                length = ((refcount as u32) << 16)
-                    | (reader.read_u16::<LittleEndian>()? as u32);
-                refcount = reader.read_u16::<LittleEndian>()?;
+                length = reader.read_u32::<LittleEndian>()?;
             }
             lengths_and_refcounts.push((length, refcount));
         }
@@ -270,14 +268,14 @@ impl StringPool {
             codepage_id |= LONG_STRING_REFS_BIT;
         }
         writer.write_u32::<LittleEndian>(codepage_id)?;
-        for &(ref string, refcount) in self.strings.iter() {
-            let length = self.codepage.encode(string.as_str()).len() as u32;
-            if length > (u16::MAX as u32) {
-                writer.write_u16::<LittleEndian>(0)?;
-                writer.write_u16::<LittleEndian>((length >> 16) as u16)?;
-            }
-            writer.write_u16::<LittleEndian>((length & 0xffff) as u16)?;
+        for &(ref string, refcount) in &self.strings {
+            let length = self.codepage.encode(string).len() as u32;
+            let short_length = u16::try_from(length).unwrap_or_default();
+            writer.write_u16::<LittleEndian>(short_length)?;
             writer.write_u16::<LittleEndian>(refcount)?;
+            if short_length == 0 && refcount > 0 {
+                writer.write_u32::<LittleEndian>(length)?;
+            }
         }
         Ok(())
     }
@@ -419,27 +417,63 @@ mod tests {
     }
 
     #[test]
-    fn string_over_64k() {
+    fn deserialize_string_over_64k() {
+        // This byte array represents a serialized string pool with:
+        // - codepage ID = 65001 (UTF-8)
+        // - one string with length = 70,000
+        // - refcount = 1
         let pool: &[u8] = b"\xe9\xfd\x00\x00\x00\x00\x01\x00\x70\x11\x01\x00";
 
-        let mut rustmsi_x10000: [u8; 70000] = [0; 70000];
-        for i in 0..10000 {
-            rustmsi_x10000[7 * i] = b'r';
-            rustmsi_x10000[7 * i + 1] = b'u';
-            rustmsi_x10000[7 * i + 2] = b's';
-            rustmsi_x10000[7 * i + 3] = b't';
-            rustmsi_x10000[7 * i + 4] = b'm';
-            rustmsi_x10000[7 * i + 5] = b's';
-            rustmsi_x10000[7 * i + 6] = b'i';
+        // Generate 70,000 bytes by repeating "rustmsi" 10,000 times
+        let rustmsi = b"rustmsi";
+        let mut rustmsi_70kb = [0u8; 70_000];
+        for chunk in rustmsi_70kb.chunks_exact_mut(rustmsi.len()) {
+            chunk.copy_from_slice(rustmsi);
         }
-        let data: &[u8] = &rustmsi_x10000;
-        assert_eq!(data.len(), 70000);
-        let builder = StringPoolBuilder::read_from_pool(pool).expect("pool");
-        let string_pool = builder.build_from_data(data).expect("data");
+
+        // Deserialize the pool header
+        let builder = StringPoolBuilder::read_from_pool(pool)
+            .expect("Failed to read pool metadata");
+
+        // Rebuild the pool from the raw string data
+        let string_pool = builder
+            .build_from_data(&rustmsi_70kb[..])
+            .expect("Failed to build pool");
+
+        // Verify pool metadata and content
         assert_eq!(string_pool.codepage(), CodePage::Utf8);
         assert!(!string_pool.long_string_refs());
         assert_eq!(string_pool.num_strings(), 1);
-        assert_eq!(string_pool.get(StringRef(1)), "rustmsi".repeat(10000));
+        assert_eq!(string_pool.get(StringRef(1)), "rustmsi".repeat(10_000));
+        assert_eq!(string_pool.refcount(StringRef(1)), 1);
+    }
+
+    #[test]
+    fn roundtrip_string_over_64k() {
+        // Create a 70,000-byte string by repeating "rustmsi" 10,000 times
+        let rustmsi_70kb = "rustmsi".repeat(10_000);
+        assert!(rustmsi_70kb.len() > u16::MAX as usize); // Ensure it's > 64 KB
+
+        // Construct a string pool and add the long string
+        let mut pool = StringPool::new(CodePage::Utf8);
+        pool.incref(rustmsi_70kb.clone());
+
+        // Serialize the pool into binary format
+        let mut pool_output = Vec::new();
+        pool.write_pool(&mut pool_output)
+            .expect("Failed to write string pool");
+
+        // Deserialize the pool header from the binary output
+        let builder = StringPoolBuilder::read_from_pool(&*pool_output)
+            .expect("Failed to read string pool metadata");
+
+        // Rebuild the pool from the original string data
+        let string_pool = builder
+            .build_from_data(rustmsi_70kb.as_bytes())
+            .expect("Failed to build string pool from data");
+
+        // Verify the deserialized string and its refcount
+        assert_eq!(string_pool.get(StringRef(1)), rustmsi_70kb);
         assert_eq!(string_pool.refcount(StringRef(1)), 1);
     }
 

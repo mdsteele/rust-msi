@@ -79,10 +79,7 @@ impl<'a, F: 'a> Iterator for Streams<'a, F> {
 
     fn next(&mut self) -> Option<String> {
         loop {
-            let entry = match self.entries.next() {
-                Some(entry) => entry,
-                None => return None,
-            };
+            let entry = self.entries.next()?;
             if !entry.is_stream()
                 || entry.name() == DIGITAL_SIGNATURE_STREAM_NAME
                 || entry.name() == MSI_DIGITAL_SIGNATURE_EX_STREAM_NAME
