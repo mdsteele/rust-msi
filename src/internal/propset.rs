@@ -316,7 +316,7 @@ impl PropertySet {
         // Property set header:
         writer.write_u16::<LittleEndian>(BYTE_ORDER_MARK)?;
         let mut format_version = PropertyFormatVersion::V0;
-        for (_, value) in &self.properties {
+        for value in self.properties.values() {
             format_version = cmp::max(format_version, value.minimum_version());
         }
         writer.write_u16::<LittleEndian>(format_version.version_number())?;
@@ -337,7 +337,7 @@ impl PropertySet {
         let num_properties = self.properties.len() as u32;
         let mut section_size: u32 = 8 + 8 * num_properties;
         let mut property_offsets: Vec<u32> = Vec::new();
-        for (_, value) in &self.properties {
+        for value in self.properties.values() {
             property_offsets.push(section_size);
             section_size += value.size_including_padding();
         }
@@ -347,7 +347,7 @@ impl PropertySet {
             writer.write_u32::<LittleEndian>(name)?;
             writer.write_u32::<LittleEndian>(property_offsets[index])?;
         }
-        for (_, value) in &self.properties {
+        for value in self.properties.values() {
             value.write(writer.by_ref(), self.codepage)?;
         }
         Ok(())
