@@ -373,7 +373,7 @@ impl<F: Read + Seek> Package<F> {
             let stream_name = table.stream_name();
             if comp.exists(&stream_name) {
                 let stream = comp.open_stream(&stream_name)?;
-                for value_refs in table.read_rows(stream)?.into_iter() {
+                for value_refs in table.read_rows(stream)? {
                     let table_name = value_refs[0]
                         .to_value(&string_pool)
                         .as_str()
@@ -397,7 +397,7 @@ impl<F: Read + Seek> Package<F> {
             }
         }
         // Construct Table objects from column/validation data:
-        for (table_name, column_specs) in columns_map.into_iter() {
+        for (table_name, column_specs) in columns_map {
             if column_specs.is_empty() {
                 invalid_data!("No columns found for table {:?}", table_name);
             }
@@ -411,7 +411,7 @@ impl<F: Read + Seek> Package<F> {
                 );
             }
             let mut columns = Vec::<Column>::with_capacity(column_specs.len());
-            for (_, (column_name, bitfield)) in column_specs.into_iter() {
+            for (_, (column_name, bitfield)) in column_specs {
                 let mut builder = Column::build(column_name.as_str());
                 let key = (table_name.clone(), column_name);
                 if let Some(value_refs) = validation_map.get(&key) {
@@ -588,7 +588,7 @@ impl<F: Read + Write + Seek> Package<F> {
         }
         {
             let mut column_names = HashSet::<&str>::new();
-            for column in columns.iter() {
+            for column in &columns {
                 let name = column.name();
                 if !Column::is_valid_name(name) {
                     invalid_input!("{:?} is not a valid column name", name);

@@ -305,7 +305,7 @@ mod tests {
             CodePage::Iso88598,
             CodePage::Utf8,
         ];
-        for &codepage in codepages.iter() {
+        for &codepage in codepages {
             assert_eq!(CodePage::from_id(codepage.id()), Some(codepage));
         }
     }

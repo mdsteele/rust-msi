@@ -117,7 +117,7 @@ impl StringPoolBuilder {
         mut reader: R,
     ) -> io::Result<StringPool> {
         let mut strings = Vec::<(String, u16)>::new();
-        for (length, refcount) in self.lengths_and_refcounts.into_iter() {
+        for (length, refcount) in self.lengths_and_refcounts {
             let mut buffer = vec![0u8; length as usize];
             reader.read_exact(&mut buffer)?;
             strings.push((self.codepage.decode(&buffer), refcount));
@@ -282,7 +282,7 @@ impl StringPool {
 
     /// Writes to the `_StringData` table.
     pub fn write_data<W: Write>(&self, mut writer: W) -> io::Result<()> {
-        for (string, _) in self.strings.iter() {
+        for (string, _) in &self.strings {
             writer.write_all(&self.codepage.encode(string.as_str()))?;
         }
         Ok(())

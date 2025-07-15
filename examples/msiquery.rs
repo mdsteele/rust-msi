@@ -83,14 +83,14 @@ fn process_select_query(pair: Pair, package: &mut Package) {
     }
     {
         let mut line = String::new();
-        for &width in col_widths.iter() {
+        for &width in &col_widths {
             let string = pad(String::new(), '-', width);
             line.push_str(&string);
             line.push_str("  ");
         }
         println!("{line}");
     }
-    for row in row_strings.into_iter() {
+    for row in row_strings {
         let mut line = String::new();
         for (index, value) in row.into_iter().enumerate() {
             let string = pad(value, ' ', col_widths[index]);
