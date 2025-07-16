@@ -215,8 +215,8 @@ impl CodePage {
         }
     }
 
-    fn encoding(&self) -> &'static Encoding {
-        match *self {
+    fn encoding(self) -> &'static Encoding {
+        match self {
             CodePage::Windows932 => encoding_rs::EUC_JP,
             CodePage::Windows936 => encoding_rs::BIG5,
             CodePage::Windows949 => encoding_rs::EUC_KR,
