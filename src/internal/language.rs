@@ -49,10 +49,10 @@ impl Language {
     /// ```
     pub fn from_tag(tag: &str) -> Language {
         let parts: Vec<&str> = tag.splitn(2, '-').collect();
-        for &(lang_code, lang_tag, sublangs) in LANGUAGES.iter() {
+        for &(lang_code, lang_tag, sublangs) in LANGUAGES {
             if lang_tag == parts[0] {
                 if parts.len() > 1 {
-                    for &(sublang_code, sublang_tag) in sublangs.iter() {
+                    for &(sublang_code, sublang_tag) in sublangs {
                         if sublang_tag == tag {
                             return Language::new(lang_code, sublang_code);
                         }
@@ -332,7 +332,7 @@ mod tests {
     #[test]
     fn lang_codes_are_unique() {
         let mut codes = HashSet::<u16>::new();
-        for &(lang_code, _, _) in LANGUAGES.iter() {
+        for &(lang_code, _, _) in LANGUAGES {
             assert!(
                 !codes.contains(&lang_code),
                 "Language table repeats lang code 0x{lang_code:02x}"
@@ -344,7 +344,7 @@ mod tests {
     #[test]
     fn lang_tags_are_unique() {
         let mut tags = HashSet::<&str>::new();
-        for &(_, lang_tag, _) in LANGUAGES.iter() {
+        for &(_, lang_tag, _) in LANGUAGES {
             assert!(
                 !tags.contains(&lang_tag),
                 "Language table repeats lang tag {lang_tag:?}"
@@ -356,7 +356,7 @@ mod tests {
     #[test]
     fn lang_codes_are_sorted() {
         let mut prev_code: u16 = 0;
-        for &(lang_code, _, _) in LANGUAGES.iter() {
+        for &(lang_code, _, _) in LANGUAGES {
             assert!(
                 lang_code >= prev_code,
                 "LANGUAGES table is not sorted, 0x{lang_code:02x} is out of \
@@ -368,9 +368,9 @@ mod tests {
 
     #[test]
     fn sublang_codes_are_unique() {
-        for &(lang_code, lang_tag, sublangs) in LANGUAGES.iter() {
+        for &(lang_code, lang_tag, sublangs) in LANGUAGES {
             let mut codes = HashSet::<u16>::new();
-            for &(sublang_code, _) in sublangs.iter() {
+            for &(sublang_code, _) in sublangs {
                 assert!(
                     !codes.contains(&sublang_code),
                     "Sublanguage table for 0x{lang_code:02x} ({lang_tag}) \
@@ -383,9 +383,9 @@ mod tests {
 
     #[test]
     fn sublang_tags_are_unique() {
-        for &(lang_code, lang_tag, sublangs) in LANGUAGES.iter() {
+        for &(lang_code, lang_tag, sublangs) in LANGUAGES {
             let mut tags = HashSet::<&str>::new();
-            for &(_, sublang_tag) in sublangs.iter() {
+            for &(_, sublang_tag) in sublangs {
                 assert!(
                     !tags.contains(&sublang_tag),
                     "Sublanguage table for 0x{lang_code:02x} ({lang_tag}) \
@@ -398,9 +398,9 @@ mod tests {
 
     #[test]
     fn sublang_codes_are_sorted() {
-        for &(lang_code, lang_tag, sublangs) in LANGUAGES.iter() {
+        for &(lang_code, lang_tag, sublangs) in LANGUAGES {
             let mut prev_code: u16 = 0;
-            for &(sublang_code, sublang_tag) in sublangs.iter() {
+            for &(sublang_code, sublang_tag) in sublangs {
                 assert!(
                     sublang_code >= prev_code,
                     "Sublanguage table for 0x{lang_code:02x} ({lang_tag}) \
@@ -414,8 +414,8 @@ mod tests {
 
     #[test]
     fn sublang_tags_start_with_lang_tag() {
-        for &(_, lang_tag, sublangs) in LANGUAGES.iter() {
-            for &(_, sublang_tag) in sublangs.iter() {
+        for &(_, lang_tag, sublangs) in LANGUAGES {
+            for &(_, sublang_tag) in sublangs {
                 assert!(
                     sublang_tag.starts_with(&format!("{lang_tag}-")),
                     "{sublang_tag:?} is not a sublanguage of {lang_tag:?}"

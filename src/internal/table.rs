@@ -119,9 +119,9 @@ impl Table {
         }
         let mut rows =
             vec![Vec::<ValueRef>::with_capacity(num_columns); num_rows];
-        for column in self.columns.iter() {
+        for column in &self.columns {
             let coltype = column.coltype();
-            for row in rows.iter_mut() {
+            for row in &mut rows {
                 row.push(
                     coltype.read_value(&mut reader, self.long_string_refs)?,
                 );
@@ -137,7 +137,7 @@ impl Table {
     ) -> io::Result<()> {
         for (index, column) in self.columns.iter().enumerate() {
             let coltype = column.coltype();
-            for row in rows.iter() {
+            for row in &rows {
                 coltype.write_value(
                     &mut writer,
                     row[index],

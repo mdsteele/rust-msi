@@ -229,7 +229,7 @@ impl SummaryInfo {
         };
         template.push(';');
         let mut first = true;
-        for language in languages.iter() {
+        for language in languages {
             if first {
                 first = false;
             } else {

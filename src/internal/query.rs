@@ -50,7 +50,7 @@ impl Delete {
         };
         // Validate the condition.
         if let Some(ref expr) = self.condition {
-            for column_name in expr.column_names().into_iter() {
+            for column_name in expr.column_names() {
                 if !table.has_column(column_name) {
                     invalid_input!(
                         "Table {:?} has no column named {:?}",
@@ -83,7 +83,7 @@ impl Delete {
             };
             // TODO: Handle deleting rows referred to by foreign keys.
             if should_delete {
-                for value_ref in value_refs.iter() {
+                for value_ref in value_refs {
                     value_ref.remove(string_pool);
                 }
                 false
@@ -150,7 +150,7 @@ impl Insert {
             None => not_found!("Table {:?} does not exist", self.table_name),
         };
         // Validate the new rows.
-        for values in self.new_rows.iter() {
+        for values in &self.new_rows {
             if values.len() != table.columns().len() {
                 invalid_input!(
                     "Table {:?} has {} columns, but a row with {} values was \
@@ -177,7 +177,7 @@ impl Insert {
         let mut rows_map = BTreeMap::<Vec<Value>, Vec<ValueRef>>::new();
         if comp.exists(&stream_name) {
             let stream = comp.open_stream(&stream_name)?;
-            for row in table.read_rows(stream)?.into_iter() {
+            for row in table.read_rows(stream)? {
                 let keys: Vec<Value> = key_indices
                     .iter()
                     .map(|&index| row[index].to_value(string_pool))
@@ -196,7 +196,7 @@ impl Insert {
         // Check if any of the new rows already exist in the table (or conflict
         // with each other).
         let mut new_keys_set = HashSet::<Vec<Value>>::new();
-        for values in self.new_rows.iter() {
+        for values in &self.new_rows {
             let keys: Vec<Value> = key_indices
                 .iter()
                 .map(|&index| values[index].clone())
@@ -217,7 +217,7 @@ impl Insert {
             new_keys_set.insert(keys);
         }
         // Insert the new rows into the table.
-        for values in self.new_rows.into_iter() {
+        for values in self.new_rows {
             let keys: Vec<Value> = key_indices
                 .iter()
                 .map(|&index| values[index].clone())
@@ -243,7 +243,7 @@ impl fmt::Display for Insert {
         if !self.new_rows.is_empty() {
             formatter.write_str(" VALUES ")?;
             let mut outer_comma = false;
-            for new_row in self.new_rows.iter() {
+            for new_row in &self.new_rows {
                 if outer_comma {
                     formatter.write_str(", ")?;
                 } else {
@@ -251,7 +251,7 @@ impl fmt::Display for Insert {
                 }
                 formatter.write_str("(")?;
                 let mut inner_comma = false;
-                for value in new_row.iter() {
+                for value in new_row {
                     if inner_comma {
                         formatter.write_str(", ")?;
                     } else {
@@ -323,8 +323,8 @@ impl Join {
                     string_pool.long_string_refs(),
                 );
                 let mut rows = Vec::<Vec<ValueRef>>::new();
-                for value_refs1 in rows1.iter() {
-                    for value_refs2 in rows2.iter() {
+                for value_refs1 in &rows1 {
+                    for value_refs2 in &rows2 {
                         let value_refs: Vec<ValueRef> = value_refs1
                             .iter()
                             .chain(value_refs2.iter())
@@ -363,9 +363,9 @@ impl Join {
                     string_pool.long_string_refs(),
                 );
                 let mut rows = Vec::<Vec<ValueRef>>::new();
-                for value_refs1 in rows1.iter() {
+                for value_refs1 in &rows1 {
                     let mut found_any = false;
-                    for value_refs2 in rows2.iter() {
+                    for value_refs2 in &rows2 {
                         let value_refs: Vec<ValueRef> = value_refs1
                             .iter()
                             .chain(value_refs2.iter())
@@ -504,7 +504,7 @@ impl Select {
         // Validate the selected column names.
         let mut column_indices =
             Vec::<usize>::with_capacity(self.column_names.len());
-        for column_name in self.column_names.iter() {
+        for column_name in &self.column_names {
             match table.index_for_column_name(column_name.as_str()) {
                 Some(index) => column_indices.push(index),
                 None => {
@@ -518,7 +518,7 @@ impl Select {
         }
         // Validate the condition.
         if let Some(ref expr) = self.condition {
-            for column_name in expr.column_names().into_iter() {
+            for column_name in expr.column_names() {
                 if !table.has_column(column_name) {
                     invalid_input!(
                         "Table {:?} has no column named {:?}",
@@ -547,7 +547,7 @@ impl Select {
                 .collect();
             table =
                 Table::new(String::new(), columns, table.long_string_refs());
-            for value_refs in rows.iter_mut() {
+            for value_refs in &mut rows {
                 *value_refs = column_indices
                     .iter()
                     .map(|&index| value_refs[index])
@@ -580,7 +580,7 @@ impl fmt::Display for Select {
             formatter.write_str("*")?;
         } else {
             let mut comma = false;
-            for column_name in self.column_names.iter() {
+            for column_name in &self.column_names {
                 if comma {
                     formatter.write_str(", ")?;
                 } else {
@@ -655,7 +655,7 @@ impl Update {
             None => not_found!("Table {:?} does not exist", self.table_name),
         };
         // Validate the updates.
-        for (column_name, value) in self.updates.iter() {
+        for (column_name, value) in &self.updates {
             if !table.has_column(column_name.as_str()) {
                 invalid_input!(
                     "Table {:?} has no column named {:?}",
@@ -675,7 +675,7 @@ impl Update {
         }
         // Validate the condition.
         if let Some(ref expr) = self.condition {
-            for column_name in expr.column_names().into_iter() {
+            for column_name in expr.column_names() {
                 if !table.has_column(column_name) {
                     invalid_input!(
                         "Table {:?} has no column named {:?}",
@@ -694,7 +694,7 @@ impl Update {
             Vec::new()
         };
         // Update the rows.
-        for value_refs in rows.iter_mut() {
+        for value_refs in &mut rows {
             let should_update = match self.condition {
                 Some(ref expr) => {
                     let values: Vec<Value> = value_refs
@@ -707,7 +707,7 @@ impl Update {
                 None => true,
             };
             if should_update {
-                for (column_name, value) in self.updates.iter() {
+                for (column_name, value) in &self.updates {
                     let index =
                         table.index_for_column_name(column_name).unwrap();
                     let value_ref = &mut value_refs[index];
@@ -729,7 +729,7 @@ impl fmt::Display for Update {
         formatter.write_str(&self.table_name)?;
         formatter.write_str(" SET ")?;
         let mut comma = false;
-        for (column_name, value) in self.updates.iter() {
+        for (column_name, value) in &self.updates {
             if comma {
                 formatter.write_str(", ")?;
             } else {

@@ -103,14 +103,14 @@ fn print_table_contents<F: Read + Seek>(
     }
     {
         let mut line = String::new();
-        for &width in col_widths.iter() {
+        for &width in &col_widths {
             let string = pad(String::new(), '-', width);
             line.push_str(&string);
             line.push_str("  ");
         }
         println!("{line}");
     }
-    for row in rows.into_iter() {
+    for row in rows {
         let mut line = String::new();
         for (index, value) in row.into_iter().enumerate() {
             let string = pad(value, ' ', col_widths[index]);
