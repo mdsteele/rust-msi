@@ -61,7 +61,7 @@ fn make_validation_columns() -> Vec<Column> {
     let min = -0x7fff_ffff;
     let max = 0x7fff_ffff;
     let values: Vec<&str> =
-        Category::all().iter().map(Category::as_str).collect();
+        Category::all().into_iter().map(Category::as_str).collect();
     vec![
         Column::build("Table").primary_key().id_string(32),
         Column::build("Column").primary_key().id_string(32),
@@ -117,8 +117,8 @@ impl PackageType {
         }
     }
 
-    fn clsid(&self) -> Uuid {
-        match *self {
+    fn clsid(self) -> Uuid {
+        match self {
             PackageType::Installer => {
                 Uuid::parse_str(INSTALLER_PACKAGE_CLSID).unwrap()
             }

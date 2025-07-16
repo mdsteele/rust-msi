@@ -337,8 +337,8 @@ impl Category {
         ]
     }
 
-    pub(crate) fn as_str(&self) -> &'static str {
-        match *self {
+    pub(crate) fn as_str(self) -> &'static str {
+        match self {
             Category::AnyPath => "AnyPath",
             Category::Binary => "Binary",
             Category::Cabinet => "Cabinet",

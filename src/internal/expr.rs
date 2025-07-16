@@ -410,8 +410,8 @@ enum UnOp {
 }
 
 impl UnOp {
-    fn eval(&self, arg: Value) -> Value {
-        match *self {
+    fn eval(self, arg: Value) -> Value {
+        match self {
             UnOp::Neg => match arg {
                 Value::Int(number) => Value::Int(-number),
                 _ => Value::Null,
@@ -448,8 +448,8 @@ enum BinOp {
 }
 
 impl BinOp {
-    fn eval(&self, arg1: Value, arg2: Value) -> Value {
-        match *self {
+    fn eval(self, arg1: Value, arg2: Value) -> Value {
+        match self {
             BinOp::Eq => Value::from_bool(arg1 == arg2),
             BinOp::Ne => Value::from_bool(arg1 != arg2),
             BinOp::Lt => Value::from_bool(arg1 < arg2),
@@ -517,8 +517,8 @@ impl BinOp {
         }
     }
 
-    fn precedence(&self) -> i32 {
-        match *self {
+    fn precedence(self) -> i32 {
+        match self {
             BinOp::Eq => 3,
             BinOp::Ne => 3,
             BinOp::Lt => 3,
