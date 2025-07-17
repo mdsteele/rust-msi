@@ -34,6 +34,7 @@ impl Language {
     /// assert_eq!(msi::Language::from_code(1033).code(), 1033);
     /// assert_eq!(msi::Language::from_code(3084).code(), 3084);
     /// ```
+    #[must_use]
     pub fn from_code(code: u16) -> Language {
         Language { code }
     }
@@ -47,6 +48,7 @@ impl Language {
     /// assert_eq!(msi::Language::from_tag("en-US").tag(), "en-US");
     /// assert_eq!(msi::Language::from_tag("fr-CA").tag(), "fr-CA");
     /// ```
+    #[must_use]
     pub fn from_tag(tag: &str) -> Language {
         let parts: Vec<&str> = tag.splitn(2, '-').collect();
         for &(lang_code, lang_tag, sublangs) in LANGUAGES {
@@ -78,6 +80,7 @@ impl Language {
     /// assert_eq!(msi::Language::from_tag("en-US").code(), 1033);
     /// assert_eq!(msi::Language::from_tag("fr-CA").code(), 3084);
     /// ```
+    #[must_use]
     pub fn code(&self) -> u16 {
         self.code
     }
@@ -94,6 +97,7 @@ impl Language {
     /// assert_eq!(msi::Language::from_code(3084).tag(), "fr-CA");
     /// assert_eq!(msi::Language::from_code(65535).tag(), "und");
     /// ```
+    #[must_use]
     pub fn tag(&self) -> &str {
         let lang_code = self.code & LANG_MASK;
         match LANGUAGES.binary_search_by_key(&lang_code, |t| t.0) {

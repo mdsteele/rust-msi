@@ -60,6 +60,7 @@ impl SummaryInfo {
     /// Gets the architecture string from the "template" property, if one is
     /// set.  This indicates the hardware architecture that this package is
     /// intended for (e.g. `"x64"`).
+    #[must_use]
     pub fn arch(&self) -> Option<&str> {
         match self.properties.get(PROPERTY_TEMPLATE) {
             Some(PropertyValue::LpStr(template)) => {
@@ -99,6 +100,7 @@ impl SummaryInfo {
 
     /// Gets the "author" property, if one is set.  This indicates the name of
     /// the person or company that created the package.
+    #[must_use]
     pub fn author(&self) -> Option<&str> {
         match self.properties.get(PROPERTY_AUTHOR) {
             Some(PropertyValue::LpStr(author)) => Some(author.as_str()),
@@ -118,6 +120,7 @@ impl SummaryInfo {
     }
 
     /// Gets the code page used for serializing this summary info.
+    #[must_use]
     pub fn codepage(&self) -> CodePage {
         self.properties.codepage()
     }
@@ -130,6 +133,7 @@ impl SummaryInfo {
     /// Gets the "comments" property, if one is set.  This typically gives a
     /// brief description of the application/software that will be installed by
     /// the package.
+    #[must_use]
     pub fn comments(&self) -> Option<&str> {
         match self.properties.get(PROPERTY_COMMENTS) {
             Some(PropertyValue::LpStr(comments)) => Some(comments.as_str()),
@@ -151,6 +155,7 @@ impl SummaryInfo {
     /// Gets the "creating application" property, if one is set.  This
     /// indicates the name of the software application/tool that was used to
     /// create the package.
+    #[must_use]
     pub fn creating_application(&self) -> Option<&str> {
         match self.properties.get(PROPERTY_CREATING_APP) {
             Some(PropertyValue::LpStr(app_name)) => Some(app_name.as_str()),
@@ -171,6 +176,7 @@ impl SummaryInfo {
 
     /// Gets the "creation time" property, if one is set.  This indicates the
     /// date/time when the package was created.
+    #[must_use]
     pub fn creation_time(&self) -> Option<SystemTime> {
         match self.properties.get(PROPERTY_CREATION_TIME) {
             Some(&PropertyValue::FileTime(timestamp)) => {
@@ -248,6 +254,7 @@ impl SummaryInfo {
     /// Gets the "subject" property, if one is set.  This typically indicates
     /// the name of the application/software that will be installed by the
     /// package.
+    #[must_use]
     pub fn subject(&self) -> Option<&str> {
         match self.properties.get(PROPERTY_SUBJECT) {
             Some(PropertyValue::LpStr(subject)) => Some(subject.as_str()),
@@ -268,6 +275,7 @@ impl SummaryInfo {
 
     /// Gets the "title" property, if one is set.  This indicates the type of
     /// the installer package (e.g. "Installation Database" or "Patch").
+    #[must_use]
     pub fn title(&self) -> Option<&str> {
         match self.properties.get(PROPERTY_TITLE) {
             Some(PropertyValue::LpStr(title)) => Some(title.as_str()),
@@ -287,6 +295,7 @@ impl SummaryInfo {
     }
 
     /// Gets the "UUID" property, if one is set.
+    #[must_use]
     pub fn uuid(&self) -> Option<Uuid> {
         match self.properties.get(PROPERTY_UUID) {
             Some(PropertyValue::LpStr(string)) => {
@@ -311,6 +320,7 @@ impl SummaryInfo {
     }
 
     /// Gets the "Word Count" property, if one is set.
+    #[must_use]
     pub fn word_count(&self) -> Option<i32> {
         match self.properties.get(PROPERTY_WORD_COUNT) {
             Some(PropertyValue::I4(word_count)) => Some(*word_count),

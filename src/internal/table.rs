@@ -30,6 +30,7 @@ impl Table {
     }
 
     /// Returns the name of the table.
+    #[must_use]
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -49,16 +50,19 @@ impl Table {
     }
 
     /// Returns the list of columns in this table.
+    #[must_use]
     pub fn columns(&self) -> &[Column] {
         &self.columns
     }
 
     /// Returns true if this table has a column with the given name.
+    #[must_use]
     pub fn has_column(&self, column_name: &str) -> bool {
         self.index_for_column_name(column_name).is_some()
     }
 
     /// Returns the column with the given name, if any.
+    #[must_use]
     pub fn get_column(&self, column_name: &str) -> Option<&Column> {
         match self.index_for_column_name(column_name) {
             Some(index) => Some(&self.columns[index]),
@@ -67,6 +71,7 @@ impl Table {
     }
 
     /// Returns the indices of table's primary key columns.
+    #[must_use]
     pub fn primary_key_indices(&self) -> Vec<usize> {
         self.columns
             .iter()
@@ -165,21 +170,25 @@ impl Row {
     }
 
     /// Returns the number of values in the row.
+    #[must_use]
     pub fn len(&self) -> usize {
         self.values.len()
     }
 
     /// Returns values in the row is empty
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
     /// Returns the list of columns in this row.
+    #[must_use]
     pub fn columns(&self) -> &[Column] {
         self.table.columns()
     }
 
     /// Returns true if this row has a column with the given name.
+    #[must_use]
     pub fn has_column(&self, column_name: &str) -> bool {
         self.table.has_column(column_name)
     }
@@ -253,6 +262,7 @@ impl<'a> Rows<'a> {
     }
 
     /// Returns the list of columns for these rows.
+    #[must_use]
     pub fn columns(&self) -> &[Column] {
         self.table.columns()
     }

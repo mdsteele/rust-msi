@@ -40,16 +40,19 @@ impl Expr {
     }
 
     /// Returns an expression that evaluates to a null value.
+    #[must_use]
     pub fn null() -> Expr {
         Expr { ast: Ast::Literal(Value::Null) }
     }
 
     /// Returns an expression that evaluates to the given boolean value.
+    #[must_use]
     pub fn boolean(boolean: bool) -> Expr {
         Expr { ast: Ast::Literal(Value::from_bool(boolean)) }
     }
 
     /// Returns an expression that evaluates to the given integer value.
+    #[must_use]
     pub fn integer(integer: i32) -> Expr {
         Expr { ast: Ast::Literal(Value::Int(integer)) }
     }
@@ -61,12 +64,14 @@ impl Expr {
 
     /// Returns an expression that evaluates to true if the two subexpressions
     /// evaluate to equal values.
+    #[must_use]
     pub fn eq(self, rhs: Expr) -> Expr {
         Expr::binop(BinOp::Eq, self.ast, rhs.ast)
     }
 
     /// Returns an expression that evaluates to true if the two subexpressions
     /// evaluate to unequal values.
+    #[must_use]
     pub fn ne(self, rhs: Expr) -> Expr {
         Expr::binop(BinOp::Ne, self.ast, rhs.ast)
     }
@@ -74,6 +79,7 @@ impl Expr {
     /// Returns an expression that evaluates to true if the left-hand
     /// subexpression evaluates to a strictly lesser value than the right-hand
     /// subexpression.
+    #[must_use]
     pub fn lt(self, rhs: Expr) -> Expr {
         Expr::binop(BinOp::Lt, self.ast, rhs.ast)
     }
@@ -81,6 +87,7 @@ impl Expr {
     /// Returns an expression that evaluates to true if the left-hand
     /// subexpression evaluates to a lesser-or-equal value than the right-hand
     /// subexpression.
+    #[must_use]
     pub fn le(self, rhs: Expr) -> Expr {
         Expr::binop(BinOp::Le, self.ast, rhs.ast)
     }
@@ -88,6 +95,7 @@ impl Expr {
     /// Returns an expression that evaluates to true if the left-hand
     /// subexpression evaluates to a strictly greater value than the right-hand
     /// subexpression.
+    #[must_use]
     pub fn gt(self, rhs: Expr) -> Expr {
         Expr::binop(BinOp::Gt, self.ast, rhs.ast)
     }
@@ -95,6 +103,7 @@ impl Expr {
     /// Returns an expression that evaluates to true if the left-hand
     /// subexpression evaluates to a greater-or-equal value than the right-hand
     /// subexpression.
+    #[must_use]
     pub fn ge(self, rhs: Expr) -> Expr {
         Expr::binop(BinOp::Ge, self.ast, rhs.ast)
     }
@@ -105,18 +114,21 @@ impl Expr {
     ///
     /// This method exists instead of the `std::ops::Not` trait to distinguish
     /// it from the (logical) `not()` method.
+    #[must_use]
     pub fn bitinv(self) -> Expr {
         Expr::unop(UnOp::BitNot, self.ast)
     }
 
     /// Returns an expression that evaluates to true if both subexpressions
     /// evaluate to true.
+    #[must_use]
     pub fn and(self, rhs: Expr) -> Expr {
         Expr { ast: Ast::And(Box::new(self.ast), Box::new(rhs.ast)) }
     }
 
     /// Returns an expression that evaluates to true if either subexpression
     /// evaluates to true.
+    #[must_use]
     pub fn or(self, rhs: Expr) -> Expr {
         Expr { ast: Ast::Or(Box::new(self.ast), Box::new(rhs.ast)) }
     }
@@ -126,6 +138,7 @@ impl Expr {
     ///
     /// This method exists instead of the `std::ops::Not` trait to distinguish
     /// it from the (bitwise) `bitinv()` method.
+    #[must_use]
     pub fn not(self) -> Expr {
         Expr::unop(UnOp::BoolNot, self.ast)
     }
@@ -133,11 +146,13 @@ impl Expr {
     /// Evaluates the expression against the given row.  Any errors in the
     /// expression (such as dividing a number by zero, or applying a bitwise
     /// operator to a string) will result in a null value.
+    #[must_use]
     pub fn eval(&self, row: &Row) -> Value {
         self.ast.eval(row)
     }
 
     /// Returns the set of all column names referenced by this expression.
+    #[must_use]
     pub fn column_names(&self) -> HashSet<&str> {
         let mut names = HashSet::new();
         self.ast.populate_column_names(&mut names);

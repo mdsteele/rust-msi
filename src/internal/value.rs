@@ -19,16 +19,19 @@ pub enum Value {
 
 impl Value {
     /// Returns true if this is a null value.
+    #[must_use]
     pub fn is_null(&self) -> bool {
         matches!(*self, Value::Null)
     }
 
     /// Returns true if this is an integer value.
+    #[must_use]
     pub fn is_int(&self) -> bool {
         matches!(*self, Value::Int(_))
     }
 
     /// Extracts the integer value if it is an integer.
+    #[must_use]
     pub fn as_int(&self) -> Option<i32> {
         match *self {
             Value::Null => None,
@@ -38,11 +41,13 @@ impl Value {
     }
 
     /// Returns true if this is a string value.
+    #[must_use]
     pub fn is_str(&self) -> bool {
         matches!(*self, Value::Str(_))
     }
 
     /// Extracts the string value if it is a string.
+    #[must_use]
     pub fn as_str(&self) -> Option<&str> {
         match *self {
             Value::Null => None,
