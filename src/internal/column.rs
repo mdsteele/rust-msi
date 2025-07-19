@@ -247,31 +247,37 @@ impl Column {
     }
 
     /// Returns the name of the column.
+    #[must_use]
     pub fn name(&self) -> &str {
         &self.name
     }
 
     /// Returns the type of data stored in the column.
+    #[must_use]
     pub fn coltype(&self) -> ColumnType {
         self.coltype
     }
 
     /// Returns true if values in this column can be localized.
+    #[must_use]
     pub fn is_localizable(&self) -> bool {
         self.is_localizable
     }
 
     /// Returns true if values in this column can be null.
+    #[must_use]
     pub fn is_nullable(&self) -> bool {
         self.is_nullable
     }
 
     /// Returns true if this is primary key column.
+    #[must_use]
     pub fn is_primary_key(&self) -> bool {
         self.is_primary_key
     }
 
     /// Returns the (min, max) integer value range for this column, if any.
+    #[must_use]
     pub fn value_range(&self) -> Option<(i32, i32)> {
         self.value_range
     }
@@ -283,11 +289,13 @@ impl Column {
     }
 
     /// Returns the string value category for this column, if any.
+    #[must_use]
     pub fn category(&self) -> Option<Category> {
         self.category
     }
 
     /// Returns the list of valid enum values for this column, if any.
+    #[must_use]
     pub fn enum_values(&self) -> Option<&[String]> {
         if self.enum_values.is_empty() {
             None
@@ -297,6 +305,7 @@ impl Column {
     }
 
     /// Returns true if the given value is valid for this column.
+    #[must_use]
     pub fn is_valid_value(&self, value: &Value) -> bool {
         match *value {
             Value::Null => self.is_nullable,
@@ -364,30 +373,35 @@ impl ColumnBuilder {
     }
 
     /// Makes the column be localizable.
+    #[must_use]
     pub fn localizable(mut self) -> ColumnBuilder {
         self.is_localizable = true;
         self
     }
 
     /// Makes the column allow null values.
+    #[must_use]
     pub fn nullable(mut self) -> ColumnBuilder {
         self.is_nullable = true;
         self
     }
 
     /// Makes the column be a primary key column.
+    #[must_use]
     pub fn primary_key(mut self) -> ColumnBuilder {
         self.is_primary_key = true;
         self
     }
 
     /// Makes the column only permit values in the given range.
+    #[must_use]
     pub fn range(mut self, min: i32, max: i32) -> ColumnBuilder {
         self.value_range = Some((min, max));
         self
     }
 
     /// Makes the column refer to a key column in another table.
+    #[must_use]
     pub fn foreign_key(
         mut self,
         table_name: &str,
@@ -398,46 +412,54 @@ impl ColumnBuilder {
     }
 
     /// For string columns, makes the column use the specified data format.
+    #[must_use]
     pub fn category(mut self, category: Category) -> ColumnBuilder {
         self.category = Some(category);
         self
     }
 
     /// Makes the column only permit the given values.
+    #[must_use]
     pub fn enum_values(mut self, values: &[&str]) -> ColumnBuilder {
         self.enum_values = values.iter().map(|val| val.to_string()).collect();
         self
     }
 
     /// Builds a column that stores a 16-bit integer.
+    #[must_use]
     pub fn int16(self) -> Column {
         self.with_type(ColumnType::Int16)
     }
 
     /// Builds a column that stores a 32-bit integer.
+    #[must_use]
     pub fn int32(self) -> Column {
         self.with_type(ColumnType::Int32)
     }
 
     /// Builds a column that stores a string.
+    #[must_use]
     pub fn string(self, max_len: usize) -> Column {
         self.with_type(ColumnType::Str(max_len))
     }
 
     /// Builds a column that stores an identifier string.  This is equivalent
     /// to `self.category(Category::Identifier).string(max_len)`.
+    #[must_use]
     pub fn id_string(self, max_len: usize) -> Column {
         self.category(Category::Identifier).string(max_len)
     }
 
     /// Builds a column that stores a text string.  This is equivalent to
     /// `self.category(Category::Text).string(max_len)`.
+    #[must_use]
     pub fn text_string(self, max_len: usize) -> Column {
         self.category(Category::Text).string(max_len)
     }
 
     /// Builds a column that stores a formatted string.  This is equivalent to
     /// `self.category(Category::Formatted).string(max_len)`.
+    #[must_use]
     pub fn formatted_string(self, max_len: usize) -> Column {
         self.category(Category::Formatted).string(max_len)
     }
@@ -445,6 +467,7 @@ impl ColumnBuilder {
     /// Builds a column that refers to a binary data stream.  This sets the
     /// category to `Category::Binary` in addition to setting the column
     /// type.
+    #[must_use]
     pub fn binary(self) -> Column {
         self.category(Category::Binary).string(0)
     }

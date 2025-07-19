@@ -201,21 +201,25 @@ pub struct Package<F> {
 
 impl<F> Package<F> {
     /// Returns what type of package this is.
+    #[must_use]
     pub fn package_type(&self) -> PackageType {
         self.package_type
     }
 
     /// Returns summary information for this package.
+    #[must_use]
     pub fn summary_info(&self) -> &SummaryInfo {
         &self.summary_info
     }
 
     /// Returns the code page used for serializing strings in the database.
+    #[must_use]
     pub fn database_codepage(&self) -> CodePage {
         self.string_pool.codepage()
     }
 
     /// Returns true if the database has a table with the given name.
+    #[must_use]
     pub fn has_table(&self, table_name: &str) -> bool {
         self.tables.contains_key(table_name)
     }
@@ -226,17 +230,20 @@ impl<F> Package<F> {
     }
 
     /// Returns an iterator over the database tables in this package.
+    #[must_use]
     pub fn tables(&self) -> Tables {
         Tables { iter: self.tables.values() }
     }
 
     /// Returns true if the package has an embedded binary stream with the
     /// given name.
+    #[must_use]
     pub fn has_stream(&self, stream_name: &str) -> bool {
         self.comp().is_stream(streamname::encode(stream_name, false))
     }
 
     /// Returns an iterator over the embedded binary streams in this package.
+    #[must_use]
     pub fn streams(&self) -> Streams<F> {
         Streams::new(self.comp().read_root_storage())
     }
@@ -244,6 +251,7 @@ impl<F> Package<F> {
     /// Returns true if the package has been digitally signed.  Note that this
     /// method only checks whether a signature is present; it does *not* verify
     /// that the signature is actually valid.
+    #[must_use]
     pub fn has_digital_signature(&self) -> bool {
         self.comp().is_stream(DIGITAL_SIGNATURE_STREAM_NAME)
     }

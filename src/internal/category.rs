@@ -370,6 +370,7 @@ impl Category {
 
     /// Returns true if the given string is valid to store in a database column
     /// with this category.
+    #[must_use]
     pub fn validate(&self, string: &str) -> bool {
         match *self {
             Category::Text => true,

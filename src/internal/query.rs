@@ -26,6 +26,7 @@ impl Delete {
     /// rows that match the given boolean expression will be deleted.  (This
     /// method would have been called `where()`, to better match SQL, but
     /// `where` is a reserved word in Rust.)
+    #[must_use]
     pub fn with(mut self, condition: Expr) -> Delete {
         self.condition = if let Some(expr) = self.condition {
             Some(expr.and(condition))
@@ -125,12 +126,14 @@ impl Insert {
     }
 
     /// Adds a new row to be inserted into the table.
+    #[must_use]
     pub fn row(mut self, values: Vec<Value>) -> Insert {
         self.new_rows.push(values);
         self
     }
 
     /// Adds multiple new rows to be inserted into the table.
+    #[must_use]
     pub fn rows(mut self, mut rows: Vec<Vec<Value>>) -> Insert {
         self.new_rows.append(&mut rows);
         self
@@ -446,6 +449,7 @@ impl Select {
 
     /// Performs an inner join between this and another query, producing a row
     /// for each pair of rows from the two tables that matches the expression.
+    #[must_use]
     pub fn inner_join(self, rhs: Select, on: Expr) -> Select {
         Select {
             from: Join::Inner(Box::new(self), Box::new(rhs), on),
@@ -455,6 +459,7 @@ impl Select {
     }
 
     /// Performs a left join between this and another query.
+    #[must_use]
     pub fn left_join(self, rhs: Select, on: Expr) -> Select {
         Select {
             from: Join::Left(Box::new(self), Box::new(rhs), on),
@@ -467,6 +472,7 @@ impl Select {
 
     /// Transforms the selected rows to only include the specified columns, in
     /// the order given.
+    #[must_use]
     pub fn columns<S>(mut self, column_names: &[S]) -> Select
     where
         S: Clone + Into<String>,
@@ -480,6 +486,7 @@ impl Select {
     /// rows that match the given boolean expression will be returned.  (This
     /// method would have been called `where()`, to better match SQL, but
     /// `where` is a reserved word in Rust.)
+    #[must_use]
     pub fn with(mut self, condition: Expr) -> Select {
         self.condition = if let Some(expr) = self.condition {
             Some(expr.and(condition))
@@ -619,6 +626,7 @@ impl Update {
     }
 
     /// Adds a column value to be set by the query.
+    #[must_use]
     pub fn set<S: Into<String>>(
         mut self,
         column_name: S,
@@ -632,6 +640,7 @@ impl Update {
     /// rows that match the given boolean expression will be updated.  (This
     /// method would have been called `where()`, to better match SQL, but
     /// `where` is a reserved word in Rust.)
+    #[must_use]
     pub fn with(mut self, condition: Expr) -> Update {
         self.condition = if let Some(expr) = self.condition {
             Some(expr.and(condition))

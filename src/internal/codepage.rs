@@ -70,6 +70,7 @@ pub enum CodePage {
 
 impl CodePage {
     /// Returns the code page (if any) with the given ID number.
+    #[must_use]
     pub fn from_id(id: i32) -> Option<CodePage> {
         match id {
             0 => Some(CodePage::default()),
@@ -104,6 +105,7 @@ impl CodePage {
     }
 
     /// Returns the ID number used within Windows to represent this code page.
+    #[must_use]
     pub fn id(&self) -> i32 {
         match *self {
             CodePage::Windows932 => 932,
@@ -136,6 +138,7 @@ impl CodePage {
     }
 
     /// Returns a human-readable name for this code page.
+    #[must_use]
     pub fn name(&self) -> &str {
         match *self {
             CodePage::Windows932 => "Windows Japanese Shift JIS",
@@ -170,6 +173,7 @@ impl CodePage {
     /// Decodes a byte array into a string, using this code page.  Invalid
     /// characters will be replaced with a Unicode replacement character
     /// (U+FFFD).
+    #[must_use]
     pub fn decode(&self, bytes: &[u8]) -> String {
         if *self == CodePage::UsAscii {
             ascii_decode(bytes)
@@ -182,6 +186,7 @@ impl CodePage {
     /// non-Unicode code pages, any characters that cannot be represented will
     /// be replaced with a code-page-specific replacement character (typically
     /// `'?'`).
+    #[must_use]
     pub fn encode(&self, string: &str) -> Vec<u8> {
         if *self == CodePage::UsAscii {
             ascii_encode(string)
