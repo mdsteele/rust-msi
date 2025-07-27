@@ -24,7 +24,7 @@ edition.workspace = true
 
 [dependencies]
 byteorder = "1"
-cfb = "0.10"
+cfb = "0.11"
 encoding_rs = "0.8"
 uuid = "1"
 
