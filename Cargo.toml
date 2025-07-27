@@ -3,7 +3,7 @@ members = [".", "ffi"]
 default-members = [".", "ffi"]
 
 [workspace.package]
-version = "0.8.0"
+version = "0.9.0"
 authors = ["Matthew D. Steele <mdsteele@alum.mit.edu>"]
 repository = "https://github.com/mdsteele/rust-msi"
 keywords = ["msi", "windows", "installer", "package"]
