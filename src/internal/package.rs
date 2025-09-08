@@ -231,7 +231,7 @@ impl<F> Package<F> {
 
     /// Returns an iterator over the database tables in this package.
     #[must_use]
-    pub fn tables(&self) -> Tables {
+    pub fn tables(&self) -> Tables<'_> {
         Tables { iter: self.tables.values() }
     }
 
@@ -244,7 +244,7 @@ impl<F> Package<F> {
 
     /// Returns an iterator over the embedded binary streams in this package.
     #[must_use]
-    pub fn streams(&self) -> Streams<F> {
+    pub fn streams(&self) -> Streams<'_, F> {
         Streams::new(self.comp().read_root_storage())
     }
 
@@ -483,7 +483,7 @@ impl<F: Read + Seek> Package<F> {
     /// Attempts to execute a select query.  Returns an error if the query
     /// fails (e.g. due to the column names being incorrect or the table(s) not
     /// existing).
-    pub fn select_rows(&mut self, query: Select) -> io::Result<Rows> {
+    pub fn select_rows(&mut self, query: Select) -> io::Result<Rows<'_>> {
         query.exec(
             self.comp.as_mut().unwrap(),
             &self.string_pool,
