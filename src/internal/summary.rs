@@ -22,12 +22,19 @@ const FMTID: [u8; 16] =
 const PROPERTY_TITLE: u32 = 2;
 const PROPERTY_SUBJECT: u32 = 3;
 const PROPERTY_AUTHOR: u32 = 4;
+const PROPERTY_KEYWORDS: u32 = 5;
 const PROPERTY_COMMENTS: u32 = 6;
 const PROPERTY_TEMPLATE: u32 = 7;
+const PROPERTY_LAST_SAVED_BY: u32 = 8;
 const PROPERTY_UUID: u32 = 9;
+const PROPERTY_LAST_PRINTED: u32 = 11;
 const PROPERTY_CREATION_TIME: u32 = 12;
+const PROPERTY_LAST_SAVE_TIME: u32 = 13;
+const PROPERTY_PAGE_COUNT: u32 = 14;
 const PROPERTY_WORD_COUNT: u32 = 15;
+const PROPERTY_CHARACTER_COUNT: u32 = 16;
 const PROPERTY_CREATING_APP: u32 = 18;
+const PROPERTY_DOC_SECURITY: u32 = 19;
 
 // ========================================================================= //
 
@@ -58,7 +65,7 @@ impl SummaryInfo {
     }
 
     /// Gets the architecture string from the "template" property, if one is
-    /// set.  This indicates the hardware architecture that this package is
+    /// set. This indicates the hardware architecture that this package is
     /// intended for (e.g. `"x64"`).
     #[must_use]
     pub fn arch(&self) -> Option<&str> {
@@ -204,6 +211,67 @@ impl SummaryInfo {
         self.properties.remove(PROPERTY_CREATION_TIME);
     }
 
+    /// Gets the "Last Printed" property, if one is set.
+    #[must_use]
+    pub fn last_printed(&self) -> Option<SystemTime> {
+        match self.properties.get(PROPERTY_LAST_PRINTED) {
+            Some(&PropertyValue::FileTime(timestamp)) => {
+                Some(timestamp.to_system_time())
+            }
+            _ => None,
+        }
+    }
+
+    /// Sets the "Last Printed" property.
+    pub fn set_last_printed(&mut self, timestamp: SystemTime) {
+        self.properties.set(
+            PROPERTY_LAST_PRINTED,
+            PropertyValue::FileTime(Timestamp::from_system_time(timestamp)),
+        );
+    }
+
+    /// Sets the "Last Printed" property to the current time.
+    pub fn set_last_printed_to_now(&mut self) {
+        self.set_last_printed(SystemTime::now());
+    }
+
+    /// Clears the "Last Printed" property.
+    pub fn clear_last_printed(&mut self) {
+        self.properties.remove(PROPERTY_LAST_PRINTED);
+    }
+
+    /// Gets the "last save time" property, if one is set.  This indicates the
+    /// date/time when the package was last saved.
+    // TODO: Deduplicate the code for the FileTime properties as these all have the same functions
+    // just with different property names. Want to get this thing working first though.
+    #[must_use]
+    pub fn last_saved_time(&self) -> Option<SystemTime> {
+        match self.properties.get(PROPERTY_LAST_SAVE_TIME) {
+            Some(&PropertyValue::FileTime(timestamp)) => {
+                Some(timestamp.to_system_time())
+            }
+            _ => None,
+        }
+    }
+
+    /// Sets the "last save time" property.
+    pub fn set_last_save_time(&mut self, timestamp: SystemTime) {
+        self.properties.set(
+            PROPERTY_LAST_SAVE_TIME,
+            PropertyValue::FileTime(Timestamp::from_system_time(timestamp)),
+        );
+    }
+
+    /// Sets the "last save time" property to the current time.
+    pub fn set_last_save_time_to_now(&mut self) {
+        self.set_last_save_time(SystemTime::now());
+    }
+
+    /// Clears the "last save time" property.
+    pub fn clear_last_save_time(&mut self) {
+        self.properties.remove(PROPERTY_LAST_SAVE_TIME);
+    }
+
     /// Gets the list of languages from the "template" property, if one is set.
     /// This indicates the languages that this package supports.
     pub fn languages(&self) -> Vec<Language> {
@@ -249,6 +317,34 @@ impl SummaryInfo {
     /// Clears the list of languages in the "template" property.
     pub fn clear_languages(&mut self) {
         self.set_languages(&[]);
+    }
+
+    /// Gets the list of keywords
+    pub fn keywords(&self) -> Vec<String> {
+        if let Some(PropertyValue::LpStr(keywords)) =
+            self.properties.get(PROPERTY_KEYWORDS)
+        {
+            if !keywords.is_empty() {
+                return keywords
+                    .split("; ")
+                    .map(str::trim_end)
+                    .map(String::from)
+                    .collect();
+            }
+        }
+        Vec::new()
+    }
+
+    /// Sets the list of keywords
+    pub fn set_keywords(&mut self, keywords: &[String]) {
+        self.properties
+            .set(PROPERTY_KEYWORDS, PropertyValue::LpStr(keywords.join("; ")));
+    }
+
+    /// Clears the list of keywords from the keyword property except for the required default
+    /// value.
+    pub fn clear_keywords(&mut self) {
+        self.set_keywords(&[]);
     }
 
     /// Gets the "subject" property, if one is set.  This typically indicates
@@ -338,6 +434,90 @@ impl SummaryInfo {
     pub fn clear_word_count(&mut self) {
         self.properties.remove(PROPERTY_WORD_COUNT);
     }
+
+    /// Gets the "Page Count" property, if one is set.
+    #[must_use]
+    pub fn page_count(&self) -> Option<i32> {
+        match self.properties.get(PROPERTY_PAGE_COUNT) {
+            Some(PropertyValue::I4(page_count)) => Some(*page_count),
+            _ => None,
+        }
+    }
+
+    /// Sets the "Page Count" property.
+    pub fn set_page_count(&mut self, page_count: i32) {
+        self.properties
+            .set(PROPERTY_PAGE_COUNT, PropertyValue::I4(page_count));
+    }
+
+    /// Clears the "Page Count" property.
+    pub fn clear_page_count(&mut self) {
+        self.properties.remove(PROPERTY_PAGE_COUNT);
+    }
+
+    /// Gets the "Security" property, if one is set.
+    #[must_use]
+    pub fn doc_security(&self) -> Option<i32> {
+        match self.properties.get(PROPERTY_DOC_SECURITY) {
+            Some(PropertyValue::I4(doc_security)) => Some(*doc_security),
+            _ => None,
+        }
+    }
+
+    /// Sets the "Security" property.
+    pub fn set_doc_security(&mut self, doc_security: i32) {
+        self.properties
+            .set(PROPERTY_DOC_SECURITY, PropertyValue::I4(doc_security));
+    }
+
+    /// Clears the "Security" property.
+    pub fn clear_doc_security(&mut self) {
+        self.properties.remove(PROPERTY_DOC_SECURITY);
+    }
+
+    /// Gets the "Character Count" property, if one is set.
+    #[must_use]
+    pub fn character_count(&self) -> Option<i32> {
+        match self.properties.get(PROPERTY_CHARACTER_COUNT) {
+            Some(PropertyValue::I4(character_count)) => Some(*character_count),
+            _ => None,
+        }
+    }
+
+    /// Sets the "Character Count" property.
+    pub fn set_character_count(&mut self, character_count: i32) {
+        self.properties
+            .set(PROPERTY_CHARACTER_COUNT, PropertyValue::I4(character_count));
+    }
+
+    /// Clears the "Character Count" property.
+    pub fn clear_character_count(&mut self) {
+        self.properties.remove(PROPERTY_CHARACTER_COUNT);
+    }
+
+    /// Gets the "Last Saved By" property, if one is set.
+    #[must_use]
+    pub fn last_saved_by(&self) -> Option<&str> {
+        match self.properties.get(PROPERTY_LAST_SAVED_BY) {
+            Some(PropertyValue::LpStr(last_saved_by)) => {
+                Some(last_saved_by.as_str())
+            }
+            _ => None,
+        }
+    }
+
+    /// Sets the "Last Saved By" property.
+    pub fn set_last_saved_by<S: Into<String>>(&mut self, last_saved_by: S) {
+        self.properties.set(
+            PROPERTY_LAST_SAVED_BY,
+            PropertyValue::LpStr(last_saved_by.into()),
+        );
+    }
+
+    /// Clears the "Last Saved By" property.
+    pub fn clear_last_saved_by(&mut self) {
+        self.properties.remove(PROPERTY_LAST_SAVED_BY);
+    }
 }
 
 // ========================================================================= //
@@ -345,7 +525,13 @@ impl SummaryInfo {
 #[cfg(test)]
 mod tests {
     use super::SummaryInfo;
-    use crate::internal::language::Language;
+    use crate::internal::{
+        language::Language,
+        summary::{
+            PROPERTY_CREATION_TIME, PROPERTY_LAST_PRINTED,
+            PROPERTY_LAST_SAVE_TIME,
+        },
+    };
     use std::time::{Duration, UNIX_EPOCH};
     use uuid::Uuid;
 
@@ -357,53 +543,90 @@ mod tests {
             Language::from_tag("en-US"),
             Language::from_tag("es-MX"),
         ];
-        let timestamp = UNIX_EPOCH + Duration::from_secs(12345678);
         let uuid =
             Uuid::parse_str("0000002a-000c-0005-0c03-0938362b0809").unwrap();
 
         let mut summary_info = SummaryInfo::new();
-        summary_info.set_arch("x64");
-        summary_info.set_author("Jane Doe");
-        summary_info.set_comments("This app is the greatest!");
-        summary_info.set_creating_application("cargo-test");
-        summary_info.set_creation_time(timestamp);
-        summary_info.set_languages(&languages);
-        summary_info.set_subject("My Great App");
         summary_info.set_title("Installation Package");
+        summary_info.set_subject("My Great App");
+        summary_info.set_author("Jane Doe");
+        summary_info
+            .set_keywords(&["Test", "Package"].map(ToString::to_string));
+        summary_info.set_comments("This app is the greatest!");
+        summary_info.set_arch("x64");
+        summary_info.set_languages(&languages);
+        summary_info.set_last_saved_by("John Doe");
         summary_info.set_uuid(uuid);
-        summary_info.set_word_count(2);
+        let last_printed_timestamp =
+            UNIX_EPOCH + Duration::from_secs(PROPERTY_LAST_PRINTED as u64);
+        summary_info.set_last_printed(last_printed_timestamp);
+        let creation_timestamp =
+            UNIX_EPOCH + Duration::from_secs(PROPERTY_CREATION_TIME as u64);
+        summary_info.set_creation_time(creation_timestamp);
+        let last_save_timestamp =
+            UNIX_EPOCH + Duration::from_secs(PROPERTY_LAST_SAVE_TIME as u64);
+        summary_info.set_last_save_time(last_save_timestamp);
+        summary_info.set_page_count(500);
+        summary_info.set_word_count(8);
+        summary_info.set_character_count(12);
+        summary_info.set_creating_application("cargo-test");
+        summary_info.set_doc_security(2);
 
-        assert_eq!(summary_info.arch(), Some("x64"));
-        assert_eq!(summary_info.author(), Some("Jane Doe"));
-        assert_eq!(summary_info.comments(), Some("This app is the greatest!"));
-        assert_eq!(summary_info.creating_application(), Some("cargo-test"));
-        assert_eq!(summary_info.creation_time(), Some(timestamp));
-        assert_eq!(summary_info.languages(), languages);
-        assert_eq!(summary_info.subject(), Some("My Great App"));
         assert_eq!(summary_info.title(), Some("Installation Package"));
+        assert_eq!(summary_info.subject(), Some("My Great App"));
+        assert_eq!(summary_info.author(), Some("Jane Doe"));
+        assert_eq!(
+            summary_info.keywords(),
+            Vec::from(["Test", "Package"].map(ToString::to_string))
+        );
+        assert_eq!(summary_info.comments(), Some("This app is the greatest!"));
+        assert_eq!(summary_info.arch(), Some("x64"));
+        assert_eq!(summary_info.languages(), languages);
+        assert_eq!(summary_info.last_saved_by(), Some("John Doe"));
         assert_eq!(summary_info.uuid(), Some(uuid));
-        assert_eq!(summary_info.word_count(), Some(2));
+        assert_eq!(summary_info.last_printed(), Some(last_printed_timestamp));
+        assert_eq!(summary_info.creation_time(), Some(creation_timestamp));
+        assert_eq!(summary_info.last_saved_time(), Some(last_save_timestamp));
+        assert_eq!(summary_info.page_count(), Some(500));
+        assert_eq!(summary_info.word_count(), Some(8));
+        assert_eq!(summary_info.character_count(), Some(12));
+        assert_eq!(summary_info.creating_application(), Some("cargo-test"));
+        assert_eq!(summary_info.doc_security(), Some(2));
 
-        summary_info.clear_arch();
-        assert_eq!(summary_info.arch(), None);
-        summary_info.clear_author();
-        assert_eq!(summary_info.author(), None);
-        summary_info.clear_comments();
-        assert_eq!(summary_info.comments(), None);
-        summary_info.clear_creating_application();
-        assert_eq!(summary_info.creating_application(), None);
-        summary_info.clear_creation_time();
-        assert_eq!(summary_info.creation_time(), None);
-        summary_info.clear_languages();
-        assert_eq!(summary_info.languages(), Vec::new());
-        summary_info.clear_subject();
-        assert_eq!(summary_info.subject(), None);
         summary_info.clear_title();
         assert_eq!(summary_info.title(), None);
+        summary_info.clear_subject();
+        assert_eq!(summary_info.subject(), None);
+        summary_info.clear_author();
+        assert_eq!(summary_info.author(), None);
+        summary_info.clear_keywords();
+        assert_eq!(summary_info.keywords(), Vec::<String>::new());
+        summary_info.clear_comments();
+        assert_eq!(summary_info.comments(), None);
+        summary_info.clear_arch();
+        assert_eq!(summary_info.arch(), None);
+        summary_info.clear_languages();
+        assert_eq!(summary_info.languages(), Vec::new());
+        summary_info.clear_last_saved_by();
+        assert_eq!(summary_info.last_saved_by(), None);
         summary_info.clear_uuid();
         assert_eq!(summary_info.uuid(), None);
+        summary_info.clear_last_printed();
+        assert_eq!(summary_info.last_printed(), None);
+        summary_info.clear_creation_time();
+        assert_eq!(summary_info.creation_time(), None);
+        summary_info.clear_last_save_time();
+        assert_eq!(summary_info.last_saved_time(), None);
+        summary_info.clear_page_count();
+        assert_eq!(summary_info.page_count(), None);
         summary_info.clear_word_count();
         assert_eq!(summary_info.word_count(), None);
+        summary_info.clear_character_count();
+        assert_eq!(summary_info.character_count(), None);
+        summary_info.clear_creating_application();
+        assert_eq!(summary_info.creating_application(), None);
+        summary_info.clear_doc_security();
+        assert_eq!(summary_info.doc_security(), None);
     }
 
     #[test]
