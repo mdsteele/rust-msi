@@ -15,6 +15,8 @@ pub enum Value {
     Int(i32),
     /// A string value.
     Str(String),
+    /// A binary stream
+    Binary,
 }
 
 impl Value {
@@ -34,9 +36,8 @@ impl Value {
     #[must_use]
     pub fn as_int(&self) -> Option<i32> {
         match *self {
-            Value::Null => None,
             Value::Int(number) => Some(number),
-            Value::Str(_) => None,
+            Value::Null | Value::Str(_) | Value::Binary => None,
         }
     }
 
@@ -50,9 +51,8 @@ impl Value {
     #[must_use]
     pub fn as_str(&self) -> Option<&str> {
         match *self {
-            Value::Null => None,
-            Value::Int(_) => None,
             Value::Str(ref string) => Some(string.as_str()),
+            Value::Null | Value::Int(_) | Value::Binary => None,
         }
     }
 
@@ -72,6 +72,8 @@ impl Value {
             Value::Null => false,
             Value::Int(number) => number != 0,
             Value::Str(ref string) => !string.is_empty(),
+            // Because binary streams cannot be null, we return true here.
+            Value::Binary => true,
         }
     }
 }
@@ -82,6 +84,7 @@ impl fmt::Display for Value {
             Value::Null => "NULL".fmt(formatter),
             Value::Int(number) => number.fmt(formatter),
             Value::Str(ref string) => format!("{string:?}").fmt(formatter),
+            Value::Binary => "BINARY_STREAM".fmt(formatter),
         }
     }
 }
@@ -161,6 +164,8 @@ pub enum ValueRef {
     Int(i32),
     /// A string value.
     Str(StringRef),
+    /// A binary stream
+    Binary,
 }
 
 impl ValueRef {
@@ -171,13 +176,14 @@ impl ValueRef {
             Value::Null => ValueRef::Null,
             Value::Int(number) => ValueRef::Int(number),
             Value::Str(string) => ValueRef::Str(string_pool.incref(string)),
+            Value::Binary => ValueRef::Binary,
         }
     }
 
     /// Removes the reference from the string pool (if is a string reference).
     pub fn remove(self, string_pool: &mut StringPool) {
         match self {
-            ValueRef::Null | ValueRef::Int(_) => {}
+            ValueRef::Null | ValueRef::Int(_) | ValueRef::Binary => {}
             ValueRef::Str(string_ref) => string_pool.decref(string_ref),
         }
     }
@@ -190,6 +196,7 @@ impl ValueRef {
             ValueRef::Str(string_ref) => {
                 Value::Str(string_pool.get(string_ref).to_string())
             }
+            ValueRef::Binary => Value::Binary,
         }
     }
 }
