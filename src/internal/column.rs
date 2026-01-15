@@ -39,7 +39,8 @@ impl ColumnType {
     #[allow(clippy::if_same_then_else)]
     fn from_bitfield(type_bits: i32) -> io::Result<ColumnType> {
         let field_size = (type_bits & COL_FIELD_SIZE_MASK) as usize;
-        if type_bits & !COL_NULLABLE_BIT == COL_STRING_BIT | COL_VALID_BIT {
+        if (type_bits & !COL_NULLABLE_BIT) == (COL_STRING_BIT | COL_VALID_BIT)
+        {
             Ok(ColumnType::Binary)
         } else if (type_bits & COL_STRING_BIT) != 0 {
             Ok(ColumnType::Str(field_size))
