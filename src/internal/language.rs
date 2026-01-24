@@ -143,7 +143,11 @@ const LANGUAGES: &[(u16, &str, &[SubLanguage])] = &[
     ),
     (0x02, "bg", &[(0x01, "bg-BG")]),
     (0x03, "ca", &[(0x01, "ca-ES")]),
-    (0x04, "zh", &[(0x03, "zh-HK"), (0x04, "zh-SG"), (0x05, "zh-MO")]),
+    (
+        0x04,
+        "zh",
+        &[(0x02, "zh-CN"), (0x03, "zh-HK"), (0x04, "zh-SG"), (0x05, "zh-MO")],
+    ),
     (0x05, "cs", &[(0x01, "cs-CZ")]),
     (0x06, "da", &[(0x01, "da-DK")]),
     (
