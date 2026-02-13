@@ -29,7 +29,7 @@ encoding_rs = "0.8"
 uuid = "1"
 
 [dev-dependencies]
-clap = "2.27"
+clap = "4.5"
 pest = "2.1"
 pest_derive = "2.1"
 time = "0.3"
