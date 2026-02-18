@@ -86,6 +86,10 @@ pub enum Category {
     /// assert!(!msi::Category::DoubleInteger.validate("3000000000"));
     /// ```
     DoubleInteger,
+    /// A numeric value (typically a 32-bit integer).
+    ///
+    /// This is a common MSI category that is treated the same as DoubleInteger.
+    Number,
     /// Stores a civil datetime, with a 2-second resolution.
     ///
     /// For more details, see the [MSI
@@ -313,6 +317,7 @@ impl Category {
             Category::LowerCase,
             Category::Integer,
             Category::DoubleInteger,
+            Category::Number,
             Category::TimeDate,
             Category::Identifier,
             Category::Property,
@@ -346,6 +351,7 @@ impl Category {
             Category::CustomSource => "CustomSource",
             Category::DefaultDir => "DefaultDir",
             Category::DoubleInteger => "DoubleInteger",
+            Category::Number => "Number",
             Category::Filename => "Filename",
             Category::Formatted => "Formatted",
             Category::FormattedSddlText => "FormattedSDDLText",
@@ -382,6 +388,7 @@ impl Category {
             }
             Category::Integer => string.parse::<i16>().is_ok(),
             Category::DoubleInteger => string.parse::<i32>().is_ok(),
+            Category::Number => string.parse::<i32>().is_ok(),
             Category::Identifier => {
                 string.starts_with(|chr: char| {
                     chr.is_ascii_alphabetic() || chr == '_'
@@ -460,6 +467,7 @@ impl str::FromStr for Category {
             "Integer" => Ok(Category::Integer),
             "Language" => Ok(Category::Language),
             "LowerCase" => Ok(Category::LowerCase),
+            "Number" => Ok(Category::Number),
             "Path" => Ok(Category::Path),
             "Paths" => Ok(Category::Paths),
             "Property" => Ok(Category::Property),
