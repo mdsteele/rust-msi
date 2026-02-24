@@ -98,7 +98,7 @@ impl Table {
         None
     }
 
-    /// Parses row data from the given data source and returns an interator
+    /// Parses row data from the given data source and returns an iterator
     /// over the rows.
     pub(crate) fn read_rows<R: Read + Seek>(
         &self,
@@ -140,6 +140,29 @@ impl Table {
         mut writer: W,
         rows: Vec<Vec<ValueRef>>,
     ) -> io::Result<()> {
+        let mut rows = rows.clone();
+
+        // Rows must be sorted or else the MSI will be seen as invalid to
+        // applications like `msiexec.exe`.
+        rows.sort_by(|row, other| {
+            for (idx, column) in self.columns.iter().enumerate() {
+                if let Some(category) = column.category() {
+                    if category == Category::Binary {
+                        continue;
+                    }
+                }
+
+                if row[idx] > other[idx] {
+                    return std::cmp::Ordering::Greater;
+                } else if row[idx] == other[idx] {
+                    // Sort by the next column in the row if the values are considered equal
+                    continue;
+                } else {
+                    return std::cmp::Ordering::Less;
+                }
+            }
+            std::cmp::Ordering::Equal
+        });
         for (index, column) in self.columns.iter().enumerate() {
             let coltype = column.coltype();
             for row in &rows {
@@ -303,6 +326,8 @@ impl<'a> ExactSizeIterator for Rows<'a> {}
 
 #[cfg(test)]
 mod tests {
+    use crate::{internal::value::ValueRef, Column};
+
     use super::Table;
 
     #[test]
@@ -318,6 +343,43 @@ mod tests {
             "ThisStringIsWayTooLongToBeATableNameIMeanSeriouslyWhoWouldTryTo\
              UseANameThatIsThisLongItWouldBePrettySilly"
         ));
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn insert_row_order() {
+        let test_columns = vec![
+            Column::build("Column1").binary(),
+            Column::build("Column2").int16(),
+            Column::build("Column3").int32(),
+        ];
+        let test_table = Table::new("Test".to_owned(), test_columns, false);
+        let test_rows = vec![
+            vec![ValueRef::Binary, ValueRef::Int(32767), ValueRef::Int(0)],
+            vec![ValueRef::Binary, ValueRef::Int(20), ValueRef::Int(10)],
+            vec![ValueRef::Binary, ValueRef::Int(30), ValueRef::Int(20)],
+        ];
+        let mut output = Vec::new();
+        test_table.write_rows(&mut output, test_rows).unwrap();
+        assert_eq!(
+            vec![
+                // column1 data
+                0x01, 0x00,
+                0x01, 0x00,
+                0x01, 0x00,
+
+                // column2 data
+                0x14, 0x80,
+                0x1e, 0x80,
+                0xff, 0xff,
+
+                // column3 data
+                0x0A, 0x00, 0x00, 0x80,
+                0x14, 0x00, 0x00, 0x80,
+                0x00, 0x00, 0x00, 0x80,
+            ],
+            output
+        )
     }
 }
 
