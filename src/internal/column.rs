@@ -36,7 +36,6 @@ pub enum ColumnType {
 }
 
 impl ColumnType {
-    #[allow(clippy::if_same_then_else)]
     fn from_bitfield(type_bits: i32) -> io::Result<ColumnType> {
         let field_size = (type_bits & COL_FIELD_SIZE_MASK) as usize;
         if (type_bits & !COL_NULLABLE_BIT) == (COL_STRING_BIT | COL_VALID_BIT)
@@ -44,24 +43,27 @@ impl ColumnType {
             Ok(ColumnType::Binary)
         } else if (type_bits & COL_STRING_BIT) != 0 {
             Ok(ColumnType::Str(field_size))
-        } else if field_size == 4 {
-            if (type_bits & COL_NONBINARY_BIT) == 0 {
-                Ok(ColumnType::Int32)
-            } else {
-                Ok(ColumnType::Binary)
-            }
-        } else if field_size == 2 {
-            Ok(ColumnType::Int16)
-        } else if field_size == 1 {
-            // Some implementations seem to set the integer field size to 1 for
-            // certain columns, but still store the data with 2 bytes?  See
-            // https://github.com/mdsteele/rust-msi/issues/8.
-            Ok(ColumnType::Int16)
         } else {
-            invalid_data!(
-                "Invalid field size for integer column ({})",
-                field_size
-            );
+            match field_size {
+                4 => {
+                    if (type_bits & COL_NONBINARY_BIT) == 0 {
+                        Ok(ColumnType::Int32)
+                    } else {
+                        Ok(ColumnType::Binary)
+                    }
+                }
+                0..=2 => {
+                    // Fields sizes less than 2 still store the data with 2 bytes.
+                    // See:
+                    // - https://github.com/mdsteele/rust-msi/issues/8
+                    // - https://github.com/mdsteele/rust-msi/issues/50
+                    Ok(ColumnType::Int16)
+                }
+                _ => invalid_data!(
+                    "Invalid field size for integer column ({})",
+                    field_size
+                ),
+            }
         }
     }
 
