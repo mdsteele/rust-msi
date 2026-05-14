@@ -147,19 +147,12 @@ impl Table {
         // applications like `msiexec.exe`.
         rows.sort_by(|row, other| {
             for (idx, column) in self.columns.iter().enumerate() {
-                if let Some(category) = column.category() {
-                    if category == Category::Binary {
-                        continue;
-                    }
-                }
-
-                if row[idx] > other[idx] {
-                    return std::cmp::Ordering::Greater;
-                } else if row[idx] == other[idx] {
-                    // Sort by the next column in the row if the values are considered equal
+                if let Some(Category::Binary) = column.category() {
                     continue;
-                } else {
-                    return std::cmp::Ordering::Less;
+                }
+                match row[idx].cmp(&other[idx]) {
+                    std::cmp::Ordering::Equal => continue,
+                    ordering => return ordering,
                 }
             }
             std::cmp::Ordering::Equal
