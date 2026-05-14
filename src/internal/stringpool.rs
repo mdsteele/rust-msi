@@ -11,7 +11,7 @@ const MAX_STRING_REF: i32 = 0xff_ffff;
 // ========================================================================= //
 
 /// A reference to a string in the string pool.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd)]
 pub struct StringRef(i32);
 
 impl StringRef {
