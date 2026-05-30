@@ -4,9 +4,11 @@ extern crate pest;
 #[macro_use]
 extern crate pest_derive;
 
-use clap::{App, Arg};
+use clap::Parser as ArgParser;
 use msi::{Delete, Expr, Insert, Select, Update, Value};
 use pest::Parser;
+use std::error::Error;
+use std::path::PathBuf;
 
 #[derive(Parser)]
 #[grammar = "../examples/msiquery.pest"]
@@ -16,20 +18,28 @@ type Package = msi::Package<std::fs::File>;
 type Pair<'a> = pest::iterators::Pair<'a, Rule>;
 type Pairs<'a> = pest::iterators::Pairs<'a, Rule>;
 
-fn main() {
-    let matches = App::new("msiquery")
-        .version("0.1")
-        .author("Matthew D. Steele <mdsteele@alum.mit.edu>")
-        .about("Performs SQL queries on MSI files")
-        .arg(Arg::with_name("path").required(true))
-        .arg(Arg::with_name("query").required(true))
-        .get_matches();
-    let path = matches.value_of("path").unwrap();
-    let query = matches.value_of("query").unwrap();
-    let mut package = msi::open_rw(path).expect("open package");
-    for pair in QueryParser::parse(Rule::QueryList, query).expect("parse") {
+#[derive(clap::Parser)]
+#[command(
+    name = "msiquery",
+    version = "0.1",
+    author = "Matthew D. Steele <mdsteele@alum.mit.edu>",
+    about = "Performs SQL queries on MSI files"
+)]
+struct MsiQuery {
+    path: PathBuf,
+    query: String,
+}
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let args = MsiQuery::parse();
+
+    let mut package = msi::open_rw(&args.path)?;
+
+    for pair in QueryParser::parse(Rule::QueryList, &args.query)? {
         process_query(pair, &mut package);
     }
+
+    Ok(())
 }
 
 fn process_query(pair: Pair, package: &mut Package) {

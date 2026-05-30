@@ -1,6 +1,7 @@
-use clap::{App, Arg, SubCommand};
+use clap::{Parser, Subcommand};
 use std::cmp;
 use std::io::{self, Read, Seek};
+use std::path::PathBuf;
 use time::OffsetDateTime;
 
 fn pad(mut string: String, fill: char, width: usize) -> String {
@@ -121,80 +122,80 @@ fn print_table_contents<F: Read + Seek>(
     }
 }
 
-fn main() {
-    let matches = App::new("msiinfo")
-        .version("0.1")
-        .author("Matthew D. Steele <mdsteele@alum.mit.edu>")
-        .about("Inspects MSI files")
-        .subcommand(
-            SubCommand::with_name("describe")
-                .about("Prints schema for a table in an MSI file")
-                .arg(Arg::with_name("path").required(true))
-                .arg(Arg::with_name("table").required(true)),
-        )
-        .subcommand(
-            SubCommand::with_name("export")
-                .about("Prints all rows for a table in an MSI file")
-                .arg(Arg::with_name("path").required(true))
-                .arg(Arg::with_name("table").required(true)),
-        )
-        .subcommand(
-            SubCommand::with_name("extract")
-                .about("Extract a binary stream from an MSI file")
-                .arg(Arg::with_name("path").required(true))
-                .arg(Arg::with_name("stream").required(true)),
-        )
-        .subcommand(
-            SubCommand::with_name("streams")
-                .about("Lists binary streams in an MSI file")
-                .arg(Arg::with_name("path").required(true)),
-        )
-        .subcommand(
-            SubCommand::with_name("summary")
-                .about("Prints summary information for an MSI file")
-                .arg(Arg::with_name("path").required(true)),
-        )
-        .subcommand(
-            SubCommand::with_name("tables")
-                .about("Lists database tables in an MSI file")
-                .arg(Arg::with_name("path").required(true)),
-        )
-        .get_matches();
-    if let Some(submatches) = matches.subcommand_matches("describe") {
-        let path = submatches.value_of("path").unwrap();
-        let table_name = submatches.value_of("table").unwrap();
-        let package = msi::open(path).expect("open package");
-        if let Some(table) = package.get_table(table_name) {
-            print_table_description(table);
-        } else {
-            println!("No table {table_name:?} exists in the database.");
+#[derive(Parser)]
+#[command(
+    name = "msiinfo",
+    version = "0.1",
+    author = "Matthew D. Steele <mdsteele@alum.mit.edu>",
+    about = "Inspects MSI files"
+)]
+struct MsiInfo {
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// Prints schema for a table in an MSI file
+    Describe { path: PathBuf, table: String },
+
+    /// Prints all rows for a table in an MSI file
+    Export { path: PathBuf, table: String },
+
+    /// Extract a binary stream from an MSI file
+    Extract { path: PathBuf, stream: String },
+
+    /// Lists binary streams in an MSI file
+    Streams { path: PathBuf },
+
+    /// Prints summary information for an MSI file
+    Summary { path: PathBuf },
+
+    /// Lists database tables in an MSI file
+    Tables { path: PathBuf },
+}
+
+fn main() -> io::Result<()> {
+    let cli = MsiInfo::parse();
+
+    match cli.command {
+        Commands::Describe { path, table } => {
+            let package = msi::open(&path)?;
+
+            if let Some(table_def) = package.get_table(&table) {
+                print_table_description(table_def);
+            } else {
+                println!("No table {table:?} exists in the database.");
+            }
         }
-    } else if let Some(submatches) = matches.subcommand_matches("export") {
-        let path = submatches.value_of("path").unwrap();
-        let table_name = submatches.value_of("table").unwrap();
-        let mut package = msi::open(path).expect("open package");
-        print_table_contents(&mut package, table_name);
-    } else if let Some(submatches) = matches.subcommand_matches("extract") {
-        let path = submatches.value_of("path").unwrap();
-        let stream_name = submatches.value_of("stream").unwrap();
-        let mut package = msi::open(path).expect("open package");
-        let mut stream = package.read_stream(stream_name).expect("read");
-        io::copy(&mut stream, &mut io::stdout()).expect("extract");
-    } else if let Some(submatches) = matches.subcommand_matches("streams") {
-        let path = submatches.value_of("path").unwrap();
-        let package = msi::open(path).expect("open package");
-        for stream_name in package.streams() {
-            println!("{stream_name}");
+        Commands::Export { path, table } => {
+            let mut package = msi::open(&path)?;
+            print_table_contents(&mut package, &table);
         }
-    } else if let Some(submatches) = matches.subcommand_matches("summary") {
-        let path = submatches.value_of("path").unwrap();
-        let package = msi::open(path).expect("open package");
-        print_summary_info(&package);
-    } else if let Some(submatches) = matches.subcommand_matches("tables") {
-        let path = submatches.value_of("path").unwrap();
-        let package = msi::open(path).expect("open package");
-        for table in package.tables() {
-            println!("{}", table.name());
+        Commands::Extract { path, stream } => {
+            let mut package = msi::open(&path)?;
+            let mut input = package.read_stream(&stream)?;
+            io::copy(&mut input, &mut io::stdout())?;
+        }
+        Commands::Streams { path } => {
+            let package = msi::open(&path)?;
+
+            for stream_name in package.streams() {
+                println!("{stream_name}");
+            }
+        }
+        Commands::Summary { path } => {
+            let package = msi::open(&path)?;
+            print_summary_info(&package);
+        }
+        Commands::Tables { path } => {
+            let package = msi::open(&path)?;
+
+            for table in package.tables() {
+                println!("{}", table.name());
+            }
         }
     }
+
+    Ok(())
 }
