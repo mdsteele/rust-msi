@@ -15,47 +15,35 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
-          submodules: true
-      - name: Install rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - name: Install rustfmt and clippy
-        run: rustup component add rustfmt clippy
+          components: clippy, rustfmt
+
       - name: Cargo fmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: -- --check
+        run: cargo fmt --check
+
       - name: Cargo clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: -- -D warnings
+        run: cargo clippy -- -D warnings
 
   tests:
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ ubuntu-latest, windows-latest, macos-latest]
-        rust: [ stable ]
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+        channel: [ stable ]
 
-    runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Rust ${{ matrix.channel }}
+        uses: dtolnay/rust-toolchain@master
         with:
-          submodules: true
-      - name: Install rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: ${{ matrix.rust }}
-          override: true
-      - name: Test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          toolchain: ${{ matrix.rust }}
-          args: --verbose
+          toolchain: ${{ matrix.channel }}
+
+      - name: Run tests
+        run: cargo test --verbose
