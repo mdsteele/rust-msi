@@ -77,11 +77,7 @@ impl Table {
             .iter()
             .enumerate()
             .filter_map(|(index, column)| {
-                if column.is_primary_key() {
-                    Some(index)
-                } else {
-                    None
-                }
+                if column.is_primary_key() { Some(index) } else { None }
             })
             .collect()
     }
@@ -320,7 +316,7 @@ impl<'a> ExactSizeIterator for Rows<'a> {}
 
 #[cfg(test)]
 mod tests {
-    use crate::{internal::value::ValueRef, Column};
+    use crate::{Column, internal::value::ValueRef};
 
     use super::Table;
 

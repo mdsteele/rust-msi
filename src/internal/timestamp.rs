@@ -90,9 +90,9 @@ fn timestamp_delta_to_duration(delta: u64) -> Duration {
 #[cfg(test)]
 mod tests {
     use super::{
-        duration_to_timestamp_delta, system_time_from_timestamp,
-        timestamp_delta_to_duration, timestamp_from_system_time,
-        UNIX_EPOCH_TIMESTAMP,
+        UNIX_EPOCH_TIMESTAMP, duration_to_timestamp_delta,
+        system_time_from_timestamp, timestamp_delta_to_duration,
+        timestamp_from_system_time,
     };
     use std::time::{Duration, UNIX_EPOCH};
 

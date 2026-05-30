@@ -9,7 +9,8 @@ repository = "https://github.com/mdsteele/rust-msi"
 keywords = ["msi", "windows", "installer", "package"]
 license = "MIT"
 readme = "README.md"
-edition = "2021"
+edition = "2024"
+rust-version = "1.85"
 
 [package]
 name = "msi"
@@ -21,6 +22,7 @@ keywords.workspace = true
 license.workspace = true
 readme.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 
 [dependencies]
 byteorder = "1"

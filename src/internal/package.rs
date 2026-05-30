@@ -14,7 +14,7 @@ use crate::internal::table::{Rows, Table};
 use crate::internal::value::{Value, ValueRef};
 use cfb;
 use std::borrow::Borrow;
-use std::collections::{btree_map, BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet, btree_map};
 use std::io::{self, Read, Seek, Write};
 use std::rc::Rc;
 use uuid::Uuid;

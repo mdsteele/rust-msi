@@ -73,11 +73,7 @@ impl SummaryInfo {
             Some(PropertyValue::LpStr(template)) => {
                 let arch =
                     template.split_once(';').map_or(&**template, |x| x.0);
-                if arch.is_empty() {
-                    None
-                } else {
-                    Some(arch)
-                }
+                if arch.is_empty() { None } else { Some(arch) }
             }
             _ => None,
         }

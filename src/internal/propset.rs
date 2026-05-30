@@ -118,7 +118,7 @@ impl PropertyValue {
                 writer.write_u32::<LittleEndian>(3)?;
                 writer.write_i32::<LittleEndian>(*value)?;
             }
-            PropertyValue::LpStr(ref string) => {
+            PropertyValue::LpStr(string) => {
                 writer.write_u32::<LittleEndian>(30)?;
                 let bytes = codepage.encode(string.as_str());
                 let length = (bytes.len() + 1) as u32;
@@ -147,7 +147,7 @@ impl PropertyValue {
             PropertyValue::I1(_) => 8,
             PropertyValue::I2(_) => 8,
             PropertyValue::I4(_) => 8,
-            PropertyValue::LpStr(ref string) => {
+            PropertyValue::LpStr(string) => {
                 ((12 + string.len() as u32) >> 2) << 2
             }
             PropertyValue::FileTime(_) => 12,
