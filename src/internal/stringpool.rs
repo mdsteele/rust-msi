@@ -198,11 +198,7 @@ impl StringPool {
     #[allow(dead_code)]
     pub fn refcount(&self, string_ref: StringRef) -> u16 {
         let index = string_ref.index();
-        if index < self.strings.len() {
-            self.strings[index].1
-        } else {
-            0
-        }
+        if index < self.strings.len() { self.strings[index].1 } else { 0 }
     }
 
     /// Inserts a string into the pool, or increments its refcount if it's

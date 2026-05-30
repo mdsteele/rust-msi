@@ -58,11 +58,7 @@ impl Value {
 
     /// Creates a boolean value.
     pub(crate) fn from_bool(boolean: bool) -> Value {
-        if boolean {
-            Value::Int(1)
-        } else {
-            Value::Int(0)
-        }
+        if boolean { Value::Int(1) } else { Value::Int(0) }
     }
 
     /// Coerces the `Value` to a boolean.  Returns false for null, zero, and
