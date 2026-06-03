@@ -112,7 +112,7 @@ fn get_information(path: char_p::Ref<'_>) -> MsiInformation {
                 languages: {
                     let mut langs: Vec<repr_c::String> = Vec::new();
                     for language in package.summary_info().languages() {
-                        langs.push(language.code().to_string().into());
+                        langs.push(language.id().to_string().into());
                     }
                     langs.into()
                 },
