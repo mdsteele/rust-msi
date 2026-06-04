@@ -35,7 +35,7 @@ fn print_summary_info<F>(package: &msi::Package<F>) {
     let languages = summary_info.languages();
     if !languages.is_empty() {
         let tags: Vec<&str> =
-            languages.iter().map(msi::Language::tag).collect();
+            languages.iter().map(msi::LanguageId::tag).collect();
         println!("    Language: {}", tags.join(", "));
     }
     if let Some(timestamp) = summary_info.creation_time() {

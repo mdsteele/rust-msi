@@ -1,4 +1,4 @@
-use crate::internal::language::Language;
+use crate::internal::language::LanguageId;
 use crate::internal::stringpool::{StringPool, StringRef};
 use std::convert::From;
 use std::fmt;
@@ -123,18 +123,18 @@ impl From<String> for Value {
 
 /// Returns a string value containing the code for the given language, suitable
 /// for storing in a column with the `Language` category.
-impl From<Language> for Value {
-    fn from(language: Language) -> Value {
-        Value::Str(format!("{}", language.code()))
+impl From<LanguageId> for Value {
+    fn from(language: LanguageId) -> Value {
+        Value::Str(format!("{}", language.id()))
     }
 }
 
 /// Returns a string value containing the codes for the given languages,
 /// suitable for storing in a column with the `Language` category.
-impl<'a> From<&'a [Language]> for Value {
-    fn from(languages: &'a [Language]) -> Value {
+impl<'a> From<&'a [LanguageId]> for Value {
+    fn from(languages: &'a [LanguageId]) -> Value {
         let codes: Vec<String> =
-            languages.iter().map(|lang| lang.code().to_string()).collect();
+            languages.iter().map(|lang| lang.id().to_string()).collect();
         Value::Str(codes.join(","))
     }
 }
@@ -203,7 +203,7 @@ impl ValueRef {
 mod tests {
     use super::{Value, ValueRef};
     use crate::internal::codepage::CodePage;
-    use crate::internal::language::Language;
+    use crate::internal::language::LanguageId;
     use crate::internal::stringpool::StringPool;
     use uuid::Uuid;
 
@@ -237,15 +237,15 @@ mod tests {
             Value::Str("foobar".to_string())
         );
         assert_eq!(
-            Value::from(Language::from_tag("en-US")),
+            Value::from(LanguageId::from_tag("en-US")),
             Value::Str("1033".to_string())
         );
         assert_eq!(
             Value::from(&[
-                Language::from_code(1033),
-                Language::from_code(2107),
-                Language::from_code(3131),
-            ] as &[Language],),
+                LanguageId::from_id(1033),
+                LanguageId::from_id(2107),
+                LanguageId::from_id(3131),
+            ] as &[LanguageId],),
             Value::Str("1033,2107,3131".to_string())
         );
         assert_eq!(

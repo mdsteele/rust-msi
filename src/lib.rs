@@ -20,7 +20,7 @@ pub use crate::internal::category::Category;
 pub use crate::internal::codepage::CodePage;
 pub use crate::internal::column::{Column, ColumnBuilder, ColumnType};
 pub use crate::internal::expr::Expr;
-pub use crate::internal::language::Language;
+pub use crate::internal::language::LanguageId;
 pub use crate::internal::package::{Package, PackageType, Tables};
 pub use crate::internal::query::{Delete, Insert, Select, Update};
 pub use crate::internal::stream::{StreamReader, StreamWriter, Streams};

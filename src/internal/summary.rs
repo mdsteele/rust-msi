@@ -1,5 +1,5 @@
 use crate::internal::codepage::CodePage;
-use crate::internal::language::Language;
+use crate::internal::language::LanguageId;
 use crate::internal::propset::{OperatingSystem, PropertySet, PropertyValue};
 use crate::internal::timestamp::Timestamp;
 use std::io::{self, Read, Seek, Write};
@@ -270,7 +270,7 @@ impl SummaryInfo {
 
     /// Gets the list of languages from the "template" property, if one is set.
     /// This indicates the languages that this package supports.
-    pub fn languages(&self) -> Vec<Language> {
+    pub fn languages(&self) -> Vec<LanguageId> {
         match self.properties.get(PROPERTY_TEMPLATE) {
             Some(PropertyValue::LpStr(template)) => {
                 let parts: Vec<&str> = template.splitn(2, ';').collect();
@@ -278,7 +278,7 @@ impl SummaryInfo {
                     parts[1]
                         .split(',')
                         .filter_map(|code| code.parse().ok())
-                        .map(Language::from_code)
+                        .map(LanguageId::from_id)
                         .collect()
                 } else {
                     Vec::new()
@@ -289,7 +289,7 @@ impl SummaryInfo {
     }
 
     /// Sets the list of languages in the "template" property.
-    pub fn set_languages(&mut self, languages: &[Language]) {
+    pub fn set_languages(&mut self, languages: &[LanguageId]) {
         let mut template = match self.properties.get(PROPERTY_TEMPLATE) {
             Some(PropertyValue::LpStr(template)) => template
                 .split_once(';')
@@ -305,7 +305,7 @@ impl SummaryInfo {
             } else {
                 template.push(',');
             }
-            template.push_str(&format!("{}", language.code()));
+            template.push_str(&format!("{}", language.id()));
         }
         self.properties.set(PROPERTY_TEMPLATE, PropertyValue::LpStr(template));
     }
@@ -522,7 +522,7 @@ impl SummaryInfo {
 mod tests {
     use super::SummaryInfo;
     use crate::internal::{
-        language::Language,
+        language::LanguageId,
         summary::{
             PROPERTY_CREATION_TIME, PROPERTY_LAST_PRINTED,
             PROPERTY_LAST_SAVE_TIME,
@@ -534,10 +534,10 @@ mod tests {
     #[test]
     fn set_properties() {
         let languages = vec![
-            Language::from_tag("en-CA"),
-            Language::from_tag("fr-CA"),
-            Language::from_tag("en-US"),
-            Language::from_tag("es-MX"),
+            LanguageId::from_tag("en-CA"),
+            LanguageId::from_tag("fr-CA"),
+            LanguageId::from_tag("en-US"),
+            LanguageId::from_tag("es-MX"),
         ];
         let uuid =
             Uuid::parse_str("0000002a-000c-0005-0c03-0938362b0809").unwrap();
@@ -630,12 +630,12 @@ mod tests {
         // Set language before setting arch:
         let mut summary_info = SummaryInfo::new();
         assert_eq!(summary_info.arch(), None);
-        summary_info.set_languages(&[Language::from_tag("en")]);
+        summary_info.set_languages(&[LanguageId::from_tag("en")]);
         assert_eq!(summary_info.arch(), None);
-        assert_eq!(summary_info.languages(), vec![Language::from_tag("en")]);
+        assert_eq!(summary_info.languages(), vec![LanguageId::from_tag("en")]);
         summary_info.set_arch("Intel");
         assert_eq!(summary_info.arch(), Some("Intel"));
-        assert_eq!(summary_info.languages(), vec![Language::from_tag("en")]);
+        assert_eq!(summary_info.languages(), vec![LanguageId::from_tag("en")]);
 
         // Set arch before setting language:
         let mut summary_info = SummaryInfo::new();
@@ -644,8 +644,8 @@ mod tests {
         summary_info.set_arch("Intel");
         assert_eq!(summary_info.languages(), vec![]);
         assert_eq!(summary_info.arch(), Some("Intel"));
-        summary_info.set_languages(&[Language::from_tag("en")]);
-        assert_eq!(summary_info.languages(), vec![Language::from_tag("en")]);
+        summary_info.set_languages(&[LanguageId::from_tag("en")]);
+        assert_eq!(summary_info.languages(), vec![LanguageId::from_tag("en")]);
         assert_eq!(summary_info.arch(), Some("Intel"));
     }
 }
