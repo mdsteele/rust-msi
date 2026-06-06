@@ -25,8 +25,8 @@ impl Table {
         name: String,
         columns: Vec<Column>,
         long_string_refs: bool,
-    ) -> Rc<Table> {
-        Rc::new(Table { name, columns, long_string_refs })
+    ) -> Rc<Self> {
+        Rc::new(Self { name, columns, long_string_refs })
     }
 
     /// Returns the name of the table.
@@ -177,9 +177,9 @@ pub struct Row {
 }
 
 impl Row {
-    pub(crate) fn new(table: Rc<Table>, values: Vec<Value>) -> Row {
+    pub(crate) fn new(table: Rc<Table>, values: Vec<Value>) -> Self {
         debug_assert_eq!(values.len(), table.columns().len());
-        Row { table, values }
+        Self { table, values }
     }
 
     /// Returns the number of values in the row.
@@ -270,8 +270,8 @@ impl<'a> Rows<'a> {
         string_pool: &'a StringPool,
         table: Rc<Table>,
         rows: Vec<Vec<ValueRef>>,
-    ) -> Rows<'a> {
-        Rows { table, string_pool, rows, next_row_index: 0 }
+    ) -> Self {
+        Self { table, string_pool, rows, next_row_index: 0 }
     }
 
     /// Returns the list of columns for these rows.

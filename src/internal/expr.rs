@@ -13,8 +13,8 @@ pub struct Expr {
 
 #[allow(clippy::should_implement_trait)]
 impl Expr {
-    fn unop(op: UnOp, ast: Ast) -> Expr {
-        Expr {
+    fn unop(op: UnOp, ast: Ast) -> Self {
+        Self {
             ast: match ast {
                 Ast::Literal(value) => Ast::Literal(op.eval(value)),
                 ast => Ast::UnOp(op, Box::new(ast)),
@@ -22,8 +22,8 @@ impl Expr {
         }
     }
 
-    fn binop(op: BinOp, ast1: Ast, ast2: Ast) -> Expr {
-        Expr {
+    fn binop(op: BinOp, ast1: Ast, ast2: Ast) -> Self {
+        Self {
             ast: match (ast1, ast2) {
                 (Ast::Literal(value1), Ast::Literal(value2)) => {
                     Ast::Literal(op.eval(value1, value2))
@@ -35,77 +35,77 @@ impl Expr {
 
     /// Returns an expression that evaluates to the value of the specified
     /// column.
-    pub fn col<S: Into<String>>(column_name: S) -> Expr {
-        Expr { ast: Ast::Column(column_name.into()) }
+    pub fn col<S: Into<String>>(column_name: S) -> Self {
+        Self { ast: Ast::Column(column_name.into()) }
     }
 
     /// Returns an expression that evaluates to a null value.
     #[must_use]
-    pub fn null() -> Expr {
-        Expr { ast: Ast::Literal(Value::Null) }
+    pub fn null() -> Self {
+        Self { ast: Ast::Literal(Value::Null) }
     }
 
     /// Returns an expression that evaluates to the given boolean value.
     #[must_use]
-    pub fn boolean(boolean: bool) -> Expr {
-        Expr { ast: Ast::Literal(Value::from_bool(boolean)) }
+    pub fn boolean(boolean: bool) -> Self {
+        Self { ast: Ast::Literal(Value::from_bool(boolean)) }
     }
 
     /// Returns an expression that evaluates to the given integer value.
     #[must_use]
-    pub fn integer(integer: i32) -> Expr {
-        Expr { ast: Ast::Literal(Value::Int(integer)) }
+    pub fn integer(integer: i32) -> Self {
+        Self { ast: Ast::Literal(Value::Int(integer)) }
     }
 
     /// Returns an expression that evaluates to the given string value.
-    pub fn string<S: Into<String>>(string: S) -> Expr {
-        Expr { ast: Ast::Literal(Value::Str(string.into())) }
+    pub fn string<S: Into<String>>(string: S) -> Self {
+        Self { ast: Ast::Literal(Value::Str(string.into())) }
     }
 
     /// Returns an expression that evaluates to true if the two subexpressions
     /// evaluate to equal values.
     #[must_use]
-    pub fn eq(self, rhs: Expr) -> Expr {
-        Expr::binop(BinOp::Eq, self.ast, rhs.ast)
+    pub fn eq(self, rhs: Self) -> Self {
+        Self::binop(BinOp::Eq, self.ast, rhs.ast)
     }
 
     /// Returns an expression that evaluates to true if the two subexpressions
     /// evaluate to unequal values.
     #[must_use]
-    pub fn ne(self, rhs: Expr) -> Expr {
-        Expr::binop(BinOp::Ne, self.ast, rhs.ast)
+    pub fn ne(self, rhs: Self) -> Self {
+        Self::binop(BinOp::Ne, self.ast, rhs.ast)
     }
 
     /// Returns an expression that evaluates to true if the left-hand
     /// subexpression evaluates to a strictly lesser value than the right-hand
     /// subexpression.
     #[must_use]
-    pub fn lt(self, rhs: Expr) -> Expr {
-        Expr::binop(BinOp::Lt, self.ast, rhs.ast)
+    pub fn lt(self, rhs: Self) -> Self {
+        Self::binop(BinOp::Lt, self.ast, rhs.ast)
     }
 
     /// Returns an expression that evaluates to true if the left-hand
     /// subexpression evaluates to a lesser-or-equal value than the right-hand
     /// subexpression.
     #[must_use]
-    pub fn le(self, rhs: Expr) -> Expr {
-        Expr::binop(BinOp::Le, self.ast, rhs.ast)
+    pub fn le(self, rhs: Self) -> Self {
+        Self::binop(BinOp::Le, self.ast, rhs.ast)
     }
 
     /// Returns an expression that evaluates to true if the left-hand
     /// subexpression evaluates to a strictly greater value than the right-hand
     /// subexpression.
     #[must_use]
-    pub fn gt(self, rhs: Expr) -> Expr {
-        Expr::binop(BinOp::Gt, self.ast, rhs.ast)
+    pub fn gt(self, rhs: Self) -> Self {
+        Self::binop(BinOp::Gt, self.ast, rhs.ast)
     }
 
     /// Returns an expression that evaluates to true if the left-hand
     /// subexpression evaluates to a greater-or-equal value than the right-hand
     /// subexpression.
     #[must_use]
-    pub fn ge(self, rhs: Expr) -> Expr {
-        Expr::binop(BinOp::Ge, self.ast, rhs.ast)
+    pub fn ge(self, rhs: Self) -> Self {
+        Self::binop(BinOp::Ge, self.ast, rhs.ast)
     }
 
     /// Returns an expression that computes the bitwise inverse of the
@@ -115,22 +115,22 @@ impl Expr {
     /// This method exists instead of the `std::ops::Not` trait to distinguish
     /// it from the (logical) `not()` method.
     #[must_use]
-    pub fn bitinv(self) -> Expr {
-        Expr::unop(UnOp::BitNot, self.ast)
+    pub fn bitinv(self) -> Self {
+        Self::unop(UnOp::BitNot, self.ast)
     }
 
     /// Returns an expression that evaluates to true if both subexpressions
     /// evaluate to true.
     #[must_use]
-    pub fn and(self, rhs: Expr) -> Expr {
-        Expr { ast: Ast::And(Box::new(self.ast), Box::new(rhs.ast)) }
+    pub fn and(self, rhs: Self) -> Self {
+        Self { ast: Ast::And(Box::new(self.ast), Box::new(rhs.ast)) }
     }
 
     /// Returns an expression that evaluates to true if either subexpression
     /// evaluates to true.
     #[must_use]
-    pub fn or(self, rhs: Expr) -> Expr {
-        Expr { ast: Ast::Or(Box::new(self.ast), Box::new(rhs.ast)) }
+    pub fn or(self, rhs: Self) -> Self {
+        Self { ast: Ast::Or(Box::new(self.ast), Box::new(rhs.ast)) }
     }
 
     /// Returns an expression that evaluates to true if the subexpression
@@ -139,8 +139,8 @@ impl Expr {
     /// This method exists instead of the `std::ops::Not` trait to distinguish
     /// it from the (bitwise) `bitinv()` method.
     #[must_use]
-    pub fn not(self) -> Expr {
-        Expr::unop(UnOp::BoolNot, self.ast)
+    pub fn not(self) -> Self {
+        Self::unop(UnOp::BoolNot, self.ast)
     }
 
     /// Evaluates the expression against the given row.  Any errors in the
@@ -164,10 +164,10 @@ impl Expr {
 /// If the subexpression evaluates to a non-number, the result will be a null
 /// value.
 impl ops::Neg for Expr {
-    type Output = Expr;
+    type Output = Self;
 
     fn neg(self) -> Self::Output {
-        Expr::unop(UnOp::Neg, self.ast)
+        Self::unop(UnOp::Neg, self.ast)
     }
 }
 
@@ -176,10 +176,10 @@ impl ops::Neg for Expr {
 /// subexpressions evaluate to different types, or if either evaluates to a
 /// null value, the result will be a null value.
 impl ops::Add for Expr {
-    type Output = Expr;
+    type Output = Self;
 
-    fn add(self, rhs: Expr) -> Self::Output {
-        Expr::binop(BinOp::Add, self.ast, rhs.ast)
+    fn add(self, rhs: Self) -> Self::Output {
+        Self::binop(BinOp::Add, self.ast, rhs.ast)
     }
 }
 
@@ -187,10 +187,10 @@ impl ops::Add for Expr {
 /// subexpressions.  If either subexpression evaluates to a non-number, the
 /// result will be a null value.
 impl ops::Sub for Expr {
-    type Output = Expr;
+    type Output = Self;
 
-    fn sub(self, rhs: Expr) -> Self::Output {
-        Expr::binop(BinOp::Sub, self.ast, rhs.ast)
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self::binop(BinOp::Sub, self.ast, rhs.ast)
     }
 }
 
@@ -198,10 +198,10 @@ impl ops::Sub for Expr {
 /// subexpressions.  If either subexpression evaluates to a non-number, the
 /// result will be a null value.
 impl ops::Mul for Expr {
-    type Output = Expr;
+    type Output = Self;
 
-    fn mul(self, rhs: Expr) -> Self::Output {
-        Expr::binop(BinOp::Mul, self.ast, rhs.ast)
+    fn mul(self, rhs: Self) -> Self::Output {
+        Self::binop(BinOp::Mul, self.ast, rhs.ast)
     }
 }
 
@@ -209,10 +209,10 @@ impl ops::Mul for Expr {
 /// subexpressions.  If either subexpression evaluates to a non-number, or if
 /// the divisor evalulates to zero, the result will be a null value.
 impl ops::Div for Expr {
-    type Output = Expr;
+    type Output = Self;
 
-    fn div(self, rhs: Expr) -> Self::Output {
-        Expr::binop(BinOp::Div, self.ast, rhs.ast)
+    fn div(self, rhs: Self) -> Self::Output {
+        Self::binop(BinOp::Div, self.ast, rhs.ast)
     }
 }
 
@@ -220,10 +220,10 @@ impl ops::Div for Expr {
 /// subexpressions.  If either subexpression evaluates to a non-number, the
 /// result will be a null value.
 impl ops::BitAnd for Expr {
-    type Output = Expr;
+    type Output = Self;
 
-    fn bitand(self, rhs: Expr) -> Self::Output {
-        Expr::binop(BinOp::BitAnd, self.ast, rhs.ast)
+    fn bitand(self, rhs: Self) -> Self::Output {
+        Self::binop(BinOp::BitAnd, self.ast, rhs.ast)
     }
 }
 
@@ -231,10 +231,10 @@ impl ops::BitAnd for Expr {
 /// subexpressions.  If either subexpression evaluates to a non-number, the
 /// result will be a null value.
 impl ops::BitOr for Expr {
-    type Output = Expr;
+    type Output = Self;
 
-    fn bitor(self, rhs: Expr) -> Self::Output {
-        Expr::binop(BinOp::BitOr, self.ast, rhs.ast)
+    fn bitor(self, rhs: Self) -> Self::Output {
+        Self::binop(BinOp::BitOr, self.ast, rhs.ast)
     }
 }
 
@@ -242,10 +242,10 @@ impl ops::BitOr for Expr {
 /// subexpressions.  If either subexpression evaluates to a non-number, the
 /// result will be a null value.
 impl ops::BitXor for Expr {
-    type Output = Expr;
+    type Output = Self;
 
-    fn bitxor(self, rhs: Expr) -> Self::Output {
-        Expr::binop(BinOp::BitXor, self.ast, rhs.ast)
+    fn bitxor(self, rhs: Self) -> Self::Output {
+        Self::binop(BinOp::BitXor, self.ast, rhs.ast)
     }
 }
 
@@ -253,11 +253,11 @@ impl ops::BitXor for Expr {
 /// subexpression bit-shifted left by the value of the right-hand
 /// subexpression.  If either subexpression evaluates to a non-number, the
 /// result will be a null value.
-impl ops::Shl<Expr> for Expr {
-    type Output = Expr;
+impl ops::Shl<Self> for Expr {
+    type Output = Self;
 
-    fn shl(self, rhs: Expr) -> Self::Output {
-        Expr::binop(BinOp::Shl, self.ast, rhs.ast)
+    fn shl(self, rhs: Self) -> Self::Output {
+        Self::binop(BinOp::Shl, self.ast, rhs.ast)
     }
 }
 
@@ -265,11 +265,11 @@ impl ops::Shl<Expr> for Expr {
 /// subexpression bit-shifted right by the value of the right-hand
 /// subexpression.  If either subexpression evaluates to a non-number, the
 /// result will be a null value.
-impl ops::Shr<Expr> for Expr {
-    type Output = Expr;
+impl ops::Shr<Self> for Expr {
+    type Output = Self;
 
-    fn shr(self, rhs: Expr) -> Self::Output {
-        Expr::binop(BinOp::Shr, self.ast, rhs.ast)
+    fn shr(self, rhs: Self) -> Self::Output {
+        Self::binop(BinOp::Shr, self.ast, rhs.ast)
     }
 }
 
@@ -285,29 +285,29 @@ impl fmt::Display for Expr {
 enum Ast {
     Literal(Value),
     Column(String),
-    UnOp(UnOp, Box<Ast>),
-    BinOp(BinOp, Box<Ast>, Box<Ast>),
-    And(Box<Ast>, Box<Ast>),
-    Or(Box<Ast>, Box<Ast>),
+    UnOp(UnOp, Box<Self>),
+    BinOp(BinOp, Box<Self>, Box<Self>),
+    And(Box<Self>, Box<Self>),
+    Or(Box<Self>, Box<Self>),
 }
 
 impl Ast {
     fn eval(&self, row: &Row) -> Value {
         match *self {
-            Ast::Literal(ref value) => value.clone(),
-            Ast::Column(ref name) => row[name.as_str()].clone(),
-            Ast::UnOp(op, ref arg) => op.eval(arg.eval(row)),
-            Ast::BinOp(op, ref arg1, ref arg2) => {
+            Self::Literal(ref value) => value.clone(),
+            Self::Column(ref name) => row[name.as_str()].clone(),
+            Self::UnOp(op, ref arg) => op.eval(arg.eval(row)),
+            Self::BinOp(op, ref arg1, ref arg2) => {
                 op.eval(arg1.eval(row), arg2.eval(row))
             }
-            Ast::And(ref arg1, ref arg2) => {
+            Self::And(ref arg1, ref arg2) => {
                 if arg1.eval(row).to_bool() {
                     Value::from_bool(arg2.eval(row).to_bool())
                 } else {
                     Value::from_bool(false)
                 }
             }
-            Ast::Or(ref arg1, ref arg2) => {
+            Self::Or(ref arg1, ref arg2) => {
                 if arg1.eval(row).to_bool() {
                     Value::from_bool(true)
                 } else {
@@ -319,14 +319,14 @@ impl Ast {
 
     fn populate_column_names<'a>(&'a self, names: &mut HashSet<&'a str>) {
         match *self {
-            Ast::Literal(_) => {}
-            Ast::Column(ref name) => {
+            Self::Literal(_) => {}
+            Self::Column(ref name) => {
                 names.insert(name.as_str());
             }
-            Ast::UnOp(_, ref arg) => arg.populate_column_names(names),
-            Ast::BinOp(_, ref arg1, ref arg2)
-            | Ast::And(ref arg1, ref arg2)
-            | Ast::Or(ref arg1, ref arg2) => {
+            Self::UnOp(_, ref arg) => arg.populate_column_names(names),
+            Self::BinOp(_, ref arg1, ref arg2)
+            | Self::And(ref arg1, ref arg2)
+            | Self::Or(ref arg1, ref arg2) => {
                 arg1.populate_column_names(names);
                 arg2.populate_column_names(names);
             }
@@ -339,9 +339,9 @@ impl Ast {
         parent_prec: i32,
     ) -> Result<(), fmt::Error> {
         match self {
-            Ast::Literal(value) => fmt::Display::fmt(value, formatter),
-            Ast::Column(name) => formatter.write_str(name.as_str()),
-            Ast::UnOp(op, arg) => {
+            Self::Literal(value) => fmt::Display::fmt(value, formatter),
+            Self::Column(name) => formatter.write_str(name.as_str()),
+            Self::UnOp(op, arg) => {
                 match op {
                     UnOp::Neg => formatter.write_str("-")?,
                     UnOp::BitNot => formatter.write_str("~")?,
@@ -349,7 +349,7 @@ impl Ast {
                 }
                 arg.format_with_precedence(formatter, 10)
             }
-            Ast::BinOp(op, arg1, arg2) => {
+            Self::BinOp(op, arg1, arg2) => {
                 let op_prec = op.precedence();
                 if op_prec < parent_prec {
                     formatter.write_str("(")?;
@@ -378,7 +378,7 @@ impl Ast {
                 }
                 Ok(())
             }
-            Ast::And(arg1, arg2) => {
+            Self::And(arg1, arg2) => {
                 let op_prec = 2;
                 if op_prec < parent_prec {
                     formatter.write_str("(")?;
@@ -391,7 +391,7 @@ impl Ast {
                 }
                 Ok(())
             }
-            Ast::Or(arg1, arg2) => {
+            Self::Or(arg1, arg2) => {
                 let op_prec = 1;
                 if op_prec < parent_prec {
                     formatter.write_str("(")?;
@@ -427,15 +427,15 @@ enum UnOp {
 impl UnOp {
     fn eval(self, arg: Value) -> Value {
         match self {
-            UnOp::Neg => match arg {
+            Self::Neg => match arg {
                 Value::Int(number) => Value::Int(-number),
                 _ => Value::Null,
             },
-            UnOp::BitNot => match arg {
+            Self::BitNot => match arg {
                 Value::Int(number) => Value::Int(!number),
                 _ => Value::Null,
             },
-            UnOp::BoolNot => Value::from_bool(!arg.to_bool()),
+            Self::BoolNot => Value::from_bool(!arg.to_bool()),
         }
     }
 }
@@ -465,13 +465,13 @@ enum BinOp {
 impl BinOp {
     fn eval(self, arg1: Value, arg2: Value) -> Value {
         match self {
-            BinOp::Eq => Value::from_bool(arg1 == arg2),
-            BinOp::Ne => Value::from_bool(arg1 != arg2),
-            BinOp::Lt => Value::from_bool(arg1 < arg2),
-            BinOp::Le => Value::from_bool(arg1 <= arg2),
-            BinOp::Gt => Value::from_bool(arg1 > arg2),
-            BinOp::Ge => Value::from_bool(arg1 >= arg2),
-            BinOp::Add => match (arg1, arg2) {
+            Self::Eq => Value::from_bool(arg1 == arg2),
+            Self::Ne => Value::from_bool(arg1 != arg2),
+            Self::Lt => Value::from_bool(arg1 < arg2),
+            Self::Le => Value::from_bool(arg1 <= arg2),
+            Self::Gt => Value::from_bool(arg1 > arg2),
+            Self::Ge => Value::from_bool(arg1 >= arg2),
+            Self::Add => match (arg1, arg2) {
                 (Value::Int(num1), Value::Int(num2)) => {
                     Value::Int(num1 + num2)
                 }
@@ -480,50 +480,50 @@ impl BinOp {
                 }
                 _ => Value::Null,
             },
-            BinOp::Sub => match (arg1, arg2) {
+            Self::Sub => match (arg1, arg2) {
                 (Value::Int(num1), Value::Int(num2)) => {
                     Value::Int(num1 - num2)
                 }
                 _ => Value::Null,
             },
-            BinOp::Mul => match (arg1, arg2) {
+            Self::Mul => match (arg1, arg2) {
                 (Value::Int(num1), Value::Int(num2)) => {
                     Value::Int(num1 * num2)
                 }
                 _ => Value::Null,
             },
-            BinOp::Div => match (arg1, arg2) {
+            Self::Div => match (arg1, arg2) {
                 (_, Value::Int(0)) => Value::Null,
                 (Value::Int(num1), Value::Int(num2)) => {
                     Value::Int(num1 / num2)
                 }
                 _ => Value::Null,
             },
-            BinOp::BitAnd => match (arg1, arg2) {
+            Self::BitAnd => match (arg1, arg2) {
                 (Value::Int(num1), Value::Int(num2)) => {
                     Value::Int(num1 & num2)
                 }
                 _ => Value::Null,
             },
-            BinOp::BitOr => match (arg1, arg2) {
+            Self::BitOr => match (arg1, arg2) {
                 (Value::Int(num1), Value::Int(num2)) => {
                     Value::Int(num1 | num2)
                 }
                 _ => Value::Null,
             },
-            BinOp::BitXor => match (arg1, arg2) {
+            Self::BitXor => match (arg1, arg2) {
                 (Value::Int(num1), Value::Int(num2)) => {
                     Value::Int(num1 ^ num2)
                 }
                 _ => Value::Null,
             },
-            BinOp::Shl => match (arg1, arg2) {
+            Self::Shl => match (arg1, arg2) {
                 (Value::Int(num1), Value::Int(num2)) => {
                     Value::Int(num1 << num2)
                 }
                 _ => Value::Null,
             },
-            BinOp::Shr => match (arg1, arg2) {
+            Self::Shr => match (arg1, arg2) {
                 (Value::Int(num1), Value::Int(num2)) => {
                     Value::Int(num1 >> num2)
                 }
@@ -534,21 +534,21 @@ impl BinOp {
 
     fn precedence(self) -> i32 {
         match self {
-            BinOp::Eq => 3,
-            BinOp::Ne => 3,
-            BinOp::Lt => 3,
-            BinOp::Le => 3,
-            BinOp::Gt => 3,
-            BinOp::Ge => 3,
-            BinOp::Add => 8,
-            BinOp::Sub => 8,
-            BinOp::Mul => 9,
-            BinOp::Div => 9,
-            BinOp::BitAnd => 6,
-            BinOp::BitOr => 4,
-            BinOp::BitXor => 5,
-            BinOp::Shl => 7,
-            BinOp::Shr => 7,
+            Self::Eq => 3,
+            Self::Ne => 3,
+            Self::Lt => 3,
+            Self::Le => 3,
+            Self::Gt => 3,
+            Self::Ge => 3,
+            Self::Add => 8,
+            Self::Sub => 8,
+            Self::Mul => 9,
+            Self::Div => 9,
+            Self::BitAnd => 6,
+            Self::BitOr => 4,
+            Self::BitXor => 5,
+            Self::Shl => 7,
+            Self::Shr => 7,
         }
     }
 }

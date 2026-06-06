@@ -21,22 +21,22 @@ impl StringRef {
     pub fn read<R: Read>(
         reader: &mut R,
         long_string_refs: bool,
-    ) -> io::Result<Option<StringRef>> {
+    ) -> io::Result<Option<Self>> {
         let mut number = reader.read_u16::<LittleEndian>()? as i32;
         if long_string_refs {
             number |= (reader.read_u8()? as i32) << 16;
         }
-        Ok(if number == 0 { None } else { Some(StringRef(number)) })
+        Ok(if number == 0 { None } else { Some(Self(number)) })
     }
 
     /// Serializes a nullable StringRef.  The `long_string_refs` argument
     /// specifies whether to write three bytes (if true) or two (if false).
     pub fn write<W: Write>(
         writer: &mut W,
-        string_ref: Option<StringRef>,
+        string_ref: Option<Self>,
         long_string_refs: bool,
     ) -> io::Result<()> {
-        let number = if let Some(StringRef(number)) = string_ref {
+        let number = if let Some(Self(number)) = string_ref {
             debug_assert!(number > 0);
             debug_assert!(number <= MAX_STRING_REF);
             number
@@ -51,7 +51,7 @@ impl StringRef {
         } else {
             invalid_input!(
                 "Cannot write {:?} with long_string_refs=false",
-                StringRef(number)
+                Self(number)
             );
         }
         Ok(())
@@ -60,7 +60,7 @@ impl StringRef {
     /// Returns the reference number, that is, the 1-based index into the
     /// string pool for this reference.
     pub fn number(self) -> i32 {
-        let StringRef(number) = self;
+        let Self(number) = self;
         debug_assert!(number > 0);
         debug_assert!(number <= MAX_STRING_REF);
         number
@@ -83,9 +83,7 @@ pub struct StringPoolBuilder {
 }
 
 impl StringPoolBuilder {
-    pub fn read_from_pool<R: Read>(
-        mut reader: R,
-    ) -> io::Result<StringPoolBuilder> {
+    pub fn read_from_pool<R: Read>(mut reader: R) -> io::Result<Self> {
         let codepage_id = reader.read_u32::<LittleEndian>()?;
         let long_string_refs = (codepage_id & LONG_STRING_REFS_BIT) != 0;
         let codepage_id = (codepage_id & !LONG_STRING_REFS_BIT) as i32;
@@ -105,11 +103,7 @@ impl StringPoolBuilder {
             }
             lengths_and_refcounts.push((length, refcount));
         }
-        Ok(StringPoolBuilder {
-            codepage,
-            long_string_refs,
-            lengths_and_refcounts,
-        })
+        Ok(Self { codepage, long_string_refs, lengths_and_refcounts })
     }
 
     pub fn build_from_data<R: Read>(
@@ -143,8 +137,8 @@ pub struct StringPool {
 
 impl StringPool {
     /// Creates a new, empty string pool.
-    pub fn new(codepage: CodePage) -> StringPool {
-        StringPool {
+    pub fn new(codepage: CodePage) -> Self {
+        Self {
             codepage,
             strings: Vec::new(),
             long_string_refs: false,

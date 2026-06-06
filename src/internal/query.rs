@@ -18,8 +18,8 @@ pub struct Delete {
 
 impl Delete {
     /// Starts building a query that will delete rows from the specified table.
-    pub fn from<S: Into<String>>(table_name: S) -> Delete {
-        Delete { table_name: table_name.into(), condition: None }
+    pub fn from<S: Into<String>>(table_name: S) -> Self {
+        Self { table_name: table_name.into(), condition: None }
     }
 
     /// Adds a restriction on which rows should be deleted by the query; only
@@ -27,7 +27,7 @@ impl Delete {
     /// method would have been called `where()`, to better match SQL, but
     /// `where` is a reserved word in Rust.)
     #[must_use]
-    pub fn with(mut self, condition: Expr) -> Delete {
+    pub fn with(mut self, condition: Expr) -> Self {
         self.condition = if let Some(expr) = self.condition {
             Some(expr.and(condition))
         } else {
@@ -121,20 +121,20 @@ pub struct Insert {
 
 impl Insert {
     /// Starts building a query that will insert rows into the specified table.
-    pub fn into<S: Into<String>>(table_name: S) -> Insert {
-        Insert { table_name: table_name.into(), new_rows: Vec::new() }
+    pub fn into<S: Into<String>>(table_name: S) -> Self {
+        Self { table_name: table_name.into(), new_rows: Vec::new() }
     }
 
     /// Adds a new row to be inserted into the table.
     #[must_use]
-    pub fn row(mut self, values: Vec<Value>) -> Insert {
+    pub fn row(mut self, values: Vec<Value>) -> Self {
         self.new_rows.push(values);
         self
     }
 
     /// Adds multiple new rows to be inserted into the table.
     #[must_use]
-    pub fn rows(mut self, mut rows: Vec<Vec<Value>>) -> Insert {
+    pub fn rows(mut self, mut rows: Vec<Vec<Value>>) -> Self {
         self.new_rows.append(&mut rows);
         self
     }
@@ -288,7 +288,7 @@ impl Join {
         F: Read + Seek,
     {
         match self {
-            Join::Table(table_name) => {
+            Self::Table(table_name) => {
                 let table = match tables.get(&table_name) {
                     Some(table) => table,
                     None => {
@@ -304,7 +304,7 @@ impl Join {
                 };
                 Ok(Rows::new(string_pool, table.clone(), rows))
             }
-            Join::Inner(select1, select2, condition) => {
+            Self::Inner(select1, select2, condition) => {
                 let (table1, rows1) = select1
                     .exec(comp, string_pool, tables)?
                     .into_table_and_values();
@@ -345,7 +345,7 @@ impl Join {
                 }
                 Ok(Rows::new(string_pool, table, rows))
             }
-            Join::Left(select1, select2, condition) => {
+            Self::Left(select1, select2, condition) => {
                 let (table1, rows1) = select1
                     .exec(comp, string_pool, tables)?
                     .into_table_and_values();
@@ -407,8 +407,8 @@ impl Join {
 impl fmt::Display for Join {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self {
-            Join::Table(table_name) => table_name.fmt(formatter),
-            Join::Inner(lhs, rhs, on) => {
+            Self::Table(table_name) => table_name.fmt(formatter),
+            Self::Inner(lhs, rhs, on) => {
                 lhs.format_for_join(formatter)?;
                 formatter.write_str(" INNER JOIN ")?;
                 rhs.format_for_join(formatter)?;
@@ -416,7 +416,7 @@ impl fmt::Display for Join {
                 on.fmt(formatter)?;
                 Ok(())
             }
-            Join::Left(lhs, rhs, on) => {
+            Self::Left(lhs, rhs, on) => {
                 lhs.format_for_join(formatter)?;
                 formatter.write_str(" LEFT JOIN ")?;
                 rhs.format_for_join(formatter)?;
@@ -439,8 +439,8 @@ pub struct Select {
 
 impl Select {
     /// Starts building a query that will select rows from the specified table.
-    pub fn table<S: Into<String>>(table_name: S) -> Select {
-        Select {
+    pub fn table<S: Into<String>>(table_name: S) -> Self {
+        Self {
             from: Join::Table(table_name.into()),
             column_names: vec![],
             condition: None,
@@ -450,8 +450,8 @@ impl Select {
     /// Performs an inner join between this and another query, producing a row
     /// for each pair of rows from the two tables that matches the expression.
     #[must_use]
-    pub fn inner_join(self, rhs: Select, on: Expr) -> Select {
-        Select {
+    pub fn inner_join(self, rhs: Self, on: Expr) -> Self {
+        Self {
             from: Join::Inner(Box::new(self), Box::new(rhs), on),
             column_names: vec![],
             condition: None,
@@ -460,8 +460,8 @@ impl Select {
 
     /// Performs a left join between this and another query.
     #[must_use]
-    pub fn left_join(self, rhs: Select, on: Expr) -> Select {
-        Select {
+    pub fn left_join(self, rhs: Self, on: Expr) -> Self {
+        Self {
             from: Join::Left(Box::new(self), Box::new(rhs), on),
             column_names: vec![],
             condition: None,
@@ -473,7 +473,7 @@ impl Select {
     /// Transforms the selected rows to only include the specified columns, in
     /// the order given.
     #[must_use]
-    pub fn columns<S>(mut self, column_names: &[S]) -> Select
+    pub fn columns<S>(mut self, column_names: &[S]) -> Self
     where
         S: Clone + Into<String>,
     {
@@ -487,7 +487,7 @@ impl Select {
     /// method would have been called `where()`, to better match SQL, but
     /// `where` is a reserved word in Rust.)
     #[must_use]
-    pub fn with(mut self, condition: Expr) -> Select {
+    pub fn with(mut self, condition: Expr) -> Self {
         self.condition = if let Some(expr) = self.condition {
             Some(expr.and(condition))
         } else {
@@ -617,8 +617,8 @@ pub struct Update {
 
 impl Update {
     /// Starts building a query that will update rows in the specified table.
-    pub fn table<S: Into<String>>(table_name: S) -> Update {
-        Update {
+    pub fn table<S: Into<String>>(table_name: S) -> Self {
+        Self {
             table_name: table_name.into(),
             updates: Vec::new(),
             condition: None,
@@ -631,7 +631,7 @@ impl Update {
         mut self,
         column_name: S,
         value: Value,
-    ) -> Update {
+    ) -> Self {
         self.updates.push((column_name.into(), value));
         self
     }
@@ -641,7 +641,7 @@ impl Update {
     /// method would have been called `where()`, to better match SQL, but
     /// `where` is a reserved word in Rust.)
     #[must_use]
-    pub fn with(mut self, condition: Expr) -> Update {
+    pub fn with(mut self, condition: Expr) -> Self {
         self.condition = if let Some(expr) = self.condition {
             Some(expr.and(condition))
         } else {

@@ -23,53 +23,53 @@ impl Value {
     /// Returns true if this is a null value.
     #[must_use]
     pub fn is_null(&self) -> bool {
-        matches!(*self, Value::Null)
+        matches!(*self, Self::Null)
     }
 
     /// Returns true if this is an integer value.
     #[must_use]
     pub fn is_int(&self) -> bool {
-        matches!(*self, Value::Int(_))
+        matches!(*self, Self::Int(_))
     }
 
     /// Extracts the integer value if it is an integer.
     #[must_use]
     pub fn as_int(&self) -> Option<i32> {
         match *self {
-            Value::Int(number) => Some(number),
-            Value::Null | Value::Str(_) | Value::Binary => None,
+            Self::Int(number) => Some(number),
+            Self::Null | Self::Str(_) | Self::Binary => None,
         }
     }
 
     /// Returns true if this is a string value.
     #[must_use]
     pub fn is_str(&self) -> bool {
-        matches!(*self, Value::Str(_))
+        matches!(*self, Self::Str(_))
     }
 
     /// Extracts the string value if it is a string.
     #[must_use]
     pub fn as_str(&self) -> Option<&str> {
         match *self {
-            Value::Str(ref string) => Some(string.as_str()),
-            Value::Null | Value::Int(_) | Value::Binary => None,
+            Self::Str(ref string) => Some(string.as_str()),
+            Self::Null | Self::Int(_) | Self::Binary => None,
         }
     }
 
     /// Creates a boolean value.
-    pub(crate) fn from_bool(boolean: bool) -> Value {
-        if boolean { Value::Int(1) } else { Value::Int(0) }
+    pub(crate) fn from_bool(boolean: bool) -> Self {
+        if boolean { Self::Int(1) } else { Self::Int(0) }
     }
 
     /// Coerces the `Value` to a boolean.  Returns false for null, zero, and
     /// empty string; returns true for all other values.
     pub(crate) fn to_bool(&self) -> bool {
         match *self {
-            Value::Null => false,
-            Value::Int(number) => number != 0,
-            Value::Str(ref string) => !string.is_empty(),
+            Self::Null => false,
+            Self::Int(number) => number != 0,
+            Self::Str(ref string) => !string.is_empty(),
             // Because binary streams cannot be null, we return true here.
-            Value::Binary => true,
+            Self::Binary => true,
         }
     }
 }
@@ -77,75 +77,75 @@ impl Value {
 impl fmt::Display for Value {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match *self {
-            Value::Null => "NULL".fmt(formatter),
-            Value::Int(number) => number.fmt(formatter),
-            Value::Str(ref string) => format!("{string:?}").fmt(formatter),
-            Value::Binary => "BINARY_STREAM".fmt(formatter),
+            Self::Null => "NULL".fmt(formatter),
+            Self::Int(number) => number.fmt(formatter),
+            Self::Str(ref string) => format!("{string:?}").fmt(formatter),
+            Self::Binary => "BINARY_STREAM".fmt(formatter),
         }
     }
 }
 
 impl From<bool> for Value {
-    fn from(boolean: bool) -> Value {
-        Value::from_bool(boolean)
+    fn from(boolean: bool) -> Self {
+        Self::from_bool(boolean)
     }
 }
 
 impl From<i16> for Value {
-    fn from(integer: i16) -> Value {
-        Value::Int(integer as i32)
+    fn from(integer: i16) -> Self {
+        Self::Int(integer as i32)
     }
 }
 
 impl From<u16> for Value {
-    fn from(integer: u16) -> Value {
-        Value::Int(integer as i32)
+    fn from(integer: u16) -> Self {
+        Self::Int(integer as i32)
     }
 }
 
 impl From<i32> for Value {
-    fn from(integer: i32) -> Value {
-        Value::Int(integer)
+    fn from(integer: i32) -> Self {
+        Self::Int(integer)
     }
 }
 
 impl<'a> From<&'a str> for Value {
-    fn from(string: &'a str) -> Value {
-        Value::Str(string.to_string())
+    fn from(string: &'a str) -> Self {
+        Self::Str(string.to_string())
     }
 }
 
 impl From<String> for Value {
-    fn from(string: String) -> Value {
-        Value::Str(string)
+    fn from(string: String) -> Self {
+        Self::Str(string)
     }
 }
 
 /// Returns a string value containing the code for the given language, suitable
 /// for storing in a column with the `Language` category.
 impl From<LanguageId> for Value {
-    fn from(language: LanguageId) -> Value {
-        Value::Str(format!("{}", language.id()))
+    fn from(language: LanguageId) -> Self {
+        Self::Str(format!("{}", language.id()))
     }
 }
 
 /// Returns a string value containing the codes for the given languages,
 /// suitable for storing in a column with the `Language` category.
 impl<'a> From<&'a [LanguageId]> for Value {
-    fn from(languages: &'a [LanguageId]) -> Value {
+    fn from(languages: &'a [LanguageId]) -> Self {
         let codes: Vec<String> =
             languages.iter().map(|lang| lang.id().to_string()).collect();
-        Value::Str(codes.join(","))
+        Self::Str(codes.join(","))
     }
 }
 
 /// Returns a string value containing the given UUID, suitable for storing in a
 /// column with the `Guid` category.
 impl From<Uuid> for Value {
-    fn from(uuid: Uuid) -> Value {
+    fn from(uuid: Uuid) -> Self {
         let mut string = format!("{{{}}}", uuid.hyphenated());
         string.make_ascii_uppercase();
-        Value::Str(string)
+        Self::Str(string)
     }
 }
 
@@ -167,32 +167,32 @@ pub enum ValueRef {
 impl ValueRef {
     /// Interns the given value into the string pool (if it is a string), and
     /// returns a corresponding `ValueRef`.
-    pub fn create(value: Value, string_pool: &mut StringPool) -> ValueRef {
+    pub fn create(value: Value, string_pool: &mut StringPool) -> Self {
         match value {
-            Value::Null => ValueRef::Null,
-            Value::Int(number) => ValueRef::Int(number),
-            Value::Str(string) => ValueRef::Str(string_pool.incref(string)),
-            Value::Binary => ValueRef::Binary,
+            Value::Null => Self::Null,
+            Value::Int(number) => Self::Int(number),
+            Value::Str(string) => Self::Str(string_pool.incref(string)),
+            Value::Binary => Self::Binary,
         }
     }
 
     /// Removes the reference from the string pool (if is a string reference).
     pub fn remove(self, string_pool: &mut StringPool) {
         match self {
-            ValueRef::Null | ValueRef::Int(_) | ValueRef::Binary => {}
-            ValueRef::Str(string_ref) => string_pool.decref(string_ref),
+            Self::Null | Self::Int(_) | Self::Binary => {}
+            Self::Str(string_ref) => string_pool.decref(string_ref),
         }
     }
 
     /// Dereferences the `ValueRef` into a `Value`.
     pub fn to_value(self, string_pool: &StringPool) -> Value {
         match self {
-            ValueRef::Null => Value::Null,
-            ValueRef::Int(number) => Value::Int(number),
-            ValueRef::Str(string_ref) => {
+            Self::Null => Value::Null,
+            Self::Int(number) => Value::Int(number),
+            Self::Str(string_ref) => {
                 Value::Str(string_pool.get(string_ref).to_string())
             }
-            ValueRef::Binary => Value::Binary,
+            Self::Binary => Value::Binary,
         }
     }
 }

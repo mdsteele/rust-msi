@@ -105,13 +105,13 @@ pub enum PackageType {
 }
 
 impl PackageType {
-    fn from_clsid(clsid: &Uuid) -> Option<PackageType> {
-        if *clsid == PackageType::Installer.clsid() {
-            Some(PackageType::Installer)
-        } else if *clsid == PackageType::Patch.clsid() {
-            Some(PackageType::Patch)
-        } else if *clsid == PackageType::Transform.clsid() {
-            Some(PackageType::Transform)
+    fn from_clsid(clsid: &Uuid) -> Option<Self> {
+        if *clsid == Self::Installer.clsid() {
+            Some(Self::Installer)
+        } else if *clsid == Self::Patch.clsid() {
+            Some(Self::Patch)
+        } else if *clsid == Self::Transform.clsid() {
+            Some(Self::Transform)
         } else {
             None
         }
@@ -119,13 +119,11 @@ impl PackageType {
 
     fn clsid(self) -> Uuid {
         match self {
-            PackageType::Installer => {
+            Self::Installer => {
                 Uuid::parse_str(INSTALLER_PACKAGE_CLSID).unwrap()
             }
-            PackageType::Patch => {
-                Uuid::parse_str(PATCH_PACKAGE_CLSID).unwrap()
-            }
-            PackageType::Transform => {
+            Self::Patch => Uuid::parse_str(PATCH_PACKAGE_CLSID).unwrap(),
+            Self::Transform => {
                 Uuid::parse_str(TRANSFORM_PACKAGE_CLSID).unwrap()
             }
         }
@@ -133,9 +131,9 @@ impl PackageType {
 
     fn default_title(&self) -> &str {
         match *self {
-            PackageType::Installer => "Installation Database",
-            PackageType::Patch => "Patch",
-            PackageType::Transform => "Transform",
+            Self::Installer => "Installation Database",
+            Self::Patch => "Patch",
+            Self::Transform => "Transform",
         }
     }
 }
@@ -277,7 +275,7 @@ impl<F: Read + Seek> Package<F> {
     /// Opens an existing MSI file, using the underlying reader.  If the
     /// underlying reader also supports the `Write` trait, then the `Package`
     /// object will be writable as well.
-    pub fn open(inner: F) -> io::Result<Package<F>> {
+    pub fn open(inner: F) -> io::Result<Self> {
         let mut comp = cfb::CompoundFile::open(inner)?;
         let package_type = {
             let root_entry = comp.root_entry();
@@ -469,7 +467,7 @@ impl<F: Read + Seek> Package<F> {
             );
             all_tables.insert(table.name().to_string(), table);
         }
-        Ok(Package {
+        Ok(Self {
             comp: Some(comp),
             package_type,
             summary_info,
@@ -512,10 +510,7 @@ impl<F: Read + Seek> Package<F> {
 impl<F: Read + Write + Seek> Package<F> {
     /// Creates a new, empty package of the given type, using the underlying
     /// reader/writer.  The reader/writer should be initially empty.
-    pub fn create(
-        package_type: PackageType,
-        inner: F,
-    ) -> io::Result<Package<F>> {
+    pub fn create(package_type: PackageType, inner: F) -> io::Result<Self> {
         let mut comp = cfb::CompoundFile::create(inner)?;
         comp.set_storage_clsid("/", package_type.clsid())?;
         let mut summary_info = SummaryInfo::new();
@@ -529,7 +524,7 @@ impl<F: Read + Write + Seek> Package<F> {
             tables.insert(table.name().to_string(), table);
             tables
         };
-        let mut package = Package {
+        let mut package = Self {
             comp: Some(comp),
             package_type,
             summary_info,

@@ -27,8 +27,8 @@ enum PropertyFormatVersion {
 impl PropertyFormatVersion {
     fn version_number(self) -> u16 {
         match self {
-            PropertyFormatVersion::V0 => 0,
-            PropertyFormatVersion::V1 => 1,
+            Self::V0 => 0,
+            Self::V1 => 1,
         }
     }
 }
@@ -55,17 +55,14 @@ pub enum PropertyValue {
 }
 
 impl PropertyValue {
-    fn read<R: Read>(
-        mut reader: R,
-        codepage: CodePage,
-    ) -> io::Result<PropertyValue> {
+    fn read<R: Read>(mut reader: R, codepage: CodePage) -> io::Result<Self> {
         let type_number = reader.read_u32::<LittleEndian>()?;
         match type_number {
-            0 => Ok(PropertyValue::Empty),
-            1 => Ok(PropertyValue::Null),
-            2 => Ok(PropertyValue::I2(reader.read_i16::<LittleEndian>()?)),
-            3 => Ok(PropertyValue::I4(reader.read_i32::<LittleEndian>()?)),
-            16 => Ok(PropertyValue::I1(reader.read_i8()?)),
+            0 => Ok(Self::Empty),
+            1 => Ok(Self::Null),
+            2 => Ok(Self::I2(reader.read_i16::<LittleEndian>()?)),
+            3 => Ok(Self::I4(reader.read_i32::<LittleEndian>()?)),
+            16 => Ok(Self::I1(reader.read_i8()?)),
             30 => {
                 let length = reader.read_u32::<LittleEndian>()?;
                 let length = if length == 0 { 0 } else { length - 1 };
@@ -76,11 +73,11 @@ impl PropertyValue {
                 if reader.read_u8()? != 0 {
                     invalid_data!("Property set string not null-terminated");
                 }
-                Ok(PropertyValue::LpStr(codepage.decode(&bytes)))
+                Ok(Self::LpStr(codepage.decode(&bytes)))
             }
             64 => {
                 let timestamp = Timestamp::read_from(&mut reader)?;
-                Ok(PropertyValue::FileTime(timestamp))
+                Ok(Self::FileTime(timestamp))
             }
             _ => {
                 invalid_data!(
@@ -97,28 +94,28 @@ impl PropertyValue {
         codepage: CodePage,
     ) -> io::Result<()> {
         match self {
-            PropertyValue::Empty => {
+            Self::Empty => {
                 writer.write_u32::<LittleEndian>(0)?;
             }
-            PropertyValue::Null => {
+            Self::Null => {
                 writer.write_u32::<LittleEndian>(1)?;
             }
-            PropertyValue::I1(value) => {
+            Self::I1(value) => {
                 writer.write_u32::<LittleEndian>(16)?;
                 writer.write_i8(*value)?;
                 writer.write_u8(0)?; // Padding
                 writer.write_u16::<LittleEndian>(0)?; // Padding
             }
-            PropertyValue::I2(value) => {
+            Self::I2(value) => {
                 writer.write_u32::<LittleEndian>(2)?;
                 writer.write_i16::<LittleEndian>(*value)?;
                 writer.write_u16::<LittleEndian>(0)?; // Padding
             }
-            PropertyValue::I4(value) => {
+            Self::I4(value) => {
                 writer.write_u32::<LittleEndian>(3)?;
                 writer.write_i32::<LittleEndian>(*value)?;
             }
-            PropertyValue::LpStr(string) => {
+            Self::LpStr(string) => {
                 writer.write_u32::<LittleEndian>(30)?;
                 let bytes = codepage.encode(string.as_str());
                 let length = (bytes.len() + 1) as u32;
@@ -130,7 +127,7 @@ impl PropertyValue {
                     writer.write_u8(0)?;
                 }
             }
-            PropertyValue::FileTime(timestamp) => {
+            Self::FileTime(timestamp) => {
                 writer.write_u32::<LittleEndian>(64)?;
                 timestamp.write_to(&mut writer)?;
             }
@@ -142,15 +139,13 @@ impl PropertyValue {
     /// written by the `write()` method.  Always returns a multiple of four.
     fn size_including_padding(&self) -> u32 {
         match self {
-            PropertyValue::Empty => 4,
-            PropertyValue::Null => 4,
-            PropertyValue::I1(_) => 8,
-            PropertyValue::I2(_) => 8,
-            PropertyValue::I4(_) => 8,
-            PropertyValue::LpStr(string) => {
-                ((12 + string.len() as u32) >> 2) << 2
-            }
-            PropertyValue::FileTime(_) => 12,
+            Self::Empty => 4,
+            Self::Null => 4,
+            Self::I1(_) => 8,
+            Self::I2(_) => 8,
+            Self::I4(_) => 8,
+            Self::LpStr(string) => ((12 + string.len() as u32) >> 2) << 2,
+            Self::FileTime(_) => 12,
         }
     }
 
@@ -158,7 +153,7 @@ impl PropertyValue {
     /// supported.
     fn minimum_version(&self) -> PropertyFormatVersion {
         match self {
-            &PropertyValue::I1(_) => PropertyFormatVersion::V1,
+            &Self::I1(_) => PropertyFormatVersion::V1,
             _ => PropertyFormatVersion::V0,
         }
     }
@@ -166,13 +161,13 @@ impl PropertyValue {
     /// Returns a human-readable name for this value's data type.
     fn type_name(&self) -> &str {
         match self {
-            PropertyValue::Empty => "EMPTY",
-            PropertyValue::Null => "NULL",
-            PropertyValue::I1(_) => "I1",
-            PropertyValue::I2(_) => "I2",
-            PropertyValue::I4(_) => "I4",
-            PropertyValue::LpStr(_) => "LPSTR",
-            PropertyValue::FileTime(_) => "FILETIME",
+            Self::Empty => "EMPTY",
+            Self::Null => "NULL",
+            Self::I1(_) => "I1",
+            Self::I2(_) => "I2",
+            Self::I4(_) => "I4",
+            Self::LpStr(_) => "LPSTR",
+            Self::FileTime(_) => "FILETIME",
         }
     }
 }
@@ -189,12 +184,8 @@ pub struct PropertySet {
 }
 
 impl PropertySet {
-    pub fn new(
-        os: OperatingSystem,
-        os_version: u16,
-        fmtid: [u8; 16],
-    ) -> PropertySet {
-        PropertySet {
+    pub fn new(os: OperatingSystem, os_version: u16, fmtid: [u8; 16]) -> Self {
+        Self {
             os,
             os_version,
             clsid: [0; 16],
@@ -204,7 +195,7 @@ impl PropertySet {
         }
     }
 
-    pub fn read<R: Read + Seek>(mut reader: R) -> io::Result<PropertySet> {
+    pub fn read<R: Read + Seek>(mut reader: R) -> io::Result<Self> {
         // Property set header:
         if reader.read_u16::<LittleEndian>()? != BYTE_ORDER_MARK {
             invalid_data!("Invalid byte order mark");
@@ -302,7 +293,7 @@ impl PropertySet {
             debug_assert!(!property_values.contains_key(&name));
             property_values.insert(name, value);
         }
-        Ok(PropertySet {
+        Ok(Self {
             os,
             os_version,
             clsid,
