@@ -47,3 +47,32 @@ jobs:
 
       - name: Run tests
         run: cargo test --verbose
+
+  msrv:
+    name: MSRV
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/master' }}
+          cache-bin: false
+
+      - name: Install cargo-msrv
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-msrv
+
+      - name: Verify MSRV
+        id: verify
+        run: cargo msrv verify
+
+      - name: Find actual MSRV
+        if: ${{ failure() && steps.verify.conclusion == 'failure' }}
+        run: cargo msrv find
