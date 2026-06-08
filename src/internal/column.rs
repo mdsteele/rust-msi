@@ -36,20 +36,20 @@ pub enum ColumnType {
 }
 
 impl ColumnType {
-    fn from_bitfield(type_bits: i32) -> io::Result<ColumnType> {
+    fn from_bitfield(type_bits: i32) -> io::Result<Self> {
         let field_size = (type_bits & COL_FIELD_SIZE_MASK) as usize;
         if (type_bits & !COL_NULLABLE_BIT) == (COL_STRING_BIT | COL_VALID_BIT)
         {
-            Ok(ColumnType::Binary)
+            Ok(Self::Binary)
         } else if (type_bits & COL_STRING_BIT) != 0 {
-            Ok(ColumnType::Str(field_size))
+            Ok(Self::Str(field_size))
         } else {
             match field_size {
                 4 => {
                     if (type_bits & COL_NONBINARY_BIT) == 0 {
-                        Ok(ColumnType::Int32)
+                        Ok(Self::Int32)
                     } else {
-                        Ok(ColumnType::Binary)
+                        Ok(Self::Binary)
                     }
                 }
                 0..=2 => {
@@ -57,7 +57,7 @@ impl ColumnType {
                     // See:
                     // - https://github.com/mdsteele/rust-msi/issues/8
                     // - https://github.com/mdsteele/rust-msi/issues/50
-                    Ok(ColumnType::Int16)
+                    Ok(Self::Int16)
                 }
                 _ => invalid_data!(
                     "Invalid field size for integer column ({})",
@@ -69,10 +69,10 @@ impl ColumnType {
 
     fn bitfield(&self) -> i32 {
         match *self {
-            ColumnType::Int16 => 0x2,
-            ColumnType::Int32 => 0x4,
-            ColumnType::Str(max_len) => COL_STRING_BIT | (max_len as i32),
-            ColumnType::Binary => COL_STRING_BIT | COL_VALID_BIT,
+            Self::Int16 => 0x2,
+            Self::Int32 => 0x4,
+            Self::Str(max_len) => COL_STRING_BIT | (max_len as i32),
+            Self::Binary => COL_STRING_BIT | COL_VALID_BIT,
         }
     }
 
@@ -82,21 +82,19 @@ impl ColumnType {
         long_string_refs: bool,
     ) -> io::Result<ValueRef> {
         match *self {
-            ColumnType::Int16 => match reader.read_i16::<LittleEndian>()? {
+            Self::Int16 => match reader.read_i16::<LittleEndian>()? {
                 0 => Ok(ValueRef::Null),
                 number => Ok(ValueRef::Int((number ^ -0x8000) as i32)),
             },
-            ColumnType::Int32 => match reader.read_i32::<LittleEndian>()? {
+            Self::Int32 => match reader.read_i32::<LittleEndian>()? {
                 0 => Ok(ValueRef::Null),
                 number => Ok(ValueRef::Int(number ^ -0x8000_0000)),
             },
-            ColumnType::Str(_) => {
-                match StringRef::read(reader, long_string_refs)? {
-                    Some(string_ref) => Ok(ValueRef::Str(string_ref)),
-                    None => Ok(ValueRef::Null),
-                }
-            }
-            ColumnType::Binary => {
+            Self::Str(_) => match StringRef::read(reader, long_string_refs)? {
+                Some(string_ref) => Ok(ValueRef::Str(string_ref)),
+                None => Ok(ValueRef::Null),
+            },
+            Self::Binary => {
                 let _ = reader.read_i16::<LittleEndian>()?;
                 Ok(ValueRef::Binary)
             }
@@ -110,7 +108,7 @@ impl ColumnType {
         long_string_refs: bool,
     ) -> io::Result<()> {
         match *self {
-            ColumnType::Int16 => match value_ref {
+            Self::Int16 => match value_ref {
                 ValueRef::Null => writer.write_i16::<LittleEndian>(0)?,
                 ValueRef::Int(number) => {
                     let number = (number as i16) ^ -0x8000;
@@ -122,7 +120,7 @@ impl ColumnType {
                     self
                 ),
             },
-            ColumnType::Int32 => match value_ref {
+            Self::Int32 => match value_ref {
                 ValueRef::Null => writer.write_i32::<LittleEndian>(0)?,
                 ValueRef::Int(number) => {
                     let number = number ^ -0x8000_0000;
@@ -134,7 +132,7 @@ impl ColumnType {
                     self
                 ),
             },
-            ColumnType::Str(_) => {
+            Self::Str(_) => {
                 let string_ref = match value_ref {
                     ValueRef::Null => None,
                     ValueRef::Str(string_ref) => Some(string_ref),
@@ -147,7 +145,7 @@ impl ColumnType {
                 StringRef::write(writer, string_ref, long_string_refs)?;
             }
 
-            ColumnType::Binary => match value_ref {
+            Self::Binary => match value_ref {
                 // Value found from inspecting MSIs. Couldn't find documentation
                 // for this so I'm just assuming the MSIs I checked are
                 // representative.
@@ -164,9 +162,9 @@ impl ColumnType {
 
     pub(crate) fn width(&self, long_string_refs: bool) -> u64 {
         match *self {
-            ColumnType::Int16 | ColumnType::Binary => 2,
-            ColumnType::Int32 => 4,
-            ColumnType::Str(_) => {
+            Self::Int16 | Self::Binary => 2,
+            Self::Int32 => 4,
+            Self::Str(_) => {
                 if long_string_refs {
                     3
                 } else {
@@ -180,15 +178,15 @@ impl ColumnType {
 impl fmt::Display for ColumnType {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match *self {
-            ColumnType::Int16 => formatter.write_str("SMALLINT"),
-            ColumnType::Int32 => formatter.write_str("INTEGER"),
-            ColumnType::Str(max_len) => {
+            Self::Int16 => formatter.write_str("SMALLINT"),
+            Self::Int32 => formatter.write_str("INTEGER"),
+            Self::Str(max_len) => {
                 formatter.write_str("VARCHAR(")?;
                 max_len.fmt(formatter)?;
                 formatter.write_str(")")?;
                 Ok(())
             }
-            ColumnType::Binary => formatter.write_str("BINARY"),
+            Self::Binary => formatter.write_str("BINARY"),
         }
     }
 }
@@ -224,11 +222,11 @@ impl Column {
         ColumnBuilder::new(name.into())
     }
 
-    pub(crate) fn with_name_prefix(&self, prefix: &str) -> Column {
+    pub(crate) fn with_name_prefix(&self, prefix: &str) -> Self {
         if prefix.is_empty() {
             self.clone()
         } else {
-            Column {
+            Self {
                 name: format!("{}.{}", prefix, self.name),
                 coltype: self.coltype,
                 is_localizable: self.is_localizable,
@@ -242,7 +240,7 @@ impl Column {
         }
     }
 
-    pub(crate) fn but_nullable(mut self) -> Column {
+    pub(crate) fn but_nullable(mut self) -> Self {
         self.is_nullable = true;
         self
     }
@@ -391,8 +389,8 @@ pub struct ColumnBuilder {
 }
 
 impl ColumnBuilder {
-    fn new(name: String) -> ColumnBuilder {
-        ColumnBuilder {
+    fn new(name: String) -> Self {
+        Self {
             name,
             is_localizable: false,
             is_nullable: false,
@@ -406,53 +404,49 @@ impl ColumnBuilder {
 
     /// Makes the column be localizable.
     #[must_use]
-    pub fn localizable(mut self) -> ColumnBuilder {
+    pub fn localizable(mut self) -> Self {
         self.is_localizable = true;
         self
     }
 
     /// Makes the column allow null values.
     #[must_use]
-    pub fn nullable(mut self) -> ColumnBuilder {
+    pub fn nullable(mut self) -> Self {
         self.is_nullable = true;
         self
     }
 
     /// Makes the column be a primary key column.
     #[must_use]
-    pub fn primary_key(mut self) -> ColumnBuilder {
+    pub fn primary_key(mut self) -> Self {
         self.is_primary_key = true;
         self
     }
 
     /// Makes the column only permit values in the given range.
     #[must_use]
-    pub fn range(mut self, min: i32, max: i32) -> ColumnBuilder {
+    pub fn range(mut self, min: i32, max: i32) -> Self {
         self.value_range = Some((min, max));
         self
     }
 
     /// Makes the column refer to a key column in another table.
     #[must_use]
-    pub fn foreign_key(
-        mut self,
-        table_name: &str,
-        column_index: i32,
-    ) -> ColumnBuilder {
+    pub fn foreign_key(mut self, table_name: &str, column_index: i32) -> Self {
         self.foreign_key = Some((table_name.to_string(), column_index));
         self
     }
 
     /// For string columns, makes the column use the specified data format.
     #[must_use]
-    pub fn category(mut self, category: Category) -> ColumnBuilder {
+    pub fn category(mut self, category: Category) -> Self {
         self.category = Some(category);
         self
     }
 
     /// Makes the column only permit the given values.
     #[must_use]
-    pub fn enum_values(mut self, values: &[&str]) -> ColumnBuilder {
+    pub fn enum_values(mut self, values: &[&str]) -> Self {
         self.enum_values = values.iter().map(|val| val.to_string()).collect();
         self
     }

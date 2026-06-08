@@ -45,19 +45,19 @@ pub struct SummaryInfo {
 
 impl SummaryInfo {
     /// Creates an empty `SummaryInfo` with no properties set.
-    pub(crate) fn new() -> SummaryInfo {
+    pub(crate) fn new() -> Self {
         let properties = PropertySet::new(OperatingSystem::Win32, 10, FMTID);
-        let mut summary = SummaryInfo { properties };
+        let mut summary = Self { properties };
         summary.set_codepage(CodePage::Utf8);
         summary
     }
 
-    pub(crate) fn read<R: Read + Seek>(reader: R) -> io::Result<SummaryInfo> {
+    pub(crate) fn read<R: Read + Seek>(reader: R) -> io::Result<Self> {
         let properties = PropertySet::read(reader)?;
         if properties.format_identifier() != &FMTID {
             invalid_data!("Property set has wrong format identifier");
         }
-        Ok(SummaryInfo { properties })
+        Ok(Self { properties })
     }
 
     pub(crate) fn write<W: Write>(&self, writer: W) -> io::Result<()> {

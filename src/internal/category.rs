@@ -310,67 +310,67 @@ pub enum Category {
 }
 
 impl Category {
-    pub(crate) fn all() -> Vec<Category> {
+    pub(crate) fn all() -> Vec<Self> {
         vec![
-            Category::Text,
-            Category::UpperCase,
-            Category::LowerCase,
-            Category::Integer,
-            Category::DoubleInteger,
-            Category::Number,
-            Category::TimeDate,
-            Category::Identifier,
-            Category::Property,
-            Category::Filename,
-            Category::WildCardFilename,
-            Category::Path,
-            Category::Paths,
-            Category::AnyPath,
-            Category::DefaultDir,
-            Category::RegPath,
-            Category::Formatted,
-            Category::FormattedSddlText,
-            Category::Template,
-            Category::Condition,
-            Category::Guid,
-            Category::Version,
-            Category::Language,
-            Category::Binary,
-            Category::CustomSource,
-            Category::Cabinet,
-            Category::Shortcut,
+            Self::Text,
+            Self::UpperCase,
+            Self::LowerCase,
+            Self::Integer,
+            Self::DoubleInteger,
+            Self::Number,
+            Self::TimeDate,
+            Self::Identifier,
+            Self::Property,
+            Self::Filename,
+            Self::WildCardFilename,
+            Self::Path,
+            Self::Paths,
+            Self::AnyPath,
+            Self::DefaultDir,
+            Self::RegPath,
+            Self::Formatted,
+            Self::FormattedSddlText,
+            Self::Template,
+            Self::Condition,
+            Self::Guid,
+            Self::Version,
+            Self::Language,
+            Self::Binary,
+            Self::CustomSource,
+            Self::Cabinet,
+            Self::Shortcut,
         ]
     }
 
     pub(crate) fn as_str(self) -> &'static str {
         match self {
-            Category::AnyPath => "AnyPath",
-            Category::Binary => "Binary",
-            Category::Cabinet => "Cabinet",
-            Category::Condition => "Condition",
-            Category::CustomSource => "CustomSource",
-            Category::DefaultDir => "DefaultDir",
-            Category::DoubleInteger => "DoubleInteger",
-            Category::Number => "Number",
-            Category::Filename => "Filename",
-            Category::Formatted => "Formatted",
-            Category::FormattedSddlText => "FormattedSDDLText",
-            Category::Guid => "GUID",
-            Category::Identifier => "Identifier",
-            Category::Integer => "Integer",
-            Category::Language => "Language",
-            Category::LowerCase => "LowerCase",
-            Category::Path => "Path",
-            Category::Paths => "Paths",
-            Category::Property => "Property",
-            Category::RegPath => "RegPath",
-            Category::Shortcut => "Shortcut",
-            Category::Template => "Template",
-            Category::Text => "Text",
-            Category::TimeDate => "TimeDate",
-            Category::UpperCase => "UpperCase",
-            Category::Version => "Version",
-            Category::WildCardFilename => "WildCardFilename",
+            Self::AnyPath => "AnyPath",
+            Self::Binary => "Binary",
+            Self::Cabinet => "Cabinet",
+            Self::Condition => "Condition",
+            Self::CustomSource => "CustomSource",
+            Self::DefaultDir => "DefaultDir",
+            Self::DoubleInteger => "DoubleInteger",
+            Self::Number => "Number",
+            Self::Filename => "Filename",
+            Self::Formatted => "Formatted",
+            Self::FormattedSddlText => "FormattedSDDLText",
+            Self::Guid => "GUID",
+            Self::Identifier => "Identifier",
+            Self::Integer => "Integer",
+            Self::Language => "Language",
+            Self::LowerCase => "LowerCase",
+            Self::Path => "Path",
+            Self::Paths => "Paths",
+            Self::Property => "Property",
+            Self::RegPath => "RegPath",
+            Self::Shortcut => "Shortcut",
+            Self::Template => "Template",
+            Self::Text => "Text",
+            Self::TimeDate => "TimeDate",
+            Self::UpperCase => "UpperCase",
+            Self::Version => "Version",
+            Self::WildCardFilename => "WildCardFilename",
         }
     }
 
@@ -379,50 +379,50 @@ impl Category {
     #[must_use]
     pub fn validate(&self, string: &str) -> bool {
         match *self {
-            Category::Text => true,
-            Category::UpperCase => {
+            Self::Text => true,
+            Self::UpperCase => {
                 !string.chars().any(|chr| chr.is_ascii_lowercase())
             }
-            Category::LowerCase => {
+            Self::LowerCase => {
                 !string.chars().any(|chr| chr.is_ascii_uppercase())
             }
-            Category::Integer => string.parse::<i16>().is_ok(),
-            Category::DoubleInteger => string.parse::<i32>().is_ok(),
-            Category::Number => string.parse::<i32>().is_ok(),
-            Category::Identifier => {
+            Self::Integer => string.parse::<i16>().is_ok(),
+            Self::DoubleInteger => string.parse::<i32>().is_ok(),
+            Self::Number => string.parse::<i32>().is_ok(),
+            Self::Identifier => {
                 string.starts_with(|chr: char| {
                     chr.is_ascii_alphabetic() || chr == '_'
                 }) && !string.contains(|chr: char| {
                     !(chr.is_ascii_alphanumeric() || chr == '_' || chr == '.')
                 })
             }
-            Category::Property => {
+            Self::Property => {
                 let substr = if let Some(substr) = string.strip_prefix('%') {
                     substr
                 } else {
                     string
                 };
-                Category::Identifier.validate(substr)
+                Self::Identifier.validate(substr)
             }
-            Category::Guid => {
+            Self::Guid => {
                 string.len() == 38
                     && string.starts_with('{')
                     && string.ends_with('}')
                     && !string.chars().any(|chr| chr.is_ascii_lowercase())
                     && Uuid::parse_str(&string[1..37]).is_ok()
             }
-            Category::Version => {
+            Self::Version => {
                 let mut parts = string.split('.');
                 parts.clone().count() <= 4
                     && parts.all(|part| part.parse::<u16>().is_ok())
             }
-            Category::Language => {
+            Self::Language => {
                 let mut parts = string.split(',');
                 parts.all(|part| part.parse::<u16>().is_ok())
             }
-            Category::Cabinet => {
+            Self::Cabinet => {
                 if let Some(substr) = string.strip_prefix('#') {
-                    Category::Identifier.validate(substr)
+                    Self::Identifier.validate(substr)
                 } else {
                     let mut parts: Vec<&str> =
                         string.rsplitn(2, '.').collect();
@@ -448,37 +448,37 @@ impl fmt::Display for Category {
 impl str::FromStr for Category {
     type Err = io::Error;
 
-    fn from_str(string: &str) -> io::Result<Category> {
+    fn from_str(string: &str) -> io::Result<Self> {
         match string {
-            "AnyPath" => Ok(Category::AnyPath),
-            "Binary" => Ok(Category::Binary),
-            "Cabinet" => Ok(Category::Cabinet),
-            "Condition" => Ok(Category::Condition),
-            "CustomSource" => Ok(Category::CustomSource),
-            "DefaultDir" => Ok(Category::DefaultDir),
-            "DoubleInteger" => Ok(Category::DoubleInteger),
-            "Filename" => Ok(Category::Filename),
-            "Formatted" => Ok(Category::Formatted),
-            "FormattedSDDLText" => Ok(Category::FormattedSddlText),
-            "FormattedSddlText" => Ok(Category::FormattedSddlText),
-            "GUID" => Ok(Category::Guid),
-            "Guid" => Ok(Category::Guid),
-            "Identifier" => Ok(Category::Identifier),
-            "Integer" => Ok(Category::Integer),
-            "Language" => Ok(Category::Language),
-            "LowerCase" => Ok(Category::LowerCase),
-            "Number" => Ok(Category::Number),
-            "Path" => Ok(Category::Path),
-            "Paths" => Ok(Category::Paths),
-            "Property" => Ok(Category::Property),
-            "RegPath" => Ok(Category::RegPath),
-            "Shortcut" => Ok(Category::Shortcut),
-            "Template" => Ok(Category::Template),
-            "Text" => Ok(Category::Text),
-            "TimeDate" => Ok(Category::TimeDate),
-            "UpperCase" => Ok(Category::UpperCase),
-            "Version" => Ok(Category::Version),
-            "WildCardFilename" => Ok(Category::WildCardFilename),
+            "AnyPath" => Ok(Self::AnyPath),
+            "Binary" => Ok(Self::Binary),
+            "Cabinet" => Ok(Self::Cabinet),
+            "Condition" => Ok(Self::Condition),
+            "CustomSource" => Ok(Self::CustomSource),
+            "DefaultDir" => Ok(Self::DefaultDir),
+            "DoubleInteger" => Ok(Self::DoubleInteger),
+            "Filename" => Ok(Self::Filename),
+            "Formatted" => Ok(Self::Formatted),
+            "FormattedSDDLText" => Ok(Self::FormattedSddlText),
+            "FormattedSddlText" => Ok(Self::FormattedSddlText),
+            "GUID" => Ok(Self::Guid),
+            "Guid" => Ok(Self::Guid),
+            "Identifier" => Ok(Self::Identifier),
+            "Integer" => Ok(Self::Integer),
+            "Language" => Ok(Self::Language),
+            "LowerCase" => Ok(Self::LowerCase),
+            "Number" => Ok(Self::Number),
+            "Path" => Ok(Self::Path),
+            "Paths" => Ok(Self::Paths),
+            "Property" => Ok(Self::Property),
+            "RegPath" => Ok(Self::RegPath),
+            "Shortcut" => Ok(Self::Shortcut),
+            "Template" => Ok(Self::Template),
+            "Text" => Ok(Self::Text),
+            "TimeDate" => Ok(Self::TimeDate),
+            "UpperCase" => Ok(Self::UpperCase),
+            "Version" => Ok(Self::Version),
+            "WildCardFilename" => Ok(Self::WildCardFilename),
             _ => invalid_data!("Invalid category: {:?}", string),
         }
     }

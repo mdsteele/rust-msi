@@ -13,8 +13,8 @@ pub struct StreamReader<F> {
 }
 
 impl<F> StreamReader<F> {
-    pub(crate) fn new(stream: cfb::Stream<F>) -> StreamReader<F> {
-        StreamReader { stream }
+    pub(crate) fn new(stream: cfb::Stream<F>) -> Self {
+        Self { stream }
     }
 }
 
@@ -38,8 +38,8 @@ pub struct StreamWriter<F> {
 }
 
 impl<F> StreamWriter<F> {
-    pub(crate) fn new(stream: cfb::Stream<F>) -> StreamWriter<F> {
-        StreamWriter { stream }
+    pub(crate) fn new(stream: cfb::Stream<F>) -> Self {
+        Self { stream }
     }
 }
 
@@ -69,8 +69,8 @@ pub struct Streams<'a, F: 'a> {
 }
 
 impl<'a, F: 'a> Streams<'a, F> {
-    pub(crate) fn new(entries: cfb::Entries<'a, F>) -> Streams<'a, F> {
-        Streams { entries }
+    pub(crate) fn new(entries: cfb::Entries<'a, F>) -> Self {
+        Self { entries }
     }
 }
 

@@ -11,8 +11,8 @@ pub struct Timestamp(u64);
 
 impl Timestamp {
     /// Returns a timestamp representing the given system time.
-    pub fn from_system_time(system_time: SystemTime) -> Timestamp {
-        Timestamp(timestamp_from_system_time(system_time))
+    pub fn from_system_time(system_time: SystemTime) -> Self {
+        Self(timestamp_from_system_time(system_time))
     }
 
     /// Returns the local system time that this timestamp represents.
@@ -20,8 +20,8 @@ impl Timestamp {
         system_time_from_timestamp(self.0)
     }
 
-    pub fn read_from<R: Read>(reader: &mut R) -> io::Result<Timestamp> {
-        Ok(Timestamp(reader.read_u64::<LittleEndian>()?))
+    pub fn read_from<R: Read>(reader: &mut R) -> io::Result<Self> {
+        Ok(Self(reader.read_u64::<LittleEndian>()?))
     }
 
     pub fn write_to<W: Write>(self, writer: &mut W) -> io::Result<()> {
