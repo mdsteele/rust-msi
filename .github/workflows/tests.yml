@@ -65,7 +65,7 @@ jobs:
           cache-bin: false
 
       - name: Install cargo-msrv
-        uses: taiki-e/install-action@v2.85.11
+        uses: taiki-e/install-action@v2.86.1
         with:
           tool: cargo-msrv
 
