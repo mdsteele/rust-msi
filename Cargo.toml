@@ -26,7 +26,7 @@ rust-version.workspace = true
 
 [dependencies]
 byteorder = "1"
-cfb = "0.14"
+cfb = "0.15"
 encoding_rs = "0.8"
 uuid = "1"
 
