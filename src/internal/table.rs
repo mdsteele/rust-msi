@@ -135,10 +135,8 @@ impl Table {
     pub(crate) fn write_rows<W: Write>(
         &self,
         mut writer: W,
-        rows: Vec<Vec<ValueRef>>,
+        mut rows: Vec<Vec<ValueRef>>,
     ) -> io::Result<()> {
-        let mut rows = rows.clone();
-
         // Rows must be sorted or else the MSI will be seen as invalid to
         // applications like `msiexec.exe`.
         rows.sort_by(|row, other| {
