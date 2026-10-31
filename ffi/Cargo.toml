@@ -16,5 +16,5 @@ crate-type = ["lib", "cdylib"]
 
 [dependencies]
 chrono = "0.4.37"
-msi = { version = "0.11.0", path = "../" }
+msi = { version = "0.11.1", path = "../" }
 safer-ffi = { version = "0.1.6", features = ["headers", "python-headers"] }
