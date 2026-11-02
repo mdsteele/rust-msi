@@ -355,7 +355,7 @@ impl Category {
             Self::Filename => "Filename",
             Self::Formatted => "Formatted",
             Self::FormattedSddlText => "FormattedSDDLText",
-            Self::Guid => "GUID",
+            Self::Guid => "Guid",
             Self::Identifier => "Identifier",
             Self::Integer => "Integer",
             Self::Language => "Language",
